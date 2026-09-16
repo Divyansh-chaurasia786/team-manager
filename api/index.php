@@ -1,5 +1,11 @@
 <?php
 
+if (isset($_GET['health'])) {
+    header('Content-Type: text/plain');
+    echo "PHP_SERVERLESS_OK: " . PHP_VERSION;
+    exit;
+}
+
 // Ensure /tmp directory structure exists for serverless runtime
 $dirs = [
     '/tmp/storage/framework/views',
