@@ -21,73 +21,26 @@
     </div>
 
     @if(session('new_member'))
-    <!-- New Registered Member Credential Banner -->
-    <div class="p-5 rounded-2xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white border border-indigo-500/40 shadow-xl relative overflow-hidden">
-        <div class="absolute -right-8 -top-8 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+    <!-- New Registered Member Confirmation Banner (Zero Credentials On Screen) -->
+    <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 text-white border border-emerald-500/30 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-8 -top-8 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex items-center justify-between gap-4 relative z-10">
             <div class="flex items-start gap-3.5">
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <i data-lucide="mail-check" class="w-5 h-5"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-black text-white">Employee Successfully Registered & Credentialed</h3>
-                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Email Sent</span>
+                        <h3 class="text-sm font-black text-white">Employee Successfully Registered & Credentials Emailed</h3>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Email Dispatched</span>
                     </div>
                     <p class="text-xs text-slate-300 mt-1">
-                        <strong>{{ session('new_member')['name'] }}</strong> ({{ session('new_member')['designation'] }}) has been registered. An automated welcome email containing their login details and temporary password has been dispatched to <strong>{{ session('new_member')['email'] }}</strong>.
+                        <strong>{{ session('new_member')['name'] }}</strong> ({{ session('new_member')['designation'] }}) has been registered. An automated welcome email containing their login details and temporary one-time password has been sent directly to <strong>{{ session('new_member')['email'] }}</strong>.
                     </p>
-                    <p class="text-[11px] text-amber-300/90 mt-1">
-                        <i data-lucide="lock" class="w-3 h-3 inline mr-1"></i>Security Policy: The employee will be strictly required to change this temporary password upon their first login.
+                    <p class="text-[11px] text-emerald-300/90 mt-1.5 flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span>Privacy Protocol: Credentials are never displayed on screen to team leads and are delivered exclusively to the employee's inbox.</span>
                     </p>
-                </div>
-            </div>
-
-            <!-- Copyable Credentials Box (Masked for Security) -->
-            <div x-data="{ showOtp: false }" class="bg-slate-950/80 border border-slate-700/60 rounded-xl p-3.5 shrink-0 flex flex-col gap-2 w-full md:w-auto min-w-0 md:min-w-[290px]">
-                <div class="flex items-center justify-between text-[11px] text-slate-400">
-                    <span class="font-bold text-slate-300">Generated Credentials:</span>
-                    <button type="button" onclick="navigator.clipboard.writeText('Username: {{ session('new_member')['username'] }}\nOTP: {{ session('new_member')['otp'] }}\nEmail: {{ session('new_member')['email'] }}'); this.innerText='✓ Copied All'; setTimeout(()=>this.innerText='Copy All', 2000)" class="px-2 py-0.5 rounded bg-indigo-600/40 hover:bg-indigo-600 text-white text-[10px] font-bold cursor-pointer transition">
-                        Copy All
-                    </button>
-                </div>
-                
-                <!-- Unique Username Box -->
-                <div class="flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                    <div class="flex flex-col">
-                        <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Unique Username</span>
-                        <span class="font-mono text-xs font-black text-indigo-400 tracking-wide">{{ session('new_member')['username'] }}</span>
-                    </div>
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ session('new_member')['username'] }}'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 2000)" class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer">
-                        Copy
-                    </button>
-                </div>
-
-                <!-- OTP Password Box (Hidden by default) -->
-                <div class="flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">One-Time Password</span>
-                            <span class="text-[9px] text-slate-500 font-mono">(Hidden)</span>
-                        </div>
-                        <span class="font-mono text-xs font-black text-amber-400 tracking-wider" x-text="showOtp ? '{{ session('new_member')['otp'] }}' : '••••••••••••'">••••••••••••</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" @click="showOtp = !showOtp; $nextTick(() => { if (window.lucide) lucide.createIcons(); })" class="text-slate-400 hover:text-amber-400 p-1 transition cursor-pointer select-none" title="Toggle visibility">
-                            <i data-lucide="eye" x-show="!showOtp" class="w-3.5 h-3.5"></i>
-                            <i data-lucide="eye-off" x-show="showOtp" x-cloak class="w-3.5 h-3.5"></i>
-                        </button>
-                        <button type="button" onclick="navigator.clipboard.writeText('{{ session('new_member')['otp'] }}'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 2000)" class="text-[10px] font-bold text-amber-400 hover:text-amber-300 cursor-pointer">
-                            Copy
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Email: <strong class="text-slate-300 font-medium">{{ session('new_member')['email'] }}</strong></span>
-                    <span class="text-[9px] text-emerald-400 font-medium flex items-center gap-1">
-                        <i data-lucide="shield-check" class="w-3 h-3"></i> Hashed in DB
-                    </span>
                 </div>
             </div>
         </div>

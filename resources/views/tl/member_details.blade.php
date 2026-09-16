@@ -38,37 +38,25 @@
     </div>
 
     @if(session('new_member'))
-    <!-- New Generated Credential Banner -->
-    <div class="p-5 rounded-2xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white border border-indigo-500/40 shadow-xl relative overflow-hidden">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+    <!-- New Generated Credential Banner (Zero Credentials On Screen) -->
+    <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 text-white border border-emerald-500/30 shadow-xl relative overflow-hidden">
+        <div class="flex items-center justify-between gap-4 relative z-10">
             <div class="flex items-start gap-3.5">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <i data-lucide="key-round" class="w-5 h-5"></i>
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="mail-check" class="w-5 h-5"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-black text-white">Temporary Credentials Re-issued</h3>
-                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Email Dispatched</span>
+                        <h3 class="text-sm font-black text-white">Temporary Credentials Re-issued & Emailed</h3>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Email Delivered</span>
                     </div>
                     <p class="text-xs text-slate-300 mt-1">
-                        A fresh One-Time Password has been generated and emailed to <strong>{{ $user->email }}</strong>.
+                        A fresh One-Time Password has been generated and dispatched directly to <strong>{{ $user->email }}</strong>.
                     </p>
-                </div>
-            </div>
-
-            <div x-data="{ showOtp: false }" class="bg-slate-950/80 border border-slate-700/60 rounded-xl p-3 shrink-0 flex items-center gap-3">
-                <div class="flex flex-col">
-                    <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">One-Time Password (Hidden)</span>
-                    <span class="font-mono text-sm font-black text-amber-400" x-text="showOtp ? '{{ session('new_member')['otp'] }}' : '••••••••••••'">••••••••••••</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" @click="showOtp = !showOtp; $nextTick(() => { if (window.lucide) lucide.createIcons(); })" class="text-slate-400 hover:text-amber-400 p-1 transition cursor-pointer select-none" title="Toggle visibility">
-                        <i data-lucide="eye" x-show="!showOtp" class="w-4 h-4"></i>
-                        <i data-lucide="eye-off" x-show="showOtp" x-cloak class="w-4 h-4"></i>
-                    </button>
-                    <button type="button" onclick="navigator.clipboard.writeText('Username: {{ $user->username }}\nOTP: {{ session('new_member')['otp'] }}'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 2000)" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg cursor-pointer">
-                        Copy
-                    </button>
+                    <p class="text-[11px] text-emerald-300/90 mt-1.5 flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span>Privacy Protocol: For security, credentials are not visible on screen and are sent exclusively to the employee's work email.</span>
+                    </p>
                 </div>
             </div>
         </div>
