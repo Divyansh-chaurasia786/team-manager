@@ -11,4 +11,4 @@ Artisan::command('user:list', function () {
 });
 
 Schedule::command('chat:cleanup-expired')->daily();
-
+Schedule::command('tasks:send-overdue-reminders')->hourly();

@@ -24,12 +24,15 @@ class Task extends Model
         'drive_url',
         'revision_notes',
         'reassignment_count',
+        'overdue_reminder_sent_at',
+        'overdue_reminder_count',
     ];
 
     protected $casts = [
-        'deadline'          => 'datetime',
-        'previous_deadline' => 'datetime',
-        'submitted_at'      => 'datetime',
+        'deadline'                 => 'datetime',
+        'previous_deadline'        => 'datetime',
+        'submitted_at'             => 'datetime',
+        'overdue_reminder_sent_at' => 'datetime',
     ];
 
     public function assignedTo() { return $this->belongsTo(User::class, 'assigned_to'); }
