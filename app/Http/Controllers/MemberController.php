@@ -65,7 +65,7 @@ class MemberController extends Controller
 
         // Dispatch Welcome Email with Unique Username and One-Time Password
         try {
-            Mail::to($user->email)->send(new EmployeeWelcomeMail($user, $oneTimePassword));
+            \App\Services\BrevoMailService::sendWelcomeMail($user, $oneTimePassword);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('Welcome email delivery error: ' . $e->getMessage());
         }
@@ -168,7 +168,7 @@ class MemberController extends Controller
         ]);
 
         try {
-            Mail::to($user->email)->send(new EmployeeWelcomeMail($user, $newOtp));
+            \App\Services\BrevoMailService::sendWelcomeMail($user, $newOtp);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('OTP Reset email delivery error: ' . $e->getMessage());
         }

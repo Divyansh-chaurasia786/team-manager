@@ -1,1 +1,1 @@
-*.sqlite*
+# SQLite files are tracked to prevent blank wipes on ephemeral container rebuilds

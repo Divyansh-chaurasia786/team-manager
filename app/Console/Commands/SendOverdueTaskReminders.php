@@ -53,8 +53,7 @@ class SendOverdueTaskReminders extends Command
             }
 
             try {
-                \Illuminate\Support\Facades\Mail::to($employee->email)
-                    ->send(new \App\Mail\OverdueTaskReminderMail($task));
+                \App\Services\BrevoMailService::sendOverdueTaskReminder($task);
 
                 $task->update([
                     'overdue_reminder_sent_at' => now(),

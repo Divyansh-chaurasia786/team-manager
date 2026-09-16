@@ -65,8 +65,22 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $member = User::firstOrCreate(
+            ['email' => 'chaurasiadivyansh86@gmail.com'],
+            [
+                'name'                 => 'Divyanhs Chaurasia',
+                'username'             => 'divyanhs.chaurasia',
+                'mobile_number'        => '+91 98765 43210',
+                'designation'          => 'Operations Specialist',
+                'password'             => Hash::make('password123'),
+                'role'                 => 'member',
+                'created_by'           => $tl->id,
+                'must_change_password' => false,
+            ]
+        );
+
         if (!$tl->username) {
-            $tl->username = 'tl.ecofone';
+            $tl->username = 'sumit.ecofone';
             $tl->save();
         }
 

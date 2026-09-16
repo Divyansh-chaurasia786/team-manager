@@ -36,5 +36,5 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache databas
 # Expose port
 EXPOSE 8000
 
-# Start Laravel
-CMD sh -c "touch database/database.sqlite && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"
+# Start Laravel (preserve committed database, run pending migrations only)
+CMD sh -c "touch database/database.sqlite && chmod 666 database/database.sqlite && php artisan migrate --force && php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"

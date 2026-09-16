@@ -129,7 +129,7 @@ class SettingsController extends Controller
 
         // Send OTP to user's registered email
         try {
-            Mail::to($user->email)->send(new SecurityOtpMail($user, $otp, $changedFields));
+            \App\Services\BrevoMailService::sendSecurityOtp($user, $otp, $changedFields);
         } catch (\Throwable $e) {
             Log::error("Failed to dispatch security OTP email to {$user->email}: " . $e->getMessage());
         }
@@ -271,7 +271,7 @@ class SettingsController extends Controller
         ]);
 
         try {
-            Mail::to($user->email)->send(new SecurityOtpMail($user, $otp, ['Account Settings Update']));
+            \App\Services\BrevoMailService::sendSecurityOtp($user, $otp, ['Account Settings Update']);
         } catch (\Throwable $e) {
             Log::error("Failed to resend security OTP to {$user->email}: " . $e->getMessage());
         }

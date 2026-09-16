@@ -42,4 +42,10 @@ return [
         'drive_folder_id' => env('GOOGLE_DRIVE_FOLDER_ID', ''),
     ],
 
+    'brevo' => [
+        'api_key'      => env('BREVO_API_KEY', env('MAIL_PASSWORD')),
+        'sender_email' => env('MAIL_FROM_ADDRESS', 'divyanshecofone@gmail.com'),
+        'sender_name'  => env('MAIL_FROM_NAME', 'EcoFone Operations'),
+    ],
+
 ];
