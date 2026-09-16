@@ -1,0 +1,21 @@
+﻿services:
+  - type: web
+    name: team-manager
+    env: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value:  true
+      - key: APP_KEY
+        value: base64:c3Tm9KCGBHY+q7JDKfg7ipRN/u7yTT18DEH3YZiHLtY=
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
