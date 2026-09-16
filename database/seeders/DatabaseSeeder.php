@@ -23,6 +23,19 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        User::firstOrCreate(
+            ['email' => 'tl@teammanager.com'],
+            [
+                'name'                 => 'Team Lead',
+                'username'             => 'tl.teammanager',
+                'mobile_number'        => '+91 98765 43210',
+                'designation'          => 'Operations Team Lead',
+                'password'             => Hash::make('password123'),
+                'role'                 => 'tl',
+                'must_change_password' => false,
+            ]
+        );
+
         $ceo = User::firstOrCreate(
             ['email' => 'ceo@ecofone.com'],
             [
