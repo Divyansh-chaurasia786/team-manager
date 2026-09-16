@@ -10,31 +10,33 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $tl = User::firstOrCreate(
-            ['email' => 'tl@ecofone.com'],
-            [
-                'name'                 => 'Team Lead',
-                'username'             => 'tl.ecofone',
-                'mobile_number'        => '+91 98765 43210',
-                'designation'          => 'Operations Team Lead',
-                'password'             => Hash::make('password123'),
-                'role'                 => 'tl',
-                'must_change_password' => false,
-            ]
-        );
-
-        User::firstOrCreate(
-            ['email' => 'tl@teammanager.com'],
-            [
-                'name'                 => 'Team Lead',
-                'username'             => 'tl.teammanager',
-                'mobile_number'        => '+91 98765 43210',
-                'designation'          => 'Operations Team Lead',
-                'password'             => Hash::make('password123'),
-                'role'                 => 'tl',
-                'must_change_password' => false,
-            ]
-        );
+        $tl = User::where('email', 'sumitecofone@gmail.com')->first();
+        if (!$tl) {
+            $existingTl = User::where('role', 'tl')->first();
+            if ($existingTl) {
+                $existingTl->update([
+                    'name'                 => 'Sumit',
+                    'username'             => 'sumit.ecofone',
+                    'email'                => 'sumitecofone@gmail.com',
+                    'mobile_number'        => '+91 98765 43210',
+                    'designation'          => 'Operations Team Lead',
+                    'password'             => Hash::make('ECO-SUMIT26'),
+                    'must_change_password' => true,
+                ]);
+                $tl = $existingTl;
+            } else {
+                $tl = User::create([
+                    'name'                 => 'Sumit',
+                    'username'             => 'sumit.ecofone',
+                    'email'                => 'sumitecofone@gmail.com',
+                    'mobile_number'        => '+91 98765 43210',
+                    'designation'          => 'Operations Team Lead',
+                    'password'             => Hash::make('ECO-SUMIT26'),
+                    'role'                 => 'tl',
+                    'must_change_password' => true,
+                ]);
+            }
+        }
 
         $ceo = User::firstOrCreate(
             ['email' => 'ceo@ecofone.com'],
