@@ -1,6 +1,9 @@
 @extends('layouts.app')
 @section('title', 'Team Members')
 @section('content')
+@php
+    $routePrefix = auth()->user()->isHR() ? 'hr.members.' : 'tl.members.';
+@endphp
 
 <div class="space-y-6">
 
