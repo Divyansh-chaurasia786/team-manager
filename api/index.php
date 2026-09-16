@@ -29,5 +29,18 @@ putenv("DB_DATABASE={$tmpDb}");
 $_ENV['DB_DATABASE'] = $tmpDb;
 $_SERVER['DB_DATABASE'] = $tmpDb;
 
-// Forward to public index.php
-require __DIR__ . '/../public/index.php';
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+try {
+    // Forward to public index.php
+    require __DIR__ . '/../public/index.php';
+} catch (\Throwable $e) {
+    http_response_code(500);
+    header('Content-Type: text/plain');
+    echo "SERVERLESS BOOTSTRAP EXCEPTION:\n";
+    echo $e->getMessage() . "\n";
+    echo $e->getFile() . " on line " . $e->getLine() . "\n\n";
+    echo $e->getTraceAsString();
+}
