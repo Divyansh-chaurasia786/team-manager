@@ -31,10 +31,18 @@
                 Your account has been created with a <strong>One-Time Temporary Password</strong>.
             </p>
 
+@php
+    $loginUrl = rtrim(config('app.url', 'https://team-manager-hlpg.onrender.com'), '/');
+    if (empty($loginUrl) || str_contains($loginUrl, 'localhost') || str_contains($loginUrl, '127.0.0.1')) {
+        $loginUrl = 'https://team-manager-hlpg.onrender.com';
+    }
+    $loginUrl .= '/login';
+@endphp
+
             <div class="cred-box">
                 <div class="cred-item">
                     <div class="cred-label">Login URL</div>
-                    <div class="cred-value" style="font-family: sans-serif; font-size: 13px; color: #4f46e5;">{{ url('/login') }}</div>
+                    <div class="cred-value" style="font-family: sans-serif; font-size: 13px; color: #4f46e5;">{{ $loginUrl }}</div>
                 </div>
                 <div class="cred-item">
                     <div class="cred-label">Unique Username (For Sign In)</div>
@@ -61,7 +69,7 @@
             </div>
 
             <div style="text-align: center;">
-                <a href="{{ url('/login') }}" class="btn">Sign In to Dashboard &rarr;</a>
+                <a href="{{ $loginUrl }}" class="btn">Sign In to Dashboard &rarr;</a>
             </div>
         </div>
         <div class="footer">
