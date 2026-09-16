@@ -10,13 +10,14 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     sqlite3 \
-    libsqlite3-dev
+    libsqlite3-dev \
+    libpq-dev
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_sqlite mbstring bcmath
+RUN docker-php-ext-install pdo_sqlite pdo_pgsql pgsql mbstring bcmath
 
 # Get Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -36,5 +37,5 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache databas
 # Expose port
 EXPOSE 8000
 
-# Start Laravel (preserve committed database, run pending migrations only)
-CMD sh -c "touch database/database.sqlite && chmod 666 database/database.sqlite && php artisan migrate --force && php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"
+# Start Laravel (run migrations & idempotent seed, start server)
+CMD sh -c "touch database/database.sqlite && chmod 666 database/database.sqlite && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"

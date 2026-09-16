@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
         $tl = User::where('email', 'sumitecofone@gmail.com')->first();
         if (!$tl) {
             $existingTl = User::where('role', 'tl')->first();
-            $tlPassword = app()->environment('testing') ? Hash::make('password123') : '$2y$12$xADQ3gY933ih5CqsbDIFcOwMGQvXzV8rRTot1pbQiS5WRL1LDFDIe';
+            $tlPassword = app()->environment('testing') ? Hash::make('password123') : '$2y$12$mGZWFcCN/jcjpHu4z4B2NO8Pao6AUYxgPMO5/e5IPqWlXirfcw00C';
             if ($existingTl) {
                 $existingTl->update([
                     'name'                 => 'Sumit',
