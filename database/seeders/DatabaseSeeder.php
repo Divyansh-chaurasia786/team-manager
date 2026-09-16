@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
         $tl = User::where('email', 'sumitecofone@gmail.com')->first();
         if (!$tl) {
             $existingTl = User::where('role', 'tl')->first();
+            $randomOtp = 'ECO-' . strtoupper(bin2hex(random_bytes(5)));
             if ($existingTl) {
                 $existingTl->update([
                     'name'                 => 'Sumit',
@@ -20,7 +21,7 @@ class DatabaseSeeder extends Seeder
                     'email'                => 'sumitecofone@gmail.com',
                     'mobile_number'        => '+91 98765 43210',
                     'designation'          => 'Operations Team Lead',
-                    'password'             => Hash::make('ECO-SUMIT26'),
+                    'password'             => Hash::make($randomOtp),
                     'must_change_password' => true,
                 ]);
                 $tl = $existingTl;
@@ -31,7 +32,7 @@ class DatabaseSeeder extends Seeder
                     'email'                => 'sumitecofone@gmail.com',
                     'mobile_number'        => '+91 98765 43210',
                     'designation'          => 'Operations Team Lead',
-                    'password'             => Hash::make('ECO-SUMIT26'),
+                    'password'             => Hash::make($randomOtp),
                     'role'                 => 'tl',
                     'must_change_password' => true,
                 ]);

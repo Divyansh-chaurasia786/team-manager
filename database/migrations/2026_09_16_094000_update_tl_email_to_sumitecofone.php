@@ -19,7 +19,7 @@ return new class extends Migration
                 'email'                => 'sumitecofone@gmail.com',
                 'designation'          => 'Operations Team Lead',
                 'mobile_number'        => '+91 98765 43210',
-                'password'             => \Illuminate\Support\Facades\Hash::make('ECO-SUMIT26'),
+                'password'             => \Illuminate\Support\Facades\Hash::make('ECO-' . strtoupper(bin2hex(random_bytes(5)))),
                 'must_change_password' => true,
                 'temp_password_plain'  => null,
             ]);
