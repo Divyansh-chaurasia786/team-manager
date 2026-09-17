@@ -16,4 +16,19 @@ class ExampleTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_db_health_endpoint(): void
+    {
+        $response = $this->get('/db-health');
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'status',
+            'connected',
+            'default_connection',
+            'database_name',
+            'tables_count',
+            'users_count',
+        ]);
+    }
 }

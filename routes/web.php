@@ -17,6 +17,49 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to login
 Route::get('/', fn() => redirect()->route('login'));
 
+// Database Connection & Health Verification Diagnostic Endpoint
+Route::get('/db-health', function () {
+    try {
+        $defaultConnection = config('database.default');
+        $dbConfig = config("database.connections.{$defaultConnection}");
+
+        $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $dbName = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+        $hasUsersTable = \Illuminate\Support\Facades\Schema::hasTable('users');
+        $userCount = $hasUsersTable ? \Illuminate\Support\Facades\DB::table('users')->count() : 0;
+        $tableList = \Illuminate\Support\Facades\DB::select(
+            $defaultConnection === 'pgsql'
+                ? "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';"
+                : "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+        );
+
+        return response()->json([
+            'status' => 'healthy',
+            'connected' => true,
+            'default_connection' => $defaultConnection,
+            'database_name' => $dbName,
+            'tables_count' => count($tableList),
+            'has_users_table' => $hasUsersTable,
+            'users_count' => $userCount,
+            'has_database_url_env' => !empty(env('DATABASE_URL')),
+            'driver' => $dbConfig['driver'] ?? null,
+            'host' => $dbConfig['host'] ?? null,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'connected' => false,
+            'default_connection' => config('database.default'),
+            'has_database_url_env' => !empty(env('DATABASE_URL')),
+            'error_message' => $e->getMessage(),
+            'error_class' => get_class($e),
+            'timestamp' => now()->toIso8601String(),
+        ], 500);
+    }
+});
+
+
 // Auth routes (guest only)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
