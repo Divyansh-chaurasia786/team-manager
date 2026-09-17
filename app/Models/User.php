@@ -17,6 +17,11 @@ class User extends Authenticatable
         'designation',
         'password',
         'must_change_password',
+        'failed_login_attempts',
+        'locked_until',
+        'otp_expires_at',
+        'password_reset_otp',
+        'password_reset_otp_expires_at',
         'temp_password_plain',
         'role',
         'created_by',
@@ -31,16 +36,36 @@ class User extends Authenticatable
         'remember_token',
         'temp_password_plain',
         'security_otp',
+        'password_reset_otp',
     ];
 
     protected function casts(): array {
         return [
-            'email_verified_at'       => 'datetime',
-            'password'                => 'hashed',
-            'must_change_password'    => 'boolean',
-            'security_otp_expires_at' => 'datetime',
-            'pending_profile_update'  => 'array',
+            'email_verified_at'            => 'datetime',
+            'password'                     => 'hashed',
+            'must_change_password'         => 'boolean',
+            'failed_login_attempts'        => 'integer',
+            'locked_until'                 => 'datetime',
+            'otp_expires_at'               => 'datetime',
+            'password_reset_otp_expires_at'=> 'datetime',
+            'security_otp_expires_at'      => 'datetime',
+            'pending_profile_update'       => 'array',
         ];
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->locked_until !== null && $this->locked_until->isFuture();
+    }
+
+    public function lockoutRemainingMinutes(): int
+    {
+        return $this->isLocked() ? (int) ceil(now()->diffInMinutes($this->locked_until, false)) : 0;
+    }
+
+    public function isOtpExpired(): bool
+    {
+        return $this->otp_expires_at !== null && $this->otp_expires_at->isPast();
     }
 
     public function getAvatarUrlAttribute(): ?string

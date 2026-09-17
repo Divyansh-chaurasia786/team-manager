@@ -64,7 +64,7 @@
 
             <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; margin-bottom: 24px;">
                 <p style="margin: 0; font-size: 12px; color: #92400e; font-weight: 600;">
-                    ⚠️ <strong>Security Notice:</strong> Upon your first sign-in, the system will strictly require you to change this temporary password to your own permanent, private password before you can proceed.
+                    ⚠️ <strong>Security Notice:</strong> This one-time setup OTP is valid for 10 days. Upon your first sign-in, the system will strictly require you to change this temporary password to your own permanent, private password.
                 </p>
             </div>
 

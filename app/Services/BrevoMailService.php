@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Models\ActivityLog;
 use App\Mail\EmployeeWelcomeMail;
 use App\Mail\SecurityOtpMail;
+use App\Mail\ForgotPasswordMail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -78,6 +79,46 @@ class BrevoMailService
             Log::error('Failed to send OTP email: ' . $e->getMessage());
             try {
                 Mail::to($user->email)->send(new SecurityOtpMail($user, $otp, $changedFields));
+                return true;
+            } catch (\Exception $fallbackError) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Send password reset OTP email.
+     */
+    public static function sendPasswordResetOtp(User $user, string $otp): bool
+    {
+        if (app()->environment('testing')) {
+            Mail::to($user->email)->send(new ForgotPasswordMail($user, $otp));
+            return true;
+        }
+
+        try {
+            $mailable = new ForgotPasswordMail($user, $otp);
+            $html = $mailable->render();
+            $subject = 'Your Password Reset Verification Code - EcoFone App';
+
+            $result = self::sendViaApi($user->email, $user->name, $subject, $html);
+            if ($result['success']) {
+                ActivityLog::log(
+                    action: 'password_reset_otp_sent',
+                    description: sprintf('Password reset OTP sent to %s (%s). Brevo ID: %s', $user->name, $user->email, $result['message_id']),
+                    entityType: 'User',
+                    entityId: $user->id,
+                    userId: $user->id
+                );
+                return true;
+            }
+
+            Mail::to($user->email)->send($mailable);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send password reset OTP email: ' . $e->getMessage());
+            try {
+                Mail::to($user->email)->send(new ForgotPasswordMail($user, $otp));
                 return true;
             } catch (\Exception $fallbackError) {
                 return false;

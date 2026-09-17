@@ -20,10 +20,15 @@ class ActivityLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function log(string $action, string $description, ?string $entityType = null, ?int $entityId = null, ?int $userId = null): self
+    public static function log(string $action, string $description, ?string $entityType = null, ?int $entityId = null, ?int $userId = null): ?self
     {
+        $resolvedUserId = $userId ?? auth()->id() ?? ($entityType === 'User' ? $entityId : null);
+        if (!$resolvedUserId) {
+            return null;
+        }
+
         return self::create([
-            'user_id'     => $userId ?? auth()->id(),
+            'user_id'     => $resolvedUserId,
             'action'      => $action,
             'description' => $description,
             'entity_type' => $entityType,
