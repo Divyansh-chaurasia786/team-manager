@@ -131,6 +131,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/tasks/{task}/reassign', [TaskController::class, 'reassign'])->name('tasks.reassign');
     Route::put('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('tasks.bulk_destroy');
 
     // Member dashboard
     Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])->name('member.dashboard');

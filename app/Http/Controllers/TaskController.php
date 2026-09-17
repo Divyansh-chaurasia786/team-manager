@@ -317,7 +317,58 @@ class TaskController extends Controller
 
     public function destroy(Task $task)
     {
-        // Requirement: Once a task is assigned, it cannot be deleted - never will it delete.
-        return back()->with('error', 'Assigned tasks are permanent records and cannot be deleted.');
+        $actor = Auth::user();
+        if (!$actor->isCEO()) {
+            return back()->with('error', 'Only the CEO has permission to delete task history records.');
+        }
+
+        if ($task->submission_file && file_exists(public_path($task->submission_file))) {
+            @unlink(public_path($task->submission_file));
+        }
+
+        $taskTitle = $task->title;
+        $taskId = $task->id;
+        $task->delete();
+
+        ActivityLog::log(
+            action: 'task_deleted',
+            description: sprintf('%s (CEO) permanently deleted task "%s" (ID: #%d)', $actor->name, $taskTitle, $taskId),
+            entityType: 'Task',
+            entityId: $taskId,
+            userId: $actor->id
+        );
+
+        return back()->with('success', "Task \"{$taskTitle}\" has been permanently deleted from history.");
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $actor = Auth::user();
+        if (!$actor->isCEO()) {
+            abort(403, 'Unauthorized: Only the CEO has permission to delete task history records.');
+        }
+
+        $request->validate([
+            'task_ids'   => 'required|array|min:1',
+            'task_ids.*' => 'exists:tasks,id',
+        ]);
+
+        $tasks = Task::whereIn('id', $request->task_ids)->get();
+        foreach ($tasks as $t) {
+            if ($t->submission_file && file_exists(public_path($t->submission_file))) {
+                @unlink(public_path($t->submission_file));
+            }
+        }
+
+        $count = Task::whereIn('id', $request->task_ids)->delete();
+
+        ActivityLog::log(
+            action: 'tasks_bulk_deleted',
+            description: sprintf('%s (CEO) permanently deleted %d task history record(s)', $actor->name, $count),
+            entityType: 'Task',
+            userId: $actor->id
+        );
+
+        return back()->with('success', "Successfully deleted {$count} task(s) from history.");
     }
 }

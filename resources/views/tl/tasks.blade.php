@@ -41,6 +41,44 @@
             </button>
         </div>
     @else
+        @if(auth()->user()->isCEO())
+            <!-- CEO Task Management Toolbar -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-4 sm:p-5 shadow-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-black tracking-tight">CEO Task History Management</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">CEO Only</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Select individual tasks or all tasks at once to permanently delete from task history records.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 flex-wrap">
+                    <!-- Select All Checkbox Control -->
+                    <label class="inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700/80 rounded-xl border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer select-none transition shadow-xs">
+                        <input type="checkbox" id="selectAllTasksCheckbox" onchange="toggleSelectAll(this)" class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-600 bg-slate-700 cursor-pointer">
+                        <span id="selectAllLabel">Select All ({{ $tasks->count() }})</span>
+                    </label>
+
+                    <!-- Bulk Delete Trigger Button -->
+                    <button type="button" id="bulkDeleteBtn" onclick="confirmBulkDelete()" disabled class="px-4 py-2 bg-slate-800 text-slate-500 cursor-not-allowed text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span id="bulkDeleteBtnText">Delete Selected (0)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hidden Bulk Delete Form -->
+            <form id="bulkDeleteForm" method="POST" action="{{ route('tasks.bulk_destroy') }}" class="hidden">
+                @csrf
+                <div id="bulkDeleteInputsContainer"></div>
+            </form>
+        @endif
+
         <div class="space-y-6">
             @foreach($tasksByMember as $memberId => $memberTasks)
                 @php
@@ -89,6 +127,12 @@
 
                         <!-- Member's Task Status Badges & Quick Assign Task Header Action -->
                         <div class="flex items-center gap-2 flex-wrap">
+                            @if(auth()->user()->isCEO())
+                                <button type="button" onclick="toggleMemberTasks({{ $memberId }})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 cursor-pointer" title="Select/Deselect all tasks for this member">
+                                    <i data-lucide="check-square" class="w-3.5 h-3.5 text-slate-500"></i>
+                                    <span>Select Member Tasks</span>
+                                </button>
+                            @endif
                             <button type="button" onclick="openAssignTaskForMember({{ $memberId }})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
                                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                                 <span>Assign Task</span>
@@ -118,86 +162,93 @@
                     <!-- Tasks List Under This Employee Header -->
                     <div class="divide-y divide-slate-100">
                         @foreach($memberTasks as $task)
-                            <div class="p-4 sm:p-5 hover:bg-slate-50/70 transition {{ $task->isReassigned() ? 'bg-amber-50/20' : '' }}">
+                            <div class="p-4 sm:p-5 hover:bg-slate-50/70 transition {{ $task->isReassigned() ? 'bg-amber-50/20' : '' }}" id="task-row-{{ $task->id }}">
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <!-- Left: Task Info & Meta -->
-                                    <div class="space-y-1.5 flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 flex-wrap">
-                                            <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">{{ $task->title }}</h3>
+                                    <!-- Left: Task Info & Checkbox (for CEO) -->
+                                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                                        @if(auth()->user()->isCEO())
+                                            <div class="pt-0.5 shrink-0">
+                                                <input type="checkbox" name="selected_task_ids[]" value="{{ $task->id }}" data-member-id="{{ $memberId }}" class="task-select-checkbox w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer" onchange="updateSelectedCount()">
+                                            </div>
+                                        @endif
+                                        <div class="space-y-1.5 flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">{{ $task->title }}</h3>
 
-                                            <!-- Status Badge -->
-                                            @if($task->status === 'completed')
-                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                    ✓ Completed
-                                                </span>
-                                            @elseif($task->status === 'submitted')
-                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center gap-1">
-                                                    <i data-lucide="clock" class="w-3 h-3"></i>
-                                                    <span>Submitted • In Review</span>
-                                                </span>
-                                            @elseif($task->status === 'in-progress')
-                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                                                    {{ $task->isReassigned() ? '⚡ Revisions Active' : '⚙️ In Progress' }}
-                                                </span>
-                                            @else
-                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-                                                    ⏳ Pending Start
-                                                </span>
-                                            @endif
+                                                <!-- Status Badge -->
+                                                @if($task->status === 'completed')
+                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                        ✓ Completed
+                                                    </span>
+                                                @elseif($task->status === 'submitted')
+                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center gap-1">
+                                                        <i data-lucide="clock" class="w-3 h-3"></i>
+                                                        <span>Submitted • In Review</span>
+                                                    </span>
+                                                @elseif($task->status === 'in-progress')
+                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                                                        {{ $task->isReassigned() ? '⚡ Revisions Active' : '⚙️ In Progress' }}
+                                                    </span>
+                                                @else
+                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                                        ⏳ Pending Start
+                                                    </span>
+                                                @endif
 
-                                            @if($task->isReassigned())
-                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-50 text-amber-900 border border-amber-300">
-                                                    Rev #{{ $task->reassignment_count }}
-                                                </span>
-                                            @endif
+                                                @if($task->isReassigned())
+                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-50 text-amber-900 border border-amber-300">
+                                                        Rev #{{ $task->reassignment_count }}
+                                                    </span>
+                                                @endif
 
-                                            @if($task->isOverdue())
-                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
-                                                    ⚠️ Overdue
-                                                </span>
-                                            @endif
-                                        </div>
-
-                                        <p class="text-xs text-slate-500 line-clamp-2 max-w-2xl">{{ $task->description }}</p>
-
-                                        <!-- Meta tags: Deadline, Submitted time, and Deliverable badges -->
-                                        <div class="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap pt-1">
-                                            <div class="flex items-center gap-1 font-semibold text-slate-700">
-                                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
-                                                <span>Deadline: {{ $task->deadline->format('d M Y, h:i A') }}</span>
+                                                @if($task->isOverdue())
+                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                                                        ⚠️ Overdue
+                                                    </span>
+                                                @endif
                                             </div>
 
-                                            @if($task->isReassigned() && $task->previous_deadline)
-                                                <span class="text-slate-400 line-through text-[10px]">
-                                                    Prev: {{ $task->previous_deadline->format('d M, h:i A') }}
-                                                </span>
-                                            @endif
+                                            <p class="text-xs text-slate-500 line-clamp-2 max-w-2xl">{{ $task->description }}</p>
 
-                                            @if($task->submitted_at)
-                                                <div class="flex items-center gap-1 font-semibold text-indigo-700">
-                                                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-indigo-500"></i>
-                                                    <span>Submitted {{ $task->submitted_at->diffForHumans() }}</span>
+                                            <!-- Meta tags: Deadline, Submitted time, and Deliverable badges -->
+                                            <div class="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap pt-1">
+                                                <div class="flex items-center gap-1 font-semibold text-slate-700">
+                                                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                                                    <span>Deadline: {{ $task->deadline->format('d M Y, h:i A') }}</span>
                                                 </div>
-                                            @endif
 
-                                            <!-- Deliverables indicator tags (no duplicate buttons) -->
-                                            @if($task->submission_link)
-                                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
-                                                    <i data-lucide="link" class="w-3 h-3 text-indigo-500"></i> Link Attached
-                                                </span>
-                                            @endif
+                                                @if($task->isReassigned() && $task->previous_deadline)
+                                                    <span class="text-slate-400 line-through text-[10px]">
+                                                        Prev: {{ $task->previous_deadline->format('d M, h:i A') }}
+                                                    </span>
+                                                @endif
 
-                                            @if($task->submission_file)
-                                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
-                                                    <i data-lucide="file" class="w-3 h-3 text-amber-600"></i> {{ strtoupper($task->submission_file_type ?? 'File') }} Attached
-                                                </span>
-                                            @endif
+                                                @if($task->submitted_at)
+                                                    <div class="flex items-center gap-1 font-semibold text-indigo-700">
+                                                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                                        <span>Submitted {{ $task->submitted_at->diffForHumans() }}</span>
+                                                    </div>
+                                                @endif
 
-                                            @if($task->drive_url)
-                                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                                                    <i data-lucide="cloud" class="w-3 h-3 text-emerald-600"></i> Synced to Drive
-                                                </span>
-                                            @endif
+                                                <!-- Deliverables indicator tags (no duplicate buttons) -->
+                                                @if($task->submission_link)
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
+                                                        <i data-lucide="link" class="w-3 h-3 text-indigo-500"></i> Link Attached
+                                                    </span>
+                                                @endif
+
+                                                @if($task->submission_file)
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                                                        <i data-lucide="file" class="w-3 h-3 text-amber-600"></i> {{ strtoupper($task->submission_file_type ?? 'File') }} Attached
+                                                    </span>
+                                                @endif
+
+                                                @if($task->drive_url)
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                                        <i data-lucide="cloud" class="w-3 h-3 text-emerald-600"></i> Synced to Drive
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
 
@@ -214,6 +265,16 @@
                                                 <button type="submit" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
                                                     <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                                     <span>Approve</span>
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if(auth()->user()->isCEO())
+                                            <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="m-0" onsubmit="return confirm('Are you sure you want to permanently delete task &quot;{{ addslashes($task->title) }}&quot; from history? This action cannot be undone.');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 rounded-xl font-bold text-xs transition shadow-2xs border border-rose-200/70 flex items-center gap-1 cursor-pointer" title="Permanently Delete Task from History">
+                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                    <span class="hidden sm:inline">Delete</span>
                                                 </button>
                                             </form>
                                         @endif
@@ -711,6 +772,20 @@ function openDetailsModal(taskId) {
         `;
     }
 
+    // 5. CEO Permanent Delete Option
+    @if(auth()->user()->isCEO())
+        buttonsHtml += `
+            <form method="POST" action="/tasks/${task.id}" class="m-0" onsubmit="return confirm('Are you sure you want to permanently delete task &quot;${cleanTitle}&quot; from history? This action cannot be undone.');">
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="_method" value="DELETE">
+                <button type="submit" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs border border-rose-200 cursor-pointer" title="Permanently Delete Task from History">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Delete Task</span>
+                </button>
+            </form>
+        `;
+    @endif
+
     actionSlot.innerHTML = buttonsHtml;
 
     document.getElementById('taskDetailsModal').classList.remove('hidden');
@@ -761,6 +836,81 @@ function openReassignModal(taskId, taskTitle, currentDeadlineIso, memberName) {
 
 function closeReassignModal() {
     document.getElementById('reassignTaskModal').classList.add('hidden');
+}
+
+function updateSelectedCount() {
+    const allCheckboxes = document.querySelectorAll('.task-select-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('.task-select-checkbox:checked');
+    const count = checkedCheckboxes.length;
+    const total = allCheckboxes.length;
+
+    const selectAllCb = document.getElementById('selectAllTasksCheckbox');
+    if (selectAllCb) {
+        selectAllCb.checked = (total > 0 && count === total);
+        selectAllCb.indeterminate = (count > 0 && count < total);
+    }
+
+    const btn = document.getElementById('bulkDeleteBtn');
+    const btnText = document.getElementById('bulkDeleteBtnText');
+    if (btn && btnText) {
+        if (count > 0) {
+            btn.disabled = false;
+            btn.className = 'px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white cursor-pointer text-xs font-bold rounded-xl shadow-md shadow-rose-600/30 transition flex items-center gap-2';
+            btnText.innerText = `Delete Selected (${count})`;
+        } else {
+            btn.disabled = true;
+            btn.className = 'px-4 py-2 bg-slate-800 text-slate-500 cursor-not-allowed text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-2';
+            btnText.innerText = 'Delete Selected (0)';
+        }
+    }
+}
+
+function toggleSelectAll(masterCheckbox) {
+    const isChecked = masterCheckbox.checked;
+    document.querySelectorAll('.task-select-checkbox').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    updateSelectedCount();
+}
+
+function toggleMemberTasks(memberId) {
+    const memberCheckboxes = document.querySelectorAll(`.task-select-checkbox[data-member-id="${memberId}"]`);
+    if (memberCheckboxes.length === 0) return;
+    
+    const allChecked = Array.from(memberCheckboxes).every(cb => cb.checked);
+    memberCheckboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+    updateSelectedCount();
+}
+
+function confirmBulkDelete() {
+    const checkboxes = document.querySelectorAll('.task-select-checkbox:checked');
+    if (checkboxes.length === 0) return;
+
+    const count = checkboxes.length;
+    const allCheckboxes = document.querySelectorAll('.task-select-checkbox');
+    const isAll = (allCheckboxes.length > 0 && count === allCheckboxes.length);
+
+    const msg = isAll
+        ? `Are you sure you want to permanently delete ALL ${count} tasks from history? This action cannot be undone.`
+        : (count === 1
+            ? 'Are you sure you want to permanently delete the 1 selected task from history? This action cannot be undone.'
+            : `Are you sure you want to permanently delete all ${count} selected tasks from history? This action cannot be undone.`);
+
+    if (confirm(msg)) {
+        const container = document.getElementById('bulkDeleteInputsContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        checkboxes.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'task_ids[]';
+            input.value = cb.value;
+            container.appendChild(input);
+        });
+        document.getElementById('bulkDeleteForm').submit();
+    }
 }
 </script>
 

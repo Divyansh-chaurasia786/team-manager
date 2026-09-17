@@ -161,18 +161,139 @@ class TaskSubmissionAndReassignmentTest extends TestCase
         }
     }
 
-    public function test_assigned_task_cannot_be_deleted(): void
+    public function test_assigned_task_cannot_be_deleted_by_non_ceo(): void
     {
+        // TL cannot delete
         $response = $this->actingAs($this->tl)
             ->delete(route('tasks.destroy', $this->task));
 
         $response->assertRedirect();
-        $response->assertSessionHas('error', 'Assigned tasks are permanent records and cannot be deleted.');
+        $response->assertSessionHas('error', 'Only the CEO has permission to delete task history records.');
 
-        $this->assertDatabaseHas('tasks', [
-            'id' => $this->task->id,
-            'title' => 'Design Landing Page UI',
+        $this->assertDatabaseHas('tasks', ['id' => $this->task->id]);
+
+        // Member cannot delete
+        $responseMember = $this->actingAs($this->member)
+            ->delete(route('tasks.destroy', $this->task));
+
+        $responseMember->assertRedirect();
+        $responseMember->assertSessionHas('error', 'Only the CEO has permission to delete task history records.');
+
+        $this->assertDatabaseHas('tasks', ['id' => $this->task->id]);
+    }
+
+    public function test_ceo_can_delete_task_individually(): void
+    {
+        $ceo = User::create([
+            'name' => 'CEO User',
+            'username' => 'ceo_user',
+            'email' => 'ceo@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'ceo',
+            'must_change_password' => false,
         ]);
+
+        $response = $this->actingAs($ceo)
+            ->delete(route('tasks.destroy', $this->task));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('tasks', ['id' => $this->task->id]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'task_deleted',
+            'user_id' => $ceo->id,
+        ]);
+    }
+
+    public function test_ceo_can_bulk_delete_tasks(): void
+    {
+        $ceo = User::create([
+            'name' => 'CEO User',
+            'username' => 'ceo_user',
+            'email' => 'ceo@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'ceo',
+            'must_change_password' => false,
+        ]);
+
+        $task2 = Task::create([
+            'title' => 'Task Two',
+            'assigned_to' => $this->member->id,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->addDays(3),
+            'status' => 'pending',
+        ]);
+
+        $task3 = Task::create([
+            'title' => 'Task Three',
+            'assigned_to' => $this->member->id,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->addDays(4),
+            'status' => 'pending',
+        ]);
+
+        // Bulk delete task 1 & 2 only
+        $response = $this->actingAs($ceo)
+            ->post(route('tasks.bulk_destroy'), [
+                'task_ids' => [$this->task->id, $task2->id],
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('tasks', ['id' => $this->task->id]);
+        $this->assertDatabaseMissing('tasks', ['id' => $task2->id]);
+        $this->assertDatabaseHas('tasks', ['id' => $task3->id]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'tasks_bulk_deleted',
+            'user_id' => $ceo->id,
+        ]);
+    }
+
+    public function test_ceo_can_delete_all_tasks_at_once(): void
+    {
+        $ceo = User::create([
+            'name' => 'CEO User',
+            'username' => 'ceo_user',
+            'email' => 'ceo@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'ceo',
+            'must_change_password' => false,
+        ]);
+
+        $task2 = Task::create([
+            'title' => 'Task Two',
+            'assigned_to' => $this->member->id,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->addDays(3),
+            'status' => 'pending',
+        ]);
+
+        $allIds = Task::pluck('id')->toArray();
+
+        $response = $this->actingAs($ceo)
+            ->post(route('tasks.bulk_destroy'), [
+                'task_ids' => $allIds,
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertEquals(0, Task::count());
+    }
+
+    public function test_non_ceo_cannot_bulk_delete_tasks(): void
+    {
+        $response = $this->actingAs($this->tl)
+            ->post(route('tasks.bulk_destroy'), [
+                'task_ids' => [$this->task->id],
+            ]);
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('tasks', ['id' => $this->task->id]);
     }
 }
 
