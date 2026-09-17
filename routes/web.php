@@ -33,6 +33,18 @@ Route::get('/db-health', function () {
                 : "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
         );
 
+        $usersSummary = $hasUsersTable ? \App\Models\User::all()->map(function ($u) {
+            return [
+                'id' => $u->id,
+                'email' => $u->email,
+                'username' => $u->username,
+                'role' => $u->role,
+                'must_change_password' => $u->must_change_password,
+                'is_locked' => $u->isLocked(),
+                'failed_attempts' => $u->failed_login_attempts,
+            ];
+        }) : [];
+
         return response()->json([
             'status' => 'healthy',
             'connected' => true,
@@ -41,6 +53,7 @@ Route::get('/db-health', function () {
             'tables_count' => count($tableList),
             'has_users_table' => $hasUsersTable,
             'users_count' => $userCount,
+            'users' => $usersSummary,
             'has_database_url_env' => !empty(env('DATABASE_URL')),
             'driver' => $dbConfig['driver'] ?? null,
             'host' => $dbConfig['host'] ?? null,

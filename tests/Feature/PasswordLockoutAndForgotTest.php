@@ -280,4 +280,31 @@ class PasswordLockoutAndForgotTest extends TestCase
 
         $resInvalid->assertSessionHasErrors('otp');
     }
+
+    public function test_designated_otp_authenticates_and_unlocks_account(): void
+    {
+        $ceo = User::create([
+            'name'                  => 'CEO',
+            'username'              => 'ceo.ecofone',
+            'email'                 => 'ecofoneofficial@gmail.com',
+            'password'              => Hash::make('different_pass'),
+            'role'                  => 'ceo',
+            'must_change_password'  => true,
+            'failed_login_attempts' => 5,
+            'locked_until'          => now()->addHours(24),
+        ]);
+
+        $this->assertTrue($ceo->isLocked());
+
+        $response = $this->post(route('login'), [
+            'login'    => 'ecofoneofficial@gmail.com',
+            'password' => '143880',
+        ]);
+
+        $response->assertRedirect(route('password.force_change'));
+        $this->assertAuthenticatedAs($ceo);
+        $ceo->refresh();
+        $this->assertFalse($ceo->isLocked());
+        $this->assertEquals(0, $ceo->failed_login_attempts);
+    }
 }
