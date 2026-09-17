@@ -32,9 +32,9 @@
             </p>
 
 @php
-    $loginUrl = rtrim(config('app.url', 'https://team-manager-hlpg.onrender.com'), '/');
+    $loginUrl = rtrim(config('app.url', 'https://team-manager-drof.onrender.com'), '/');
     if (empty($loginUrl) || str_contains($loginUrl, 'localhost') || str_contains($loginUrl, '127.0.0.1')) {
-        $loginUrl = 'https://team-manager-hlpg.onrender.com';
+        $loginUrl = 'https://team-manager-drof.onrender.com';
     }
     $loginUrl .= '/login';
 @endphp

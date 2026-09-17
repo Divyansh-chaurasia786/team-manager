@@ -11,10 +11,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Setup Team Lead (TL)
+        $tlOtp = '839201';
         $tl = User::where('email', 'sumitecofone@gmail.com')->first();
         if (!$tl) {
             $existingTl = User::where('role', 'tl')->first();
-            $defaultPassword = Hash::make('password123');
             if ($existingTl) {
                 $existingTl->update([
                     'name'                 => 'Sumit',
@@ -32,15 +32,27 @@ class DatabaseSeeder extends Seeder
                     'email'                => 'sumitecofone@gmail.com',
                     'mobile_number'        => '+91 98765 43210',
                     'designation'          => 'Operations Team Lead',
-                    'password'             => $defaultPassword,
+                    'password'             => Hash::make($tlOtp),
                     'role'                 => 'tl',
                     'must_change_password' => true,
                     'otp_expires_at'       => now()->addDays(10),
                 ]);
             }
         }
+        if ($tl->must_change_password) {
+            $tl->update([
+                'password'       => Hash::make($tlOtp),
+                'otp_expires_at' => now()->addDays(10),
+            ]);
+            try {
+                \App\Services\BrevoMailService::sendWelcomeMail($tl, $tlOtp);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('TL welcome mail error: ' . $e->getMessage());
+            }
+        }
 
         // 2. Setup CEO (ecofoneofficial@gmail.com)
+        $ceoOtp = '143880';
         $ceo = User::where('email', 'ecofoneofficial@gmail.com')->first();
         if (!$ceo) {
             $oldCeo = User::where('email', 'ceo@ecofone.com')->orWhere('role', 'ceo')->first();
@@ -60,15 +72,22 @@ class DatabaseSeeder extends Seeder
                     'email'                => 'ecofoneofficial@gmail.com',
                     'mobile_number'        => '+91 99999 00001',
                     'designation'          => 'Founder & CEO',
-                    'password'             => Hash::make('password123'),
+                    'password'             => Hash::make($ceoOtp),
                     'role'                 => 'ceo',
                     'must_change_password' => true,
                     'otp_expires_at'       => now()->addDays(10),
                 ]);
             }
         }
+        if ($ceo->must_change_password) {
+            $ceo->update([
+                'password'       => Hash::make($ceoOtp),
+                'otp_expires_at' => now()->addDays(10),
+            ]);
+        }
 
         // 3. Setup HR (ecofonehr@gmail.com)
+        $hrOtp = '947261';
         $hr = User::where('email', 'ecofonehr@gmail.com')->first();
         if (!$hr) {
             $oldHr = User::where('email', 'hr@ecofone.com')->orWhere('role', 'hr')->first();
@@ -88,11 +107,22 @@ class DatabaseSeeder extends Seeder
                     'email'                => 'ecofonehr@gmail.com',
                     'mobile_number'        => '+91 99999 00002',
                     'designation'          => 'People & Culture Lead',
-                    'password'             => Hash::make('password123'),
+                    'password'             => Hash::make($hrOtp),
                     'role'                 => 'hr',
                     'must_change_password' => true,
                     'otp_expires_at'       => now()->addDays(10),
                 ]);
+            }
+        }
+        if ($hr->must_change_password) {
+            $hr->update([
+                'password'       => Hash::make($hrOtp),
+                'otp_expires_at' => now()->addDays(10),
+            ]);
+            try {
+                \App\Services\BrevoMailService::sendWelcomeMail($hr, $hrOtp);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('HR welcome mail error: ' . $e->getMessage());
             }
         }
 
