@@ -28,6 +28,7 @@ class TLDashboardController extends Controller
         // ⏰ 2-Day Scheduled Shoot Reminders (Shoots in the next 48 hours)
         $upcomingShootReminders = ContentShoot::with(['managingMember', 'cameraPerson', 'model', 'editor'])
             ->where('status', '!=', 'published')
+            ->whereNotNull('shoot_date')
             ->where('shoot_date', '<=', now()->addDays(2))
             ->orderBy('shoot_date', 'asc')
             ->get();

@@ -154,8 +154,10 @@
                             <div class="mt-2.5 space-y-1 text-xs text-slate-500">
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="calendar" class="w-3.5 h-3.5 text-pink-500"></i>
-                                    <span>Shoot: <strong class="text-slate-800">{{ $shoot->shoot_date->format('d M, h:i A') }}</strong></span>
-                                    <span class="text-[10px] text-slate-400">({{ $shoot->shoot_date->diffForHumans() }})</span>
+                                    <span>Shoot: <strong class="text-slate-800">{{ $shoot->shoot_date ? $shoot->shoot_date->format('d M, h:i A') : 'Schedule TBD' }}</strong></span>
+                                    @if($shoot->shoot_date)
+                                        <span class="text-[10px] text-slate-400">({{ $shoot->shoot_date->diffForHumans() }})</span>
+                                    @endif
                                 </div>
                                 <div class="flex items-center gap-1.5 text-slate-700">
                                     <i data-lucide="shield-check" class="w-3.5 h-3.5 {{ $shoot->managing_member_id ? 'text-indigo-600' : 'text-slate-400' }}"></i>

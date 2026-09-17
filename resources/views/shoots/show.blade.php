@@ -163,7 +163,7 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Shooting Date:</span>
-                        <strong class="text-slate-900 font-bold text-xs truncate block">{{ $shoot->shoot_date->format('d M Y, h:i A') }}</strong>
+                        <strong class="text-slate-900 font-bold text-xs truncate block">{{ $shoot->shoot_date ? $shoot->shoot_date->format('d M Y, h:i A') : 'Schedule TBD' }}</strong>
                     </div>
                 </div>
 
@@ -572,7 +572,9 @@
                 <!-- Title & Platform -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shoot Title</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                            Shoot Title <span class="text-rose-500">*</span>
+                        </label>
                         <input type="text" name="title" value="{{ old('title', $shoot->title) }}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold">
                     </div>
                     <div>
@@ -589,12 +591,29 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shooting Date</label>
-                        <input type="datetime-local" name="shoot_date" value="{{ old('shoot_date', $shoot->shoot_date->format('Y-m-d\TH:i')) }}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold">
+                        <label class="block text-xs font-bold text-pink-700 uppercase mb-1 flex items-center gap-1">
+                            <i data-lucide="instagram" class="w-3.5 h-3.5 text-pink-600"></i>
+                            <span>Instagram Handle <span class="text-rose-500">*</span></span>
+                        </label>
+                        <input type="text" name="instagram_handle" value="{{ old('instagram_handle', $shoot->instagram_handle) }}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shooting Date</label>
+                        <input type="datetime-local" name="shoot_date" value="{{ old('shoot_date', $shoot->shoot_date ? $shoot->shoot_date->format('Y-m-d\TH:i') : '') }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Location</label>
                         <input type="text" name="location" value="{{ old('location', $shoot->location) }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-red-700 uppercase mb-1 flex items-center gap-1">
+                            <i data-lucide="youtube" class="w-3.5 h-3.5 text-red-600"></i>
+                            <span>YouTube Channel</span>
+                        </label>
+                        <input type="text" name="youtube_channel" value="{{ old('youtube_channel', $shoot->youtube_channel) }}" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono">
                     </div>
                 </div>
 
@@ -624,8 +643,6 @@
 
                 <!-- Preserve Platform Values -->
                 <input type="hidden" name="platform" value="{{ $shoot->platform }}">
-                <input type="hidden" name="instagram_handle" value="{{ $shoot->instagram_handle }}">
-                <input type="hidden" name="youtube_channel" value="{{ $shoot->youtube_channel }}">
 
                 <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                     <button type="button" @click="showPhaseEditModal = false" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
@@ -764,7 +781,7 @@
     function generateShootSummary() {
         const title = @json($shoot->title);
         const refCode = 'REEL #' + String(@json($shoot->id)).padStart(4, '0');
-        const shootingDate = @json($shoot->shoot_date->format('d M Y, h:i A'));
+        const shootingDate = @json($shoot->shoot_date ? $shoot->shoot_date->format('d M Y, h:i A') : 'Schedule TBD');
         
         // Target upload platform calculation
         let uploadPlatform = @json($shoot->platform_info['label']);

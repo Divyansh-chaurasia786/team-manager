@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ 
-    showScheduleModal: false,
+    showScheduleModal: {{ $errors->any() ? 'true' : 'false' }},
     assignCrewModal: false,
     assignTarget: { id: null, title: '', manager_id: '', camera_id: '', model_id: '', editor_id: '', other_crew: '' }
 }">
@@ -28,7 +28,7 @@
             </p>
         </div>
 
-        @if(auth()->user()->isTL())
+        @if(auth()->user()->isTL() || auth()->user()->isCEO() || auth()->user()->isHR())
         <div class="flex items-center gap-3 w-full sm:w-auto">
             <button @click="showScheduleModal = true" type="button" class="w-full sm:w-auto justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition flex items-center gap-2 shadow-md shadow-indigo-600/25 cursor-pointer">
                 <i data-lucide="calendar-plus" class="w-4 h-4"></i>
@@ -206,10 +206,14 @@
                     <div class="mt-3.5 space-y-1.5 text-xs text-slate-600">
                         <div class="flex items-center gap-2">
                             <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
-                            <span class="font-bold text-slate-800">{{ $shoot->shoot_date->format('D, d M Y') }}</span>
-                            <span class="text-slate-400">&bull;</span>
-                            <span class="font-bold text-indigo-600">{{ $shoot->shoot_date->format('h:i A') }}</span>
-                            <span class="text-[10px] text-slate-400 font-medium">({{ $shoot->shoot_date->diffForHumans() }})</span>
+                            @if($shoot->shoot_date)
+                                <span class="font-bold text-slate-800">{{ $shoot->shoot_date->format('D, d M Y') }}</span>
+                                <span class="text-slate-400">&bull;</span>
+                                <span class="font-bold text-indigo-600">{{ $shoot->shoot_date->format('h:i A') }}</span>
+                                <span class="text-[10px] text-slate-400 font-medium">({{ $shoot->shoot_date->diffForHumans() }})</span>
+                            @else
+                                <span class="font-bold text-slate-400 italic">Schedule TBD</span>
+                            @endif
                         </div>
 
                         @if($shoot->location)
@@ -372,20 +376,34 @@
             <form method="POST" action="{{ route('shoots.store') }}" class="space-y-5">
                 @csrf
 
+                @if($errors->any())
+                    <div class="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-semibold space-y-1">
+                        <div class="flex items-center gap-1.5 font-bold text-rose-800 uppercase tracking-wider mb-1">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+                            <span>Please fix the following:</span>
+                        </div>
+                        @foreach($errors->all() as $err)
+                            <div>• {{ $err }}</div>
+                        @endforeach
+                    </div>
+                @endif
+
                 <!-- Row 1: Title & Platform -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shoot Title / Content Topic</label>
-                        <input type="text" name="title" required placeholder="e.g. iPhone 16 Pro Cinematic Review Reel" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                            Shoot Title / Content Topic <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" name="title" value="{{ old('title') }}" required placeholder="e.g. iPhone 16 Pro Cinematic Review Reel" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Platform</label>
                         <select name="platform" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
-                            <option value="instagram">Instagram (Reel/Post)</option>
-                            <option value="youtube">YouTube (Video/Short)</option>
-                            <option value="both" selected>Both IG & YouTube</option>
-                            <option value="other">Other Channel</option>
+                            <option value="instagram" {{ old('platform') === 'instagram' ? 'selected' : '' }}>Instagram (Reel/Post)</option>
+                            <option value="youtube" {{ old('platform') === 'youtube' ? 'selected' : '' }}>YouTube (Video/Short)</option>
+                            <option value="both" {{ old('platform', 'both') === 'both' ? 'selected' : '' }}>Both IG & YouTube</option>
+                            <option value="other" {{ old('platform') === 'other' ? 'selected' : '' }}>Other Channel</option>
                         </select>
                     </div>
                 </div>
@@ -395,9 +413,9 @@
                     <div>
                         <label class="block text-xs font-bold text-pink-700 uppercase mb-1 flex items-center gap-1.5">
                             <i data-lucide="instagram" class="w-3.5 h-3.5 text-pink-600"></i>
-                            <span>Instagram Handle / ID</span>
+                            <span>Instagram Handle / ID <span class="text-rose-500">*</span></span>
                         </label>
-                        <input type="text" name="instagram_handle" placeholder="@ecofone_official" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500 bg-white font-mono">
+                        <input type="text" name="instagram_handle" value="{{ old('instagram_handle') }}" required placeholder="@ecofone_official" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500 bg-white font-mono">
                     </div>
 
                     <div>
@@ -405,7 +423,7 @@
                             <i data-lucide="youtube" class="w-3.5 h-3.5 text-red-600"></i>
                             <span>YouTube Channel / ID</span>
                         </label>
-                        <input type="text" name="youtube_channel" placeholder="@ecofonetech or EcoFone Official" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white font-mono">
+                        <input type="text" name="youtube_channel" value="{{ old('youtube_channel') }}" placeholder="@ecofonetech or EcoFone Official" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white font-mono">
                     </div>
                 </div>
 
@@ -413,12 +431,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Scheduled Shoot Date & Call Time</label>
-                        <input type="datetime-local" name="shoot_date" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
+                        <input type="datetime-local" name="shoot_date" value="{{ old('shoot_date') }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shoot Location / Set</label>
-                        <input type="text" name="location" placeholder="e.g. Studio Room A, Tech Park Outdoor, Office Set" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
+                        <input type="text" name="location" value="{{ old('location') }}" placeholder="e.g. Studio Room A, Tech Park Outdoor, Office Set" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
                     </div>
                 </div>
 
@@ -547,7 +565,7 @@
     <!-- =================================================================== -->
     <!-- MODAL: TL QUICK ASSIGN CREW                                          -->
     <!-- =================================================================== -->
-    @if(auth()->user()->isTL())
+    @if(auth()->user()->isTL() || auth()->user()->isCEO() || auth()->user()->isHR())
     <div x-show="assignCrewModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="assignCrewModal = false" class="bg-white rounded-3xl max-w-xl w-full p-4 sm:p-6 lg:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-4 sm:space-y-5">
             

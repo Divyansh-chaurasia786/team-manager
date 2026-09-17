@@ -18,7 +18,7 @@ class ContentShootController extends Controller
         $user = Auth::user();
 
         // Query builder
-        $query = ContentShoot::with(['creator', 'managingMember', 'cameraPerson', 'model', 'editor', 'director'])->latest('shoot_date');
+        $query = ContentShoot::with(['creator', 'managingMember', 'cameraPerson', 'model', 'editor', 'director'])->latest('id');
 
         // Filter tab
         $tab = $request->query('tab', 'all');
@@ -57,21 +57,21 @@ class ContentShootController extends Controller
 
     /**
      * Store a newly scheduled shoot and script.
-     * Only Team Leads can schedule new shoots.
+     * Shoot title & Instagram handle are the only mandatory fields.
      */
     public function store(Request $request)
     {
-        if (!Auth::user()->isTL()) {
-            abort(403, 'Unauthorized. Only Team Leads can schedule and assign shoots.');
+        if (!Auth::user()->isTL() && !Auth::user()->isCEO() && !Auth::user()->isHR()) {
+            abort(403, 'Unauthorized. Only management roles can schedule and assign shoots.');
         }
 
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
+            'instagram_handle'    => 'required|string|max:100',
             'managing_member_id'  => 'nullable|exists:users,id',
-            'platform'            => 'required|in:instagram,youtube,both,other',
-            'instagram_handle'    => 'nullable|string|max:100',
+            'platform'            => 'nullable|in:instagram,youtube,both,other',
             'youtube_channel'     => 'nullable|string|max:100',
-            'shoot_date'          => 'required|date',
+            'shoot_date'          => 'nullable|date',
             'location'            => 'nullable|string|max:255',
             'camera_person_id'    => 'nullable|exists:users,id',
             'camera_person_name'  => 'nullable|string|max:255',
@@ -86,20 +86,32 @@ class ContentShootController extends Controller
             'script'              => 'nullable|string',
             'concept_notes'       => 'nullable|string',
             'reference_links'     => 'nullable|string',
-            'status'              => 'required|in:planning,scripting,scheduled,shooting,editing,review,published',
+            'status'              => 'nullable|in:planning,scripting,scheduled,shooting,editing,review,published',
             'target_publish_date' => 'nullable|date',
         ]);
+
+        if (empty($validated['platform'])) {
+            $validated['platform'] = 'instagram';
+        }
+        if (empty($validated['status'])) {
+            $validated['status'] = 'scheduled';
+        }
+        if (empty($validated['shoot_date'])) {
+            $validated['shoot_date'] = null;
+        }
 
         $validated['created_by'] = Auth::id();
 
         $shoot = ContentShoot::create($validated);
+
+        $shootDateStr = $shoot->shoot_date ? $shoot->shoot_date->format('d M Y, h:i A') : 'Schedule TBD';
 
         ActivityLog::log(
             action: 'shoot_scheduled',
             description: sprintf('%s scheduled a new shoot "%s" for %s (Status: %s)',
                 Auth::user()->name,
                 $shoot->title,
-                $shoot->shoot_date->format('d M Y, h:i A'),
+                $shootDateStr,
                 ucfirst($shoot->status)
             ),
             entityType: 'ContentShoot',
@@ -114,8 +126,8 @@ class ContentShootController extends Controller
      */
     public function assignCrew(Request $request, ContentShoot $shoot)
     {
-        if (!Auth::user()->isTL()) {
-            abort(403, 'Unauthorized. Only Team Leads can assign crew members and managing members.');
+        if (!Auth::user()->isTL() && !Auth::user()->isCEO() && !Auth::user()->isHR()) {
+            abort(403, 'Unauthorized. Only management roles can assign crew members and managing members.');
         }
 
         $validated = $request->validate([
@@ -173,21 +185,22 @@ class ContentShootController extends Controller
 
     /**
      * Update shoot details, cast/crew, or script.
+     * Shoot title & Instagram handle are mandatory.
      */
     public function update(Request $request, ContentShoot $shoot)
     {
         $user = Auth::user();
-        if (!$shoot->canUpdateStatus($user) && $shoot->created_by !== $user->id) {
-            abort(403, 'Unauthorized. Only the Team Lead or assigned managing member can update this shoot.');
+        if (!$shoot->canUpdateStatus($user) && $shoot->created_by !== $user->id && !$user->isCEO()) {
+            abort(403, 'Unauthorized. Only the Team Lead, CEO, or assigned managing member can update this shoot.');
         }
 
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
+            'instagram_handle'    => 'required|string|max:100',
             'managing_member_id'  => 'nullable|exists:users,id',
-            'platform'            => 'required|in:instagram,youtube,both,other',
-            'instagram_handle'    => 'nullable|string|max:100',
+            'platform'            => 'nullable|in:instagram,youtube,both,other',
             'youtube_channel'     => 'nullable|string|max:100',
-            'shoot_date'          => 'required|date',
+            'shoot_date'          => 'nullable|date',
             'location'            => 'nullable|string|max:255',
             'camera_person_id'    => 'nullable|exists:users,id',
             'camera_person_name'  => 'nullable|string|max:255',
@@ -202,10 +215,20 @@ class ContentShootController extends Controller
             'script'              => 'nullable|string',
             'concept_notes'       => 'nullable|string',
             'reference_links'     => 'nullable|string',
-            'status'              => 'required|in:planning,scripting,scheduled,shooting,editing,review,published',
+            'status'              => 'nullable|in:planning,scripting,scheduled,shooting,editing,review,published',
             'target_publish_date' => 'nullable|date',
             'published_url'       => 'nullable|url|max:255',
         ]);
+
+        if (empty($validated['platform'])) {
+            $validated['platform'] = $shoot->platform ?: 'instagram';
+        }
+        if (empty($validated['status'])) {
+            $validated['status'] = $shoot->status ?: 'scheduled';
+        }
+        if (empty($validated['shoot_date'])) {
+            $validated['shoot_date'] = null;
+        }
 
         $shoot->update($validated);
 

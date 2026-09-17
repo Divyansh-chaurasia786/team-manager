@@ -24,6 +24,7 @@ class MemberDashboardController extends Controller
         // ⏰ 2-Day Scheduled Shoots for Member (as manager or crew)
         $upcomingShootReminders = ContentShoot::with(['creator', 'managingMember', 'cameraPerson', 'model', 'editor'])
             ->where('status', '!=', 'published')
+            ->whereNotNull('shoot_date')
             ->where('shoot_date', '<=', now()->addDays(2))
             ->where(function ($q) use ($user) {
                 $q->where('managing_member_id', $user->id)
@@ -57,7 +58,7 @@ class MemberDashboardController extends Controller
         $assignedShoots = ContentShoot::with(['creator', 'managingMember', 'cameraPerson', 'model', 'editor'])
             ->where('managing_member_id', $user->id)
             ->where('status', '!=', 'published')
-            ->orderBy('shoot_date', 'asc')
+            ->latest('id')
             ->get();
 
         // Recent personal activity history

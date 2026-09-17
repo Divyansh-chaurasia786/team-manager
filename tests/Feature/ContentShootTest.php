@@ -202,7 +202,7 @@ class ContentShootTest extends TestCase
         $response = $this->actingAs($this->tl)->put(route('shoots.update', $shoot), [
             'title'              => 'Final Revised Title: MacBook Air M3',
             'platform'           => 'youtube',
-            'instagram_handle'   => null,
+            'instagram_handle'   => '@ecofonetech',
             'youtube_channel'    => '@ecofonetech',
             'shoot_date'         => now()->addDays(4)->format('Y-m-d H:i'),
             'location'           => 'Studio 3',
@@ -219,6 +219,64 @@ class ContentShootTest extends TestCase
         $this->assertEquals('Final Revised Title: MacBook Air M3', $shoot->title);
         $this->assertEquals('scripting', $shoot->status);
         $this->assertEquals('Is 8GB unified memory still enough?', $shoot->hook);
+    }
+
+    public function test_shoot_can_be_created_with_only_title_and_instagram_handle(): void
+    {
+        $response = $this->actingAs($this->tl)->post(route('shoots.store'), [
+            'title'            => 'Minimal Reel Shoot',
+            'instagram_handle' => '@ecofone_minimal',
+        ]);
+
+        $shoot = ContentShoot::where('title', 'Minimal Reel Shoot')->first();
+        $this->assertNotNull($shoot);
+        $this->assertEquals('@ecofone_minimal', $shoot->instagram_handle);
+        $this->assertNull($shoot->shoot_date);
+        $this->assertNull($shoot->location);
+        $this->assertNull($shoot->camera_person_id);
+        $this->assertNull($shoot->model_id);
+        $this->assertNull($shoot->editor_id);
+        $this->assertNull($shoot->script);
+        $this->assertEquals('scheduled', $shoot->status);
+        $this->assertEquals('instagram', $shoot->platform);
+
+        $response->assertRedirect(route('shoots.show', $shoot));
+    }
+
+    public function test_shoot_creation_fails_without_title_or_instagram_handle(): void
+    {
+        // Missing instagram_handle
+        $response = $this->actingAs($this->tl)->post(route('shoots.store'), [
+            'title' => 'Title Without Instagram Handle',
+        ]);
+        $response->assertSessionHasErrors(['instagram_handle']);
+
+        // Missing title
+        $response2 = $this->actingAs($this->tl)->post(route('shoots.store'), [
+            'instagram_handle' => '@ecofone_official',
+        ]);
+        $response2->assertSessionHasErrors(['title']);
+    }
+
+    public function test_ceo_and_hr_can_create_shoots(): void
+    {
+        $ceo = User::create([
+            'name' => 'CEO Management',
+            'username' => 'ceo_shoot_admin',
+            'email' => 'ceo_shoots@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+            'role' => 'ceo',
+            'must_change_password' => false,
+        ]);
+
+        $response = $this->actingAs($ceo)->post(route('shoots.store'), [
+            'title'            => 'CEO Created Shoot',
+            'instagram_handle' => '@ceo_ecofone',
+        ]);
+
+        $shoot = ContentShoot::where('title', 'CEO Created Shoot')->first();
+        $this->assertNotNull($shoot);
+        $response->assertRedirect(route('shoots.show', $shoot));
     }
 
     public function test_only_authorized_user_can_delete_shoot(): void

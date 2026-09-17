@@ -150,7 +150,7 @@
                             <div class="mt-2.5 space-y-1 text-xs text-slate-500">
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="calendar" class="w-3.5 h-3.5 text-pink-500"></i>
-                                    <span>Shooting Date: <strong class="text-slate-800">{{ $shoot->shoot_date->format('d M, h:i A') }}</strong></span>
+                                    <span>Shooting Date: <strong class="text-slate-800">{{ $shoot->shoot_date ? $shoot->shoot_date->format('d M, h:i A') : 'Schedule TBD' }}</strong></span>
                                 </div>
                                 @if($shoot->location)
                                     <div class="flex items-center gap-1.5 text-slate-700 truncate">
@@ -327,7 +327,7 @@
                         <div class="space-y-1 text-xs text-slate-600 bg-white/80 p-2.5 rounded-xl border border-slate-200/60">
                             <div class="flex items-center gap-1.5 font-bold text-slate-800">
                                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-500"></i>
-                                <span>Shooting Date: {{ $shoot->shoot_date->format('d M, h:i A') }}</span>
+                                <span>Shooting Date: {{ $shoot->shoot_date ? $shoot->shoot_date->format('d M, h:i A') : 'Schedule TBD' }}</span>
                             </div>
                             @if($shoot->location)
                                 <div class="flex items-center gap-1.5 text-slate-500 truncate text-[11px]">
