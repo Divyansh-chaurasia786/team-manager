@@ -65,10 +65,16 @@
                                 <h3 class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition truncate" title="{{ $member->name }}">
                                     {{ $member->name }}
                                 </h3>
-                                <div class="mt-1">
-                                    <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                        {{ $member->designation ?? 'Staff Member' }}
+                                <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold {{ $member->role === 'tl' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100' }}">
+                                        {{ $member->role === 'tl' ? 'Team Lead' : ($member->designation ?? 'Staff Member') }}
                                     </span>
+                                    @if($member->role === 'member' && $member->creator)
+                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                                            <i data-lucide="user-check" class="w-3 h-3 text-indigo-500"></i>
+                                            <span>TL: {{ $member->creator->name }}</span>
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -111,7 +117,7 @@
 </div>
 
 <!-- Modal: Register Employee -->
-<div id="addMemberModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+<div id="addMemberModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4" x-data="{ selectedRole: 'member' }">
     <div class="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
             <div>
@@ -119,13 +125,56 @@
                     <i data-lucide="user-plus" class="w-4 h-4 text-indigo-600"></i>
                     Register New Employee
                 </h3>
-                <p class="text-xs text-slate-400 mt-0.5">Account credentials and OTP will be auto-generated and emailed.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Account credentials and 10-day OTP will be auto-generated and emailed.</p>
             </div>
             <button type="button" onclick="document.getElementById('addMemberModal').classList.add('hidden')" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">✕</button>
         </div>
 
         <form method="POST" action="{{ route($routePrefix . 'store') }}" class="space-y-4">
             @csrf
+
+            @if(auth()->user()->isHR() || auth()->user()->isCEO())
+            <!-- Role Selection (HR & CEO Only) -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Account Role</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition text-xs font-bold"
+                               :class="selectedRole === 'member' ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-500/20' : 'bg-white border-slate-200 text-slate-700'">
+                            <input type="radio" name="role" value="member" x-model="selectedRole" class="hidden">
+                            <i data-lucide="user" class="w-4 h-4 text-indigo-600"></i>
+                            <span>Team Member</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition text-xs font-bold"
+                               :class="selectedRole === 'tl' ? 'bg-purple-50 border-purple-500 text-purple-900 ring-2 ring-purple-500/20' : 'bg-white border-slate-200 text-slate-700'">
+                            <input type="radio" name="role" value="tl" x-model="selectedRole" class="hidden">
+                            <i data-lucide="shield-alert" class="w-4 h-4 text-purple-600"></i>
+                            <span>Team Lead (TL)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Reporting Team Lead Selector (Visible only when role is Team Member) -->
+                <div x-show="selectedRole === 'member'" x-transition>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Reporting Team Lead (Assigned TL) <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="user-check" class="w-4 h-4"></i>
+                        </span>
+                        <select name="team_lead_id" :required="selectedRole === 'member'" class="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            <option value="">-- Choose Assigned Team Lead --</option>
+                            @foreach($teamLeads as $lead)
+                                <option value="{{ $lead->id }}">{{ $lead->name }} (@<span>{{ $lead->username }}</span>) - {{ $lead->email }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1">This member will report directly to this Team Lead and be assigned tasks by them.</p>
+                </div>
+            </div>
+            @endif
+
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
                 <div class="relative">

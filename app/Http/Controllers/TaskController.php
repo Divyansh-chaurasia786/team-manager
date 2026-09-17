@@ -52,7 +52,13 @@ class TaskController extends Controller
         ]);
 
         $today = now()->format('Y-m-d');
+        $actor = Auth::user();
         $assignee = User::findOrFail($request->assigned_to);
+
+        // Security check: Team Leads can ONLY assign tasks to their own assigned team members
+        if ($actor->isTL() && $assignee->created_by !== $actor->id) {
+            abort(403, 'Unauthorized: Team Leads can only assign tasks to members in their own assigned team.');
+        }
 
         // Attendance check: Is the member absent or on leave today?
         $todayAttendance = Attendance::where('user_id', $assignee->id)

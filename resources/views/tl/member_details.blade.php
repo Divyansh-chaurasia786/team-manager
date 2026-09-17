@@ -183,6 +183,25 @@
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Designation / Role Title</label>
                             <input type="text" name="designation" value="{{ old('designation', $user->designation) }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="e.g. Operations Specialist, Senior UI Designer">
                         </div>
+
+                        @if((auth()->user()->isHR() || auth()->user()->isCEO()) && $user->role === 'member')
+                        <div class="md:col-span-2 p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl">
+                            <label class="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                <i data-lucide="user-check" class="w-4 h-4 text-indigo-600"></i>
+                                <span>Assigned Team Lead (Reporting TL)</span>
+                            </label>
+                            <select name="team_lead_id" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition font-medium">
+                                @foreach($teamLeads as $lead)
+                                    <option value="{{ $lead->id }}" {{ $user->created_by == $lead->id ? 'selected' : '' }}>
+                                        {{ $lead->name }} (@<span>{{ $lead->username }}</span>) - {{ $lead->email }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="text-[11px] text-indigo-700/80 mt-1.5">
+                                Reassigning this member changes which Team Lead supervises their tasks, attendance, and reporting.
+                            </p>
+                        </div>
+                        @endif
                     </div>
 
                     <div class="pt-3 flex items-center justify-end">
