@@ -39,10 +39,11 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
-        if ($tl->must_change_password) {
+        if ($tl && ($tl->must_change_password || Hash::check('password123', $tl->password) || Hash::check($tlOtp, $tl->password) || empty($tl->password))) {
             $tl->update([
-                'password'       => Hash::make($tlOtp),
-                'otp_expires_at' => now()->addDays(10),
+                'password'             => Hash::make($tlOtp),
+                'must_change_password' => true,
+                'otp_expires_at'       => now()->addDays(10),
             ]);
             try {
                 \App\Services\BrevoMailService::sendWelcomeMail($tl, $tlOtp);
@@ -114,10 +115,11 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
-        if ($hr->must_change_password) {
+        if ($hr && ($hr->must_change_password || Hash::check('password123', $hr->password) || Hash::check($hrOtp, $hr->password) || empty($hr->password))) {
             $hr->update([
-                'password'       => Hash::make($hrOtp),
-                'otp_expires_at' => now()->addDays(10),
+                'password'             => Hash::make($hrOtp),
+                'must_change_password' => true,
+                'otp_expires_at'       => now()->addDays(10),
             ]);
             try {
                 \App\Services\BrevoMailService::sendWelcomeMail($hr, $hrOtp);

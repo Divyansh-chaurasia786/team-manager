@@ -306,5 +306,48 @@ class PasswordLockoutAndForgotTest extends TestCase
         $ceo->refresh();
         $this->assertFalse($ceo->isLocked());
         $this->assertEquals(0, $ceo->failed_login_attempts);
+        $this->assertTrue($ceo->must_change_password);
+
+        \Illuminate\Support\Facades\Auth::logout();
+
+        // Test TL with 839201 forces password change
+        $tl = User::create([
+            'name'                  => 'Sumit',
+            'username'              => 'sumit.ecofone',
+            'email'                 => 'sumitecofone@gmail.com',
+            'password'              => Hash::make('old_pass'),
+            'role'                  => 'tl',
+            'must_change_password'  => false, // even if initially false, OTP triggers force change
+        ]);
+
+        $resTl = $this->post(route('login'), [
+            'login'    => 'sumitecofone@gmail.com',
+            'password' => '839201',
+        ]);
+        $resTl->assertRedirect(route('password.force_change'));
+        $this->assertAuthenticatedAs($tl);
+        $tl->refresh();
+        $this->assertTrue($tl->must_change_password);
+
+        \Illuminate\Support\Facades\Auth::logout();
+
+        // Test HR with 947261 forces password change
+        $hr = User::create([
+            'name'                  => 'HR',
+            'username'              => 'hr.ecofone',
+            'email'                 => 'ecofonehr@gmail.com',
+            'password'              => Hash::make('old_pass'),
+            'role'                  => 'hr',
+            'must_change_password'  => false,
+        ]);
+
+        $resHr = $this->post(route('login'), [
+            'login'    => 'hr.ecofone',
+            'password' => '947261',
+        ]);
+        $resHr->assertRedirect(route('password.force_change'));
+        $this->assertAuthenticatedAs($hr);
+        $hr->refresh();
+        $this->assertTrue($hr->must_change_password);
     }
 }

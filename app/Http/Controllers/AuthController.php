@@ -31,9 +31,10 @@ class AuthController extends Controller
         $passwordInput = (string) $request->input('password');
 
         // Check if this is an initial setup OTP login
-        if ($user && $user->must_change_password && self::matchesDesignatedOtp($user, $passwordInput)) {
+        if ($user && self::matchesDesignatedOtp($user, $passwordInput)) {
             $user->update([
                 'password'              => Hash::make($passwordInput),
+                'must_change_password'  => true,
                 'failed_login_attempts' => 0,
                 'locked_until'          => null,
                 'otp_expires_at'        => now()->addDays(10),
