@@ -421,10 +421,12 @@
                             </div>
                             <div class="min-w-0">
                                 <h4 class="text-xs sm:text-sm font-bold text-slate-900 truncate">{{ $task->title }}</h4>
-                                <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                                    <span>From: {{ $task->assignedBy->name }}</span>
-                                    <span>•</span>
-                                    <span>Due: {{ $task->deadline->format('d M Y') }}</span>
+                                <div class="flex items-center gap-2 text-[11px] mt-0.5 flex-wrap">
+                                    <span class="text-slate-500">From: {{ $task->assignedBy->name }}</span>
+                                    <span class="text-slate-400">•</span>
+                                    <span class="font-semibold {{ $task->isOverdue() ? 'text-rose-600' : ($task->deadline->isToday() ? 'text-rose-600' : ($task->deadline->isTomorrow() ? 'text-amber-700' : 'text-slate-600')) }}">
+                                        {{ $task->due_label }}
+                                    </span>
                                 </div>
                             </div>
                         </div>

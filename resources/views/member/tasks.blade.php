@@ -66,9 +66,9 @@
 
                     <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex-wrap gap-2">
                         <div class="flex items-center gap-1.5 font-medium">
-                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
-                            <span class="{{ $task->isOverdue() ? 'text-rose-600 font-bold' : 'text-slate-700 font-semibold' }}">
-                                Due: {{ $task->deadline->format('d M, h:i A') }}
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 {{ $task->isOverdue() ? 'text-rose-500' : ($task->deadline->isToday() ? 'text-rose-400' : 'text-slate-400') }}"></i>
+                            <span class="{{ $task->isOverdue() ? 'text-rose-600 font-bold' : ($task->deadline->isToday() ? 'text-rose-600 font-bold' : ($task->deadline->isTomorrow() ? 'text-amber-700 font-bold' : 'text-slate-700 font-semibold') ) }}">
+                                {{ $task->due_label }}
                             </span>
                         </div>
                         <div class="text-[10px] text-slate-400">By {{ $task->assignedBy->name }}</div>
@@ -182,11 +182,15 @@
                             <!-- Deadline Column: Distinctly shows Previous vs New if Reassigned -->
                             <td class="py-4 px-4 align-top">
                                 <div class="space-y-0.5">
-                                    <div class="flex items-center gap-1 {{ $task->isOverdue() ? 'text-rose-600 font-extrabold' : 'text-slate-700 font-bold' }}">
-                                        <i data-lucide="calendar" class="w-3.5 h-3.5 {{ $task->isOverdue() ? 'text-rose-500' : 'text-slate-400' }}"></i>
-                                        <span>{{ $task->deadline->format('d M Y') }}</span>
+                                    {{-- Smart due label --}}
+                                    <div class="flex items-center gap-1 font-bold
+                                        {{ $task->isOverdue() ? 'text-rose-600' : ($task->deadline->isToday() ? 'text-rose-600' : ($task->deadline->isTomorrow() ? 'text-amber-700' : 'text-slate-700')) }}">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 shrink-0
+                                            {{ $task->isOverdue() ? 'text-rose-500' : ($task->deadline->isToday() ? 'text-rose-400' : ($task->deadline->isTomorrow() ? 'text-amber-500' : 'text-slate-400')) }}"></i>
+                                        <span>{{ $task->due_label }}</span>
                                     </div>
-                                    <div class="text-[11px] text-slate-400 pl-4.5">{{ $task->deadline->format('h:i A') }}</div>
+                                    {{-- Raw date/time for reference --}}
+                                    <div class="text-[11px] text-slate-400 pl-4.5">{{ $task->deadline->format('d M Y, h:i A') }}</div>
                                     @if($task->isReassigned() && $task->previous_deadline)
                                         <div class="text-[10px] text-slate-400 line-through pl-4.5">
                                             Prev: {{ $task->previous_deadline->format('d M, h:i A') }}
@@ -194,6 +198,10 @@
                                     @endif
                                     @if($task->isOverdue())
                                         <span class="inline-block mt-0.5 text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">Overdue</span>
+                                    @elseif($task->deadline->isToday())
+                                        <span class="inline-block mt-0.5 text-[9px] font-black uppercase text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">Due Today</span>
+                                    @elseif($task->deadline->isTomorrow())
+                                        <span class="inline-block mt-0.5 text-[9px] font-black uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Due Tomorrow</span>
                                     @endif
                                 </div>
                             </td>
