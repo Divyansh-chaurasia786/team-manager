@@ -116,6 +116,10 @@
                                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
                                     <span>Assigned to: <strong class="text-slate-800">{{ $task->assignedTo->name }}</strong></span>
                                 </div>
+                                <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+                                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-slate-400"></i>
+                                    <span>Assigned: <strong class="text-slate-600">{{ $task->created_at->format('d M, h:i A') }}</strong></span>
+                                </div>
                                 <div class="flex items-center gap-1.5 font-semibold text-slate-700">
                                     <i data-lucide="clock" class="w-3.5 h-3.5 {{ $rem['is_urgent'] ? 'text-amber-600' : 'text-slate-400' }}"></i>
                                     <span class="{{ $rem['is_urgent'] ? 'text-amber-800 font-bold' : '' }}">{{ $rem['label'] }}</span>
@@ -135,12 +139,39 @@
 
                 <!-- Shoot Reminders -->
                 @foreach($upcomingShootReminders as $shoot)
+                    @php
+                        $sDate = $shoot->shoot_date;
+                        $sBadge = 'Shoot in 2 Days';
+                        $sBadgeClass = 'bg-pink-50 text-pink-700 border-pink-200';
+                        $sTimeRel = '';
+                        if ($sDate) {
+                            if ($sDate->isPast()) {
+                                $sBadge = 'Past Shoot';
+                                $sBadgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                                $sTimeRel = 'Finished ' . $sDate->diffForHumans();
+                            } elseif ($sDate->isToday()) {
+                                $sBadge = 'Shoot Today';
+                                $sBadgeClass = 'bg-rose-50 text-rose-700 border-rose-300';
+                                $diffMin = (int) max(0, now()->diffInMinutes($sDate, false));
+                                $sh = intdiv($diffMin, 60);
+                                $sm = $diffMin % 60;
+                                $sTimeRel = ($sh > 0 ? $sh . 'h ' : '') . $sm . 'm left';
+                            } elseif ($sDate->isTomorrow()) {
+                                $sBadge = 'Shoot Tomorrow';
+                                $sBadgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
+                                $diffH = (int) ceil(now()->diffInRealHours($sDate, false));
+                                $sTimeRel = 'in ~' . $diffH . 'h';
+                            } else {
+                                $sTimeRel = $sDate->diffForHumans();
+                            }
+                        }
+                    @endphp
                     <div class="bg-white rounded-2xl p-4 border border-pink-200/80 shadow-2xs hover:shadow-md transition flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between gap-2 mb-2">
-                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-black bg-pink-50 text-pink-700 border border-pink-200 uppercase tracking-wider flex items-center gap-1">
-                                    <i data-lucide="video" class="w-3 h-3 text-pink-600"></i>
-                                    <span>Shoot in 2 Days</span>
+                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 border {{ $sBadgeClass }}">
+                                    <i data-lucide="video" class="w-3 h-3"></i>
+                                    <span>{{ $sBadge }}</span>
                                 </span>
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase {{ $shoot->status_badge['class'] }}">
                                     {{ $shoot->status_badge['label'] }}
@@ -155,8 +186,8 @@
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="calendar" class="w-3.5 h-3.5 text-pink-500"></i>
                                     <span>Shoot: <strong class="text-slate-800">{{ $shoot->shoot_date ? $shoot->shoot_date->format('d M, h:i A') : 'Schedule TBD' }}</strong></span>
-                                    @if($shoot->shoot_date)
-                                        <span class="text-[10px] text-slate-400">({{ $shoot->shoot_date->diffForHumans() }})</span>
+                                    @if($sTimeRel)
+                                        <span class="text-[10px] font-semibold {{ $sDate && $sDate->isToday() ? 'text-rose-600' : 'text-slate-400' }}">({{ $sTimeRel }})</span>
                                     @endif
                                 </div>
                                 <div class="flex items-center gap-1.5 text-slate-700">

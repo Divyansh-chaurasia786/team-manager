@@ -92,6 +92,9 @@ class TaskController extends Controller
             entityId: $task->id
         );
 
+        // Instantly dispatch email notification to the assignee
+        \App\Services\BrevoMailService::sendTaskAssignedMail($task);
+
         return redirect()->route('tasks.index')->with('success', "Task successfully assigned to {$assignee->name}.");
     }
 
@@ -225,6 +228,9 @@ class TaskController extends Controller
             entityType: 'Task',
             entityId: $task->id
         );
+
+        // Dispatch reassignment email notification to assignee
+        \App\Services\BrevoMailService::sendTaskAssignedMail($task, isReassignment: true);
 
         return back()->with('success', 'Task has been reassigned to member with new deadline and revision directives.');
     }

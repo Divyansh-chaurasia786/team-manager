@@ -292,4 +292,85 @@ class TeamLeadHierarchyAndAssignmentTest extends TestCase
         $resMember->assertRedirect(route('tasks.index'));
         $this->assertDatabaseHas('tasks', ['title' => 'High-Priority Client Bug', 'assigned_to' => $member->id]);
     }
+
+    public function test_task_assignment_instantly_dispatches_email_to_assignee(): void
+    {
+        $tl = User::create([
+            'name'     => 'Direct TL',
+            'username' => 'direct.tl',
+            'email'    => 'direct_tl@ecofone.com',
+            'password' => Hash::make('password123'),
+            'role'     => 'tl',
+        ]);
+
+        $member = User::create([
+            'name'       => 'Assignee Dev',
+            'username'   => 'assignee.dev',
+            'email'      => 'assignee@ecofone.com',
+            'password'   => Hash::make('password123'),
+            'role'       => 'member',
+            'created_by' => $tl->id,
+        ]);
+
+        $deadline = now()->addHours(6);
+
+        $res = $this->actingAs($tl)->post(route('tasks.store'), [
+            'title'       => 'Production Deploy Sprint',
+            'description' => 'Deploy the latest release to production',
+            'assigned_to' => $member->id,
+            'deadline'    => $deadline->toDateTimeString(),
+        ]);
+
+        $res->assertRedirect(route('tasks.index'));
+
+        Mail::assertSent(\App\Mail\TaskAssignedMail::class, function ($mail) use ($member) {
+            return $mail->hasTo('assignee@ecofone.com') &&
+                   $mail->task->title === 'Production Deploy Sprint' &&
+                   $mail->isReassignment === false;
+        });
+    }
+
+    public function test_task_reassignment_dispatches_revision_email(): void
+    {
+        $tl = User::create([
+            'name'     => 'Direct TL 2',
+            'username' => 'direct.tl2',
+            'email'    => 'direct_tl2@ecofone.com',
+            'password' => Hash::make('password123'),
+            'role'     => 'tl',
+        ]);
+
+        $member = User::create([
+            'name'       => 'Assignee Dev 2',
+            'username'   => 'assignee.dev2',
+            'email'      => 'assignee2@ecofone.com',
+            'password'   => Hash::make('password123'),
+            'role'       => 'member',
+            'created_by' => $tl->id,
+        ]);
+
+        $task = Task::create([
+            'title'       => 'Feature Integration',
+            'description' => 'Integrate API endpoints',
+            'assigned_to' => $member->id,
+            'assigned_by' => $tl->id,
+            'deadline'    => now()->addHours(2),
+            'status'      => 'submitted',
+        ]);
+
+        $newDeadline = now()->addHours(8);
+
+        $res = $this->actingAs($tl)->put(route('tasks.reassign', $task), [
+            'deadline'       => $newDeadline->toDateTimeString(),
+            'revision_notes' => 'Please resolve edge case handling on auth timeout',
+        ]);
+
+        $res->assertSessionHas('success');
+
+        Mail::assertSent(\App\Mail\TaskAssignedMail::class, function ($mail) use ($member) {
+            return $mail->hasTo('assignee2@ecofone.com') &&
+                   $mail->task->title === 'Feature Integration' &&
+                   $mail->isReassignment === true;
+        });
+    }
 }

@@ -160,6 +160,64 @@ class BrevoMailService
     }
 
     /**
+     * Send task assignment or reassignment email to the assignee.
+     */
+    public static function sendTaskAssignedMail(\App\Models\Task $task, bool $isReassignment = false): bool
+    {
+        $assignee = $task->assignedTo;
+        if (!$assignee || empty($assignee->email)) {
+            return false;
+        }
+
+        if (app()->environment('testing')) {
+            Mail::to($assignee->email)->send(new \App\Mail\TaskAssignedMail($task, $isReassignment));
+            return true;
+        }
+
+        try {
+            $mailable = new \App\Mail\TaskAssignedMail($task, $isReassignment);
+            $html = $mailable->render();
+            $prefix = $isReassignment ? 'TASK REVISION REQUIRED' : 'NEW TASK ASSIGNED';
+            $subject = sprintf(
+                '%s: %s • Due %s',
+                $prefix,
+                $task->title,
+                $task->deadline ? $task->deadline->format('d M, h:i A') : 'TBD'
+            );
+
+            $result = self::sendViaApi($assignee->email, $assignee->name, $subject, $html);
+            if ($result['success']) {
+                ActivityLog::log(
+                    action: $isReassignment ? 'task_reassignment_email_sent' : 'task_assignment_email_sent',
+                    description: sprintf('%s email delivered to %s (%s) for task "%s". Brevo ID: %s',
+                        $isReassignment ? 'Task reassignment' : 'Task assignment',
+                        $assignee->name,
+                        $assignee->email,
+                        $task->title,
+                        $result['message_id']
+                    ),
+                    entityType: 'Task',
+                    entityId: $task->id,
+                    userId: auth()->id() ?? $task->assigned_by
+                );
+                return true;
+            }
+
+            Mail::to($assignee->email)->send($mailable);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send task assignment email: ' . $e->getMessage());
+            try {
+                Mail::to($assignee->email)->send(new \App\Mail\TaskAssignedMail($task, $isReassignment));
+                return true;
+            } catch (\Exception $fallbackError) {
+                Log::error('Fallback mail for task assignment failed too: ' . $fallbackError->getMessage());
+                return false;
+            }
+        }
+    }
+
+    /**
      * Direct HTTP dispatch via Brevo REST API (HTTPS port 443 - never blocked by cloud firewalls).
      */
     public static function sendViaApi(string $toEmail, string $toName, string $subject, string $htmlContent): array

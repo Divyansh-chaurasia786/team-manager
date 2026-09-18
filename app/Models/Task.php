@@ -72,37 +72,58 @@ class Task extends Model
 
         // Already past
         if ($deadline->isPast()) {
-            $diffH = (int) abs($deadline->diffInHours($now));
-            $diffD = (int) abs($deadline->diffInDays($now));
-            if ($diffH < 24) {
-                return 'Overdue by ' . ($diffH < 1 ? 'less than 1 hr' : $diffH . 'h');
+            $diffM = (int) abs($deadline->diffInMinutes($now));
+            if ($diffM < 60) {
+                return 'Overdue by ' . max(1, $diffM) . 'm';
             }
-            return 'Overdue by ' . $diffD . ' day' . ($diffD > 1 ? 's' : '');
+            $h = intdiv($diffM, 60);
+            $m = $diffM % 60;
+            if ($h < 24) {
+                return 'Overdue by ' . $h . 'h' . ($m > 0 ? ' ' . $m . 'm' : '');
+            }
+            $d = intdiv($h, 24);
+            $remH = $h % 24;
+            return 'Overdue by ' . $d . ' day' . ($d > 1 ? 's' : '') . ($remH > 0 ? ' ' . $remH . 'h' : '');
         }
 
         // Due today (same calendar day)
         if ($deadline->isToday()) {
-            $diffH = (int) ceil($now->diffInRealHours($deadline, false));
-            if ($diffH <= 1) {
-                return 'Due Today — in less than 1h';
+            $diffM = (int) max(0, $now->diffInMinutes($deadline, false));
+            $h = intdiv($diffM, 60);
+            $m = $diffM % 60;
+            if ($diffM <= 5) {
+                return 'Due Today — in less than 5 mins (' . $deadline->format('h:i A') . ')';
             }
-            return 'Due Today — ' . $diffH . 'h left (' . $deadline->format('h:i A') . ')';
+            if ($h === 0) {
+                return 'Due Today — ' . $diffM . 'm left (' . $deadline->format('h:i A') . ')';
+            }
+            if ($m === 0) {
+                return 'Due Today — ' . $h . 'h left (' . $deadline->format('h:i A') . ')';
+            }
+            return 'Due Today — ' . $h . 'h ' . $m . 'm left (' . $deadline->format('h:i A') . ')';
         }
 
         // Due tomorrow (next calendar day)
         if ($deadline->isTomorrow()) {
-            $diffH = (int) ceil($now->diffInRealHours($deadline, false));
-            return 'Due Tomorrow — ' . $diffH . 'h left (' . $deadline->format('h:i A') . ')';
+            $diffM = (int) max(0, $now->diffInMinutes($deadline, false));
+            $h = intdiv($diffM, 60);
+            $m = $diffM % 60;
+            if ($m === 0) {
+                return 'Due Tomorrow — ' . $h . 'h left (' . $deadline->format('h:i A') . ')';
+            }
+            return 'Due Tomorrow — ' . $h . 'h ' . $m . 'm left (' . $deadline->format('h:i A') . ')';
         }
 
-        // More than 1 day away — show whole hours if < 48h, else days
-        $diffTotalHours = (int) ceil($now->diffInRealHours($deadline, false));
+        // More than 1 day away — show whole hours and minutes if < 48h, else days
+        $diffM = (int) max(0, $now->diffInMinutes($deadline, false));
+        $diffTotalHours = intdiv($diffM, 60);
+        $diffRemM = $diffM % 60;
         if ($diffTotalHours < 48) {
-            return 'Due in ' . $diffTotalHours . 'h (' . $deadline->format('d M, h:i A') . ')';
+            return 'Due in ' . $diffTotalHours . 'h' . ($diffRemM > 0 ? ' ' . $diffRemM . 'm' : '') . ' (' . $deadline->format('d M, h:i A') . ')';
         }
 
         $diffDays = (int) floor($now->diffInDays($deadline));
-        return 'Due in ' . $diffDays . ' day' . ($diffDays > 1 ? 's' : '') . ' (' . $deadline->format('d M, h:i A') . ')';
+        return 'Due in ' . max(1, $diffDays) . ' day' . ($diffDays > 1 ? 's' : '') . ' (' . $deadline->format('d M, h:i A') . ')';
     }
 
     /**
