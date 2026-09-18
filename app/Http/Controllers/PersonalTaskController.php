@@ -46,7 +46,7 @@ class PersonalTaskController extends Controller
             'user_id'     => Auth::id(),
             'title'       => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'due_date'    => $validated['due_date'] ?? null,
+            'due_date'    => !empty($validated['due_date']) ? $validated['due_date'] : null,
             'priority'    => $validated['priority'] ?? 'medium',
             'status'      => 'pending',
             'is_shared'   => false,
@@ -74,7 +74,7 @@ class PersonalTaskController extends Controller
         $personalTask->update([
             'title'       => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'due_date'    => $validated['due_date'] ?? null,
+            'due_date'    => !empty($validated['due_date']) ? $validated['due_date'] : null,
             'priority'    => $validated['priority'] ?? $personalTask->priority,
             'status'      => $validated['status'] ?? $personalTask->status,
         ]);
@@ -102,6 +102,10 @@ class PersonalTaskController extends Controller
 
         $request->validate(['status' => 'required|in:pending,in-progress,completed']);
         $personalTask->update(['status' => $request->status]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'status' => $personalTask->status]);
+        }
 
         return back()->with('success', 'Status updated.');
     }
@@ -145,7 +149,7 @@ class PersonalTaskController extends Controller
 
     /**
      * Determine the higher authority for a user.
-     * Member → their TL (created_by), TL → CEO, HR → CEO, CEO → null
+     * Member → their TL/manager (created_by), TL → CEO, HR → CEO, CEO → null
      */
     private function getHigherAuthority(User $user): ?User
     {
@@ -158,15 +162,15 @@ class PersonalTaskController extends Controller
             return User::where('role', 'ceo')->first();
         }
 
-        // Member → their TL (the user who created them)
+        // Member → their TL or manager (the user who created them)
         if ($user->created_by) {
             $creator = User::find($user->created_by);
-            if ($creator && $creator->isTL()) {
+            if ($creator) {
                 return $creator;
             }
         }
 
-        // Fallback: any TL
-        return User::where('role', 'tl')->first();
+        // Fallback: any TL, or CEO
+        return User::where('role', 'tl')->first() ?? User::where('role', 'ceo')->first();
     }
 }

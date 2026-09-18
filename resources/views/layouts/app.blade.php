@@ -367,6 +367,7 @@
         <div class="lg:hidden px-3 py-2 border-t border-slate-100 bg-slate-50/80 backdrop-blur-xs flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             @if(auth()->user()->role === 'ceo')
                 <a href="{{ route('ceo.dashboard') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('ceo.dashboard') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Executive</a>
+                <a href="{{ route('my-tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('my-tasks.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">My Tasks</a>
                 <a href="{{ route('tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('tasks.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Tasks</a>
                 <a href="{{ route('shoots.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('shoots.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Shoots</a>
                 <a href="{{ route('attendance.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('attendance.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Attendance</a>
@@ -375,12 +376,14 @@
                 <a href="{{ route('history.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('history.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Audit</a>
             @elseif(auth()->user()->role === 'hr')
                 <a href="{{ route('hr.dashboard') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('hr.dashboard') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">HR Desk</a>
+                <a href="{{ route('my-tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('my-tasks.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">My Tasks</a>
                 <a href="{{ route('hr.members') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('hr.members*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Members</a>
                 <a href="{{ route('attendance.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('attendance.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Attendance</a>
                 <a href="{{ route('leaves.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('leaves.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Leaves</a>
                 <a href="{{ route('history.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('history.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Logs</a>
             @elseif(auth()->user()->role === 'tl')
                 <a href="{{ route('tl.dashboard') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('tl.dashboard') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Dashboard</a>
+                <a href="{{ route('my-tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">My Tasks</a>
                 <a href="{{ route('tl.members') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('tl.members*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Members</a>
                 <a href="{{ route('tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Tasks</a>
                 <a href="{{ route('shoots.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('shoots.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Shoots</a>
@@ -391,6 +394,7 @@
                 <a href="{{ route('history.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">History</a>
             @else
                 <a href="{{ route('member.dashboard') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('member.dashboard') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Dashboard</a>
+                <a href="{{ route('my-tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">My Tasks</a>
                 <a href="{{ route('tasks.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Deliverables</a>
                 <a href="{{ route('shoots.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('shoots.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Shoots</a>
                 <a href="{{ route('plans.index') }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {{ request()->routeIs('plans.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 bg-white border border-slate-200' }}">Weekly Plans</a>
@@ -496,6 +500,10 @@
                                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                                 <span>Google Drive</span>
                             </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('my-tasks.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
+                            </a>
                             <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="history" class="w-4 h-4"></i>
                                 <span>Activity Audit Log</span>
@@ -505,6 +513,10 @@
                             <a href="{{ route('hr.dashboard') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('hr.dashboard') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                                 <span>HR Desk</span>
+                            </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('my-tasks.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
                             </a>
                             <a href="{{ route('hr.members') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('hr.members*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="users" class="w-4 h-4"></i>
@@ -527,6 +539,10 @@
                             <a href="{{ route('tl.dashboard') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('tl.dashboard') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                                 <span>Team Dashboard</span>
+                            </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
                             </a>
                             <a href="{{ route('tl.members') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('tl.members*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="users" class="w-4 h-4"></i>
@@ -565,6 +581,10 @@
                             <a href="{{ route('member.dashboard') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('member.dashboard') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                                 <span>My Dashboard</span>
+                            </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
                             </a>
                             <a href="{{ route('tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="check-square" class="w-4 h-4"></i>
