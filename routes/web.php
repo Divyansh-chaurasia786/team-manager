@@ -12,6 +12,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\WeeklyPlanController;
+use App\Http\Controllers\PersonalTaskController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login
@@ -195,4 +196,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/verify-otp', [\App\Http\Controllers\SettingsController::class, 'verifyOtp'])->name('settings.verify_otp');
     Route::post('/settings/resend-otp', [\App\Http\Controllers\SettingsController::class, 'resendOtp'])->name('settings.resend_otp');
     Route::post('/settings/cancel-pending', [\App\Http\Controllers\SettingsController::class, 'cancelPendingUpdate'])->name('settings.cancel_pending');
+
+    // Personal Tasks (My Tasks) — private per-user tasks with optional sharing
+    Route::get('/my-tasks', [PersonalTaskController::class, 'index'])->name('my-tasks.index');
+    Route::post('/my-tasks', [PersonalTaskController::class, 'store'])->name('my-tasks.store');
+    Route::patch('/my-tasks/{personalTask}', [PersonalTaskController::class, 'update'])->name('my-tasks.update');
+    Route::delete('/my-tasks/{personalTask}', [PersonalTaskController::class, 'destroy'])->name('my-tasks.destroy');
+    Route::patch('/my-tasks/{personalTask}/status', [PersonalTaskController::class, 'updateStatus'])->name('my-tasks.status');
+    Route::post('/my-tasks/{personalTask}/share', [PersonalTaskController::class, 'share'])->name('my-tasks.share');
+    Route::post('/my-tasks/{personalTask}/unshare', [PersonalTaskController::class, 'unshare'])->name('my-tasks.unshare');
 });

@@ -114,6 +114,10 @@
                                 <i data-lucide="history" class="w-4 h-4"></i>
                                 <span>Audit Log</span>
                             </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
+                            </a>
 
                         @elseif(auth()->user()->role === 'hr')
                             {{-- HR Nav --}}
@@ -136,6 +140,10 @@
                             <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                                 <i data-lucide="history" class="w-4 h-4"></i>
                                 <span>Logs</span>
+                            </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
                             </a>
 
                         @elseif(auth()->user()->role === 'tl')
@@ -223,6 +231,10 @@
                                 <i data-lucide="history" class="w-4 h-4"></i>
                                 <span>History</span>
                             </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
+                            </a>
                         @else
                             {{-- Member Nav --}}
                             <a href="{{ route('member.dashboard') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('member.dashboard') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
@@ -283,6 +295,10 @@
                             <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                                 <i data-lucide="history" class="w-4 h-4"></i>
                                 <span>History</span>
+                            </a>
+                            <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                                <span>My Tasks</span>
                             </a>
                         @endif
                     </nav>
@@ -707,6 +723,11 @@
                 <span class="text-[10px] leading-none">Attendance</span>
             </a>
         @endif
+
+        <a href="{{ route('my-tasks.index') }}" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition {{ request()->routeIs('my-tasks.*') ? 'text-indigo-600 font-extrabold' : 'text-slate-500 font-medium' }}">
+            <i data-lucide="notebook-pen" class="w-5 h-5"></i>
+            <span class="text-[10px] leading-none">My Tasks</span>
+        </a>
 
         <button @click="mobileMenuOpen = true; $nextTick(() => lucide.createIcons())" type="button" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl text-slate-500 hover:text-slate-900 transition cursor-pointer">
             <i data-lucide="menu" class="w-5 h-5"></i>

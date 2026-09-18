@@ -88,6 +88,8 @@ class User extends Authenticatable
     public function shootsAsCamera() { return $this->hasMany(ContentShoot::class, 'camera_person_id'); }
     public function shootsAsModel() { return $this->hasMany(ContentShoot::class, 'model_id'); }
     public function shootsAsEditor() { return $this->hasMany(ContentShoot::class, 'editor_id'); }
+    public function personalTasks() { return $this->hasMany(PersonalTask::class, 'user_id'); }
+    public function tasksSharedToMe() { return $this->hasMany(PersonalTask::class, 'shared_to'); }
     public function isTL(): bool  { return $this->role === 'tl'; }
     public function isHR(): bool  { return $this->role === 'hr'; }
     public function isCEO(): bool { return $this->role === 'ceo'; }
