@@ -11,152 +11,221 @@
 <div class="h-full flex flex-col flex-1 min-h-0">
 
     <!-- Desktop Top Breadcrumb Header Bar (Hidden on Mobile for Native WhatsApp Feel) -->
-    <div class="hidden md:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+    <div class="hidden md:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-1">
-                <a href="{{ auth()->user()->isTL() ? route('tl.dashboard') : (auth()->user()->role === 'ceo' ? route('ceo.dashboard') : (auth()->user()->role === 'hr' ? route('hr.dashboard') : route('member.dashboard'))) }}" class="hover:text-indigo-600 transition">Dashboard</a>
+                <a href="{{ auth()->user()->isTL() ? route('tl.dashboard') : (auth()->user()->role === 'ceo' ? route('ceo.dashboard') : (auth()->user()->role === 'hr' ? route('hr.dashboard') : route('member.dashboard'))) }}" class="hover:text-[#008069] transition">Dashboard</a>
                 <span>/</span>
-                <span class="text-slate-700">Team Chat</span>
+                <span class="text-slate-700 font-medium">Team Chat</span>
             </div>
             <div class="flex items-center gap-2.5 flex-wrap">
-                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Team Collaboration & Chat Hub</h1>
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 {{ $groupType === 'team' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-indigo-50 border border-indigo-200 text-indigo-700' }}">
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Team Collaboration Hub</span>
+                </h1>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 {{ $groupType === 'team' ? 'bg-[#e7fce3] border border-[#a3e899] text-[#008069]' : 'bg-emerald-50 border border-emerald-200 text-emerald-800' }}">
                     <i data-lucide="{{ $groupType === 'team' ? 'lock' : 'building-2' }}" class="w-3.5 h-3.5"></i>
-                    <span>{{ $groupType === 'team' ? 'Private Team' : 'Company Hub' }}</span>
+                    <span>{{ $groupType === 'team' ? 'Private Team Channel' : 'EcoFone Company Hub' }}</span>
                 </span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Real-time team messaging, project announcements, and media coordination</p>
         </div>
 
         <div class="flex items-center gap-2">
-            <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>{{ count($teamUsers) }} Members</span>
+            <span class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                <span class="w-2 h-2 rounded-full bg-[#00a884] animate-pulse"></span>
+                <span>{{ count($teamUsers) }} Active Members</span>
             </span>
         </div>
     </div>
 
-    <!-- Main Integrated Chat Workspace (Full Height on Mobile, Rounded Card on Desktop) -->
-    <div class="flex-1 flex flex-col md:flex-row bg-white md:rounded-3xl md:border md:border-slate-200/90 shadow-sm overflow-hidden h-[100dvh] md:h-[calc(100vh-13.5rem)] md:min-h-[580px] relative">
+    <!-- Main Integrated Chat Workspace (Full Height on Mobile, WhatsApp Web Style Frame on Desktop) -->
+    <div class="flex-1 flex flex-col md:flex-row bg-white md:rounded-2xl md:border md:border-[#d1d7db] md:shadow-md overflow-hidden h-[100dvh] md:h-[calc(100vh-11.5rem)] md:min-h-[620px] relative">
 
-        <!-- 🟢 LEFT SIDEBAR (Desktop Channels & Team Roster / Mobile Slide-Over Group Info Sheet) -->
-        <div id="chatSidebar" class="hidden md:flex w-full md:w-80 lg:w-88 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative inset-0 z-40 md:z-auto transition-transform duration-200">
+        <!-- 🟢 LEFT SIDEBAR (Desktop WhatsApp Web Channel List & Roster / Mobile Slide-Over Sheet) -->
+        <div id="chatSidebar" class="hidden md:flex w-full md:w-80 lg:w-92 bg-white md:border-r md:border-[#e9edef] flex-col shrink-0 absolute md:relative inset-0 z-40 md:z-auto transition-transform duration-200">
             
-            <!-- WhatsApp Mobile Group Info Header (Green Theme on Mobile) -->
-            <div class="h-14 sm:h-16 px-4 bg-[#008069] md:bg-slate-50/90 text-white md:text-slate-900 border-b border-slate-200/80 flex items-center justify-between shrink-0 select-none">
+            <!-- Sidebar Header: Green Theme on Mobile, WhatsApp Web #f0f2f5 on Desktop -->
+            <div class="h-14 sm:h-16 px-3.5 sm:px-4 bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#111b21] border-b border-slate-200 md:border-[#e9edef] flex items-center justify-between shrink-0 select-none">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <button type="button" onclick="toggleMobileSidebar(false)" class="md:hidden p-1.5 -ml-1 text-white hover:bg-black/10 rounded-full transition cursor-pointer" title="Back to Chat">
                         <i data-lucide="arrow-left" class="w-5 h-5"></i>
                     </button>
                     <div class="relative shrink-0">
                         @if(auth()->user()->avatar_url)
-                            <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-full object-cover ring-2 ring-white/30 md:ring-indigo-500/20">
+                            <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-white/30 md:ring-[#00a884]/30">
                         @else
-                            <div class="w-9 h-9 rounded-full bg-[#128c7e] md:bg-indigo-600 text-white font-black text-xs flex items-center justify-center ring-2 ring-white/30 md:ring-indigo-400/20">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#128c7e] md:bg-[#00a884] text-white font-black text-xs sm:text-sm flex items-center justify-center ring-2 ring-white/30 md:ring-[#00a884]/30">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
                             </div>
                         @endif
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 md:bg-emerald-500 rounded-full ring-2 ring-white"></span>
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00a884] rounded-full ring-2 ring-white"></span>
                     </div>
                     <div class="min-w-0">
                         <h3 class="text-xs sm:text-sm font-bold truncate leading-tight">{{ auth()->user()->name }}</h3>
-                        <span class="text-[10px] text-emerald-100 md:text-indigo-600 font-semibold">{{ auth()->user()->isTL() ? 'Team Lead' : (auth()->user()->isAdmin() ? strtoupper(auth()->user()->role) : 'Staff Member') }}</span>
+                        <span class="text-[10px] sm:text-[11px] text-emerald-100 md:text-[#667781] font-semibold">{{ auth()->user()->isTL() ? 'Team Lead' : (auth()->user()->isAdmin() ? strtoupper(auth()->user()->role) : 'Staff Member') }}</span>
                     </div>
                 </div>
 
-                @if(auth()->user()->isTL() && $groupType === 'team')
-                    <button type="button" onclick="openManageMembersModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 md:bg-indigo-50 md:hover:bg-indigo-100 text-white md:text-indigo-700 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer" title="Manage Members">
-                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-                        <span>Admin</span>
-                    </button>
-                @endif
+                <div class="flex items-center gap-1.5">
+                    @if(auth()->user()->isTL() && $groupType === 'team')
+                        <button type="button" onclick="openManageMembersModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 md:bg-white md:hover:bg-slate-100 text-white md:text-[#008069] md:border md:border-[#e9edef] text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs" title="Manage Members">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                            <span>Admin</span>
+                        </button>
+                    @endif
+                </div>
             </div>
 
-            <!-- Group Switcher Tabs (WhatsApp / Portal Channels) -->
-            <div class="p-2.5 bg-slate-50/70 border-b border-slate-100 grid grid-cols-2 gap-1.5 select-none">
-                @if(!$isManagement)
-                    <a href="{{ route('thoughts.index', ['group' => 'team']) }}" 
-                       class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'team' ? 'bg-[#008069] text-white md:bg-white md:text-indigo-700 shadow-2xs md:border md:border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
-                        <i data-lucide="lock" class="w-3.5 h-3.5 {{ $groupType === 'team' ? 'text-white md:text-indigo-600' : 'text-slate-400' }}"></i>
-                        <span class="truncate">Private Team</span>
-                    </a>
-                @else
-                    <div class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-slate-200/50 cursor-not-allowed" title="Private team chat (Lead & members only)">
-                        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                        <span class="truncate">Private Team</span>
-                    </div>
-                @endif
-
-                <a href="{{ route('thoughts.index', ['group' => 'company']) }}" 
-                   class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'company' ? 'bg-[#008069] text-white md:bg-white md:text-indigo-700 shadow-2xs md:border md:border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
-                    <i data-lucide="building-2" class="w-3.5 h-3.5 {{ $groupType === 'company' ? 'text-white md:text-indigo-600' : 'text-slate-400' }}"></i>
-                    <span class="truncate">Company Hub</span>
-                </a>
-            </div>
-
-            <!-- In-Chat Search Input -->
-            <div class="p-2.5 bg-white border-b border-slate-100">
+            <!-- In-Chat Search Input (WhatsApp Web Style Search Capsule) -->
+            <div class="p-2.5 md:px-3 md:py-2 bg-white md:bg-[#f0f2f5]/80 border-b border-slate-100 md:border-[#e9edef]">
                 <div class="relative flex items-center">
-                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3"></i>
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 md:text-[#54656f] absolute left-3"></i>
                     <input 
                         type="text" 
                         id="searchChatInput" 
-                        placeholder="Search messages..." 
-                        class="w-full pl-8 pr-3 py-1.5 bg-slate-50 focus:bg-white text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-[#008069] md:focus:ring-indigo-500 transition border border-slate-200 placeholder:text-slate-400"
+                        placeholder="Search or start new chat" 
+                        class="w-full pl-9 pr-3 py-1.5 bg-slate-50 md:bg-white focus:bg-white text-xs md:text-[13px] rounded-xl md:rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00a884] transition border border-slate-200 md:border-[#e9edef] placeholder:text-slate-400 md:placeholder:text-[#8696a0] text-[#111b21]"
                     >
                 </div>
             </div>
 
-            <!-- Team Members Roster -->
-            <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
-                <div class="px-3.5 py-2 bg-slate-50/70 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                    <span>Channel Members ({{ count($teamUsers) }})</span>
+            <!-- Group Switcher: Mobile Tabs & Desktop WhatsApp Web Conversation Cards -->
+            <div class="p-2.5 md:p-0 bg-slate-50/70 md:bg-white border-b border-slate-100 md:border-[#e9edef] select-none">
+                <!-- Mobile 2-Tab Grid (Exact untouched mobile experience) -->
+                <div class="grid grid-cols-2 gap-1.5 md:hidden">
+                    @if(!$isManagement)
+                        <a href="{{ route('thoughts.index', ['group' => 'team']) }}" 
+                           class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'team' ? 'bg-[#008069] text-white' : 'text-slate-600 hover:bg-white/60' }}">
+                            <i data-lucide="lock" class="w-3.5 h-3.5 {{ $groupType === 'team' ? 'text-white' : 'text-slate-400' }}"></i>
+                            <span class="truncate">Private Team</span>
+                        </a>
+                    @else
+                        <div class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-slate-200/50 cursor-not-allowed" title="Private team chat (Lead & members only)">
+                            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                            <span class="truncate">Private Team</span>
+                        </div>
+                    @endif
+
+                    <a href="{{ route('thoughts.index', ['group' => 'company']) }}" 
+                       class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'company' ? 'bg-[#008069] text-white' : 'text-slate-600 hover:bg-white/60' }}">
+                        <i data-lucide="building-2" class="w-3.5 h-3.5 {{ $groupType === 'company' ? 'text-white' : 'text-slate-400' }}"></i>
+                        <span class="truncate">Company Hub</span>
+                    </a>
+                </div>
+
+                <!-- Desktop WhatsApp Web Conversation Cards -->
+                <div class="hidden md:flex flex-col divide-y divide-[#f0f2f5]">
+                    <!-- Channel 1: Private Team Chat -->
+                    @if(!$isManagement)
+                        <a href="{{ route('thoughts.index', ['group' => 'team']) }}" 
+                           class="flex items-center gap-3 px-3.5 py-3 transition relative group cursor-pointer {{ $groupType === 'team' ? 'bg-[#f0f2f5] border-l-4 border-l-[#00a884]' : 'hover:bg-[#f5f6f6] border-l-4 border-l-transparent' }}">
+                            <div class="w-11 h-11 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0 shadow-2xs font-bold ring-1 ring-[#00a884]/20">
+                                <i data-lucide="users" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-1 mb-0.5">
+                                    <h4 class="text-[13px] font-semibold text-[#111b21] truncate">
+                                        {{ auth()->user()->isTL() ? auth()->user()->name . "'s Team" : ($teamUsers->firstWhere('role', 'tl')?->name ? $teamUsers->firstWhere('role', 'tl')->name . "'s Team" : 'Private Team') }}
+                                    </h4>
+                                    <span class="text-[10px] font-medium text-[#667781] shrink-0">Team</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-[#667781]">
+                                    <span class="truncate flex items-center gap-1 text-[11px]">
+                                        <i data-lucide="lock" class="w-3 h-3 text-[#00a884] shrink-0"></i>
+                                        <span>Private squad channel</span>
+                                    </span>
+                                    @if($groupType === 'team')
+                                        <span class="w-2 h-2 rounded-full bg-[#00a884] shrink-0"></span>
+                                    @endif
+                                </div>
+                            </div>
+                        </a>
+                    @else
+                        <div class="flex items-center gap-3 px-3.5 py-3 opacity-60 bg-slate-50 cursor-not-allowed border-l-4 border-l-transparent">
+                            <div class="w-11 h-11 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center shrink-0">
+                                <i data-lucide="lock" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-[13px] font-semibold text-slate-500 truncate">Private Team</h4>
+                                <span class="text-[11px] text-slate-400">Lead & members only</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Channel 2: Company Hub -->
+                    <a href="{{ route('thoughts.index', ['group' => 'company']) }}" 
+                       class="flex items-center gap-3 px-3.5 py-3 transition relative group cursor-pointer {{ $groupType === 'company' ? 'bg-[#f0f2f5] border-l-4 border-l-[#00a884]' : 'hover:bg-[#f5f6f6] border-l-4 border-l-transparent' }}">
+                        <div class="w-11 h-11 rounded-full bg-[#128c7e] text-white flex items-center justify-center shrink-0 shadow-2xs font-bold ring-1 ring-[#128c7e]/20">
+                            <i data-lucide="building-2" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-1 mb-0.5">
+                                <h4 class="text-[13px] font-semibold text-[#111b21] truncate">EcoFone Company Hub</h4>
+                                <span class="text-[10px] font-medium text-[#667781] shrink-0">All-Hands</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-[#667781]">
+                                <span class="truncate flex items-center gap-1 text-[11px]">
+                                    <i data-lucide="globe" class="w-3 h-3 text-[#128c7e] shrink-0"></i>
+                                    <span>All-company discussions</span>
+                                </span>
+                                @if($groupType === 'company')
+                                    <span class="w-2 h-2 rounded-full bg-[#00a884] shrink-0"></span>
+                                @endif
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Team Members Roster (WhatsApp Web Contact List) -->
+            <div class="flex-1 overflow-y-auto divide-y divide-slate-100 md:divide-[#f5f6f6]">
+                <div class="px-3.5 py-2 bg-slate-50/80 md:bg-[#f0f2f5]/60 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-slate-400 md:text-[#54656f] flex items-center justify-between border-b border-slate-100 md:border-[#e9edef] select-none">
+                    <span>Channel Contacts ({{ count($teamUsers) }})</span>
                     @if(auth()->user()->isTL() && $groupType === 'team')
-                        <button type="button" onclick="openManageMembersModal()" class="text-[#008069] md:text-indigo-600 hover:underline font-bold cursor-pointer">
+                        <button type="button" onclick="openManageMembersModal()" class="text-[#008069] hover:underline font-bold cursor-pointer">
                             + Edit
                         </button>
                     @endif
                 </div>
 
                 @foreach($teamUsers as $member)
-                    <div class="p-2.5 px-3.5 hover:bg-slate-50 transition flex items-center justify-between gap-2 group cursor-pointer" onclick="mentionMember('{{ addslashes($member->name) }}')">
+                    <div class="p-2.5 px-3.5 hover:bg-slate-50 md:hover:bg-[#f5f6f6] transition flex items-center justify-between gap-2 group cursor-pointer" onclick="mentionMember('{{ addslashes($member->name) }}')">
                         <div class="flex items-center gap-2.5 min-w-0">
                             <div class="relative shrink-0">
                                 @if($member->avatar_url)
                                     <img src="{{ $member->avatar_url }}" alt="{{ $member->name }}" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200">
                                 @else
-                                    <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center ring-1 ring-slate-200">
+                                    <div class="w-8 h-8 rounded-full bg-slate-150 md:bg-[#e9edef] text-slate-700 md:text-[#54656f] font-bold text-xs flex items-center justify-center ring-1 ring-slate-200 md:ring-[#d1d7db]">
                                         {{ strtoupper(substr($member->name, 0, 1)) }}
                                     </div>
                                 @endif
-                                <span class="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full ring-1 ring-white"></span>
+                                <span class="absolute bottom-0 right-0 w-2 h-2 bg-[#00a884] rounded-full ring-1 ring-white"></span>
                             </div>
                             <div class="min-w-0">
-                                <div class="text-xs font-bold text-slate-800 truncate flex items-center gap-1">
+                                <div class="text-xs md:text-[13px] font-semibold text-slate-800 md:text-[#111b21] truncate flex items-center gap-1">
                                     <span>{{ $member->name }}</span>
                                     @if($member->isTL())
-                                        <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-emerald-50 text-emerald-700 md:bg-indigo-100 md:text-indigo-700">TL</span>
+                                        <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">TL</span>
                                     @endif
                                 </div>
-                                <div class="text-[10px] text-slate-400 truncate">
+                                <div class="text-[10px] md:text-[11px] text-slate-400 md:text-[#667781] truncate">
                                     {{ $member->designation ?: ($member->isTL() ? 'Team Lead' : 'Staff Member') }}
                                 </div>
                             </div>
                         </div>
-                        <span class="text-[10px] font-bold text-[#008069] md:text-indigo-600 opacity-0 group-hover:opacity-100 transition">@mention</span>
+                        <span class="text-[10px] font-bold text-[#008069] opacity-0 group-hover:opacity-100 transition px-1.5 py-0.5 rounded bg-emerald-50 md:bg-emerald-100/60">@mention</span>
                     </div>
                 @endforeach
             </div>
         </div>
 
-        <!-- 💬 RIGHT MAIN CHAT AREA (WhatsApp Style on Mobile, Elegant on Desktop) -->
+        <!-- 💬 RIGHT MAIN CHAT AREA (Mobile WhatsApp App on Mobile, WhatsApp Web on Desktop) -->
         <div class="flex-1 flex flex-col h-full relative min-w-0" style="background-color: #efeae2; background-image: radial-gradient(#d5cdc4 0.75px, transparent 0.75px); background-size: 16px 16px;">
 
-            <!-- WhatsApp App Top Header Bar (Authentic Mobile WhatsApp Header) -->
-            <div class="h-14 sm:h-16 px-2.5 sm:px-4 bg-[#008069] md:bg-white text-white md:text-slate-900 md:border-b md:border-slate-200/80 flex items-center justify-between shrink-0 shadow-xs z-30 select-none">
+            <!-- WhatsApp Header Bar (Mobile Green #008069, Desktop WhatsApp Web #f0f2f5) -->
+            <div class="h-14 sm:h-16 px-2.5 sm:px-4 bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#111b21] md:border-b md:border-[#e9edef] flex items-center justify-between shrink-0 shadow-xs md:shadow-none z-30 select-none">
                 
                 <!-- Left: Back Button, Avatar, Title & Subtitle -->
-                <div class="flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer" onclick="toggleMobileSidebar(true)" title="Tap for Group Info">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer" onclick="toggleMobileSidebar(true)" title="Group Info">
                     <!-- Mobile WhatsApp Back Arrow (Returns to Dashboard) -->
                     <a href="{{ auth()->user()->isTL() ? route('tl.dashboard') : (auth()->user()->role === 'ceo' ? route('ceo.dashboard') : (auth()->user()->role === 'hr' ? route('hr.dashboard') : route('member.dashboard'))) }}" 
                        onclick="event.stopPropagation()"
@@ -166,29 +235,48 @@
                     </a>
 
                     <!-- Channel Avatar (Round WhatsApp Style) -->
-                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#128c7e] md:bg-indigo-50 text-white md:text-indigo-600 border border-white/20 md:border-indigo-100 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#128c7e] md:bg-[#00a884] text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-2xs shrink-0 ring-2 ring-white/20 md:ring-[#00a884]/20">
                         <i data-lucide="{{ $groupType === 'team' ? 'users' : 'building-2' }}" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                     </div>
 
                     <!-- Channel Info -->
                     <div class="min-w-0">
                         <div class="flex items-center gap-1.5">
-                            <h2 class="text-xs sm:text-sm font-bold text-white md:text-slate-900 truncate leading-tight">
+                            <h2 class="text-xs sm:text-sm md:text-[15px] font-bold text-white md:text-[#111b21] truncate leading-tight">
                                 {{ $groupType === 'team' ? (auth()->user()->isTL() ? auth()->user()->name . "'s Team" : ($teamUsers->firstWhere('role', 'tl')?->name ? $teamUsers->firstWhere('role', 'tl')->name . "'s Team" : 'Team Chat')) : 'EcoFone Company Hub' }}
                             </h2>
                             <span class="md:hidden px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-white/20 text-white">
                                 {{ $groupType === 'team' ? 'Private' : 'Hub' }}
                             </span>
                         </div>
-                        <p class="text-[10px] sm:text-[11px] text-emerald-100 md:text-slate-500 font-normal truncate mt-0.5">
-                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 md:bg-emerald-500 mr-1"></span>
+                        <!-- Mobile Subtitle -->
+                        <p class="md:hidden text-[10px] sm:text-[11px] text-emerald-100 font-normal truncate mt-0.5">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 mr-1"></span>
                             <span>{{ count($teamUsers) }} members • tap for info</span>
+                        </p>
+                        <!-- Desktop Subtitle (WhatsApp Web Participant List) -->
+                        <p class="hidden md:flex items-center gap-1.5 text-xs text-[#667781] font-normal truncate mt-0.5">
+                            <span>{{ count($teamUsers) }} participants: {{ $teamUsers->pluck('name')->take(3)->implode(', ') }}@if(count($teamUsers) > 3), and others...@endif</span>
                         </p>
                     </div>
                 </div>
 
                 <!-- Right: Quick Channel Switch, Search & Actions -->
                 <div class="flex items-center gap-1 sm:gap-2">
+                    <!-- Desktop Live Sync Badge -->
+                    <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#e9edef] text-[11px] font-semibold text-[#54656f] shadow-2xs">
+                        <span class="w-2 h-2 rounded-full bg-[#00a884] animate-pulse"></span>
+                        <span>Synced</span>
+                    </div>
+
+                    <!-- Desktop Quick Channel Switch Button -->
+                    <a href="{{ route('thoughts.index', ['group' => $groupType === 'team' ? 'company' : 'team']) }}" 
+                       class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-[#e9edef] text-xs font-bold text-[#111b21] transition shadow-2xs"
+                       title="Switch to {{ $groupType === 'team' ? 'Company Hub' : 'Private Team' }}">
+                        <i data-lucide="{{ $groupType === 'team' ? 'building-2' : 'lock' }}" class="w-3.5 h-3.5 text-[#00a884]"></i>
+                        <span>{{ $groupType === 'team' ? 'Switch to Hub' : 'Switch to Team' }}</span>
+                    </a>
+
                     <!-- Mobile Channel Toggle Pill (Switch Private vs Company with 1 tap) -->
                     <a href="{{ route('thoughts.index', ['group' => $groupType === 'team' ? 'company' : 'team']) }}" 
                        class="md:hidden px-2 py-1 rounded-lg bg-black/15 hover:bg-black/25 text-white text-[10px] font-bold flex items-center gap-1 transition"
@@ -198,12 +286,12 @@
                     </a>
 
                     <!-- Search Toggle -->
-                    <button type="button" onclick="toggleMobileSearch()" class="p-1.5 text-white md:text-slate-600 hover:bg-black/10 md:hover:bg-slate-100 rounded-full transition cursor-pointer" title="Search Chat">
+                    <button type="button" onclick="toggleMobileSearch()" class="p-1.5 md:p-2 text-white md:text-[#54656f] hover:bg-black/10 md:hover:bg-black/5 rounded-full transition cursor-pointer" title="Search Chat">
                         <i data-lucide="search" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                     </button>
 
                     <!-- Group Info / Members Button -->
-                    <button type="button" onclick="toggleMobileSidebar(true)" class="p-1.5 text-white md:text-slate-600 hover:bg-black/10 md:hover:bg-slate-100 rounded-full transition cursor-pointer" title="Group Info">
+                    <button type="button" onclick="toggleMobileSidebar(true)" class="p-1.5 md:p-2 text-white md:text-[#54656f] hover:bg-black/10 md:hover:bg-black/5 rounded-full transition cursor-pointer" title="Group Info">
                         <i data-lucide="more-vertical" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                     </button>
                 </div>
@@ -259,7 +347,7 @@
                         @if($isMe)
                             <!-- 🟢 Outgoing Message (Self: WhatsApp Light Green Bubble) -->
                             <div class="flex justify-end message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
-                                <div class="flex flex-col items-end max-w-[88%] sm:max-w-[72%]">
+                                <div class="flex flex-col items-end max-w-[88%] sm:max-w-[72%] md:max-w-[65%]">
                                     @if($thought->is_deleted)
                                         <div class="px-3 py-1.5 rounded-xl rounded-tr-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -385,7 +473,7 @@
                                     @endif
                                 </div>
 
-                                <div class="flex flex-col items-start max-w-[88%] sm:max-w-[72%]">
+                                <div class="flex flex-col items-start max-w-[88%] sm:max-w-[72%] md:max-w-[65%]">
                                     @if($thought->is_deleted)
                                         <div class="px-3 py-1.5 rounded-xl rounded-tl-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -524,16 +612,16 @@
                 </div>
             </div>
 
-            <!-- ⌨️ Mobile WhatsApp Floating Input Bar & Desktop Composer -->
-            <div class="p-2 sm:p-3 bg-transparent shrink-0 relative z-20">
-                <form id="chatMessageForm" onsubmit="sendChatMessage(event)" class="flex items-end gap-1.5 sm:gap-2">
+            <!-- ⌨️ Mobile WhatsApp Floating Input Bar & Desktop WhatsApp Web Bottom Toolbar -->
+            <div class="p-2 sm:p-3 md:px-4 md:py-3 bg-transparent md:bg-[#f0f2f5] md:border-t md:border-[#e9edef] shrink-0 relative z-20">
+                <form id="chatMessageForm" onsubmit="sendChatMessage(event)" class="flex items-end md:items-center gap-1.5 sm:gap-2">
                     @csrf
                     <input type="hidden" name="group_type" value="{{ $groupType }}">
 
                     <!-- WhatsApp Pill Input Capsule -->
-                    <div class="flex-1 bg-white rounded-3xl shadow-sm border border-slate-200/80 flex items-center px-2 sm:px-3 py-1.5 gap-1 sm:gap-1.5 min-w-0">
+                    <div class="flex-1 bg-white rounded-3xl md:rounded-lg shadow-sm md:shadow-none border border-slate-200/80 md:border-[#e9edef] flex items-center px-2 sm:px-3 md:px-3.5 py-1.5 md:py-2 gap-1 sm:gap-1.5 md:gap-2 min-w-0 focus-within:ring-1 focus-within:ring-[#00a884]">
                         <!-- Emoji Picker Button -->
-                        <button type="button" onclick="toggleEmojiPicker()" class="p-1.5 text-slate-500 hover:text-[#008069] active:scale-95 transition shrink-0 cursor-pointer" title="Insert Emoji">
+                        <button type="button" onclick="toggleEmojiPicker()" class="p-1.5 text-slate-500 md:text-[#54656f] hover:text-[#008069] md:hover:text-[#111b21] active:scale-95 transition shrink-0 cursor-pointer" title="Insert Emoji">
                             <i data-lucide="smile" class="w-5 h-5"></i>
                         </button>
 
@@ -576,29 +664,29 @@
                             name="content" 
                             autocomplete="off" 
                             placeholder="Message" 
-                            class="flex-1 bg-transparent text-[14px] sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none min-w-0 py-1"
+                            class="flex-1 bg-transparent text-[14px] sm:text-sm text-[#111b21] placeholder:text-slate-400 md:placeholder:text-[#8696a0] outline-none min-w-0 py-1"
                         >
 
                         <!-- Media Attachment Trigger -->
-                        <label class="p-1.5 text-slate-500 hover:text-[#008069] active:scale-95 transition shrink-0 cursor-pointer" title="Attach Photos, Audio or Docs">
+                        <label class="p-1.5 text-slate-500 md:text-[#54656f] hover:text-[#008069] md:hover:text-[#111b21] active:scale-95 transition shrink-0 cursor-pointer" title="Attach Photos, Audio or Docs">
                             <i data-lucide="paperclip" class="w-5 h-5"></i>
                             <input type="file" id="chatMediaInput" name="media" class="hidden" onchange="handleChatFileSelect(this)">
                         </label>
 
                         <!-- Link Trigger -->
-                        <button type="button" onclick="toggleLinkInput()" class="p-1.5 text-slate-500 hover:text-[#008069] active:scale-95 transition shrink-0 cursor-pointer" title="Attach Web Link">
+                        <button type="button" onclick="toggleLinkInput()" class="p-1.5 text-slate-500 md:text-[#54656f] hover:text-[#008069] md:hover:text-[#111b21] active:scale-95 transition shrink-0 cursor-pointer" title="Attach Web Link">
                             <i data-lucide="link" class="w-5 h-5"></i>
                         </button>
                     </div>
 
-                    <!-- WhatsApp Detached Circular Green Send Button -->
+                    <!-- WhatsApp Circular Green Send Button -->
                     <button 
                         type="submit" 
                         id="sendBtn" 
-                        class="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white flex items-center justify-center shadow-md active:scale-95 transition shrink-0 cursor-pointer"
+                        class="w-11 h-11 md:w-10 md:h-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white flex items-center justify-center shadow-md md:shadow-2xs active:scale-95 transition shrink-0 cursor-pointer"
                         title="Send Message"
                     >
-                        <i data-lucide="send" class="w-5 h-5 ml-0.5"></i>
+                        <i data-lucide="send" class="w-5 h-5 md:w-4 md:h-4 ml-0.5"></i>
                     </button>
                 </form>
             </div>
@@ -1041,6 +1129,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // 🟢 Mobile Navigation & Search Helpers
 function toggleMobileSidebar(show) {
+    if (window.innerWidth >= 768) return;
     const sidebar = document.getElementById('chatSidebar');
     if (!sidebar) return;
     if (show) {
@@ -1749,7 +1838,7 @@ function renderMessageBubble(msg) {
 
     if (isMe) {
         item.innerHTML = `
-            <div class="flex flex-col items-end max-w-[88%] sm:max-w-[72%]">
+            <div class="flex flex-col items-end max-w-[88%] sm:max-w-[72%] md:max-w-[65%]">
                 ${msg.is_deleted ? `
                     <div class="px-3 py-1.5 rounded-xl rounded-tr-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                         <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -1790,7 +1879,7 @@ function renderMessageBubble(msg) {
                     ${initial}
                 </div>
             </div>
-            <div class="flex flex-col items-start max-w-[88%] sm:max-w-[72%]">
+            <div class="flex flex-col items-start max-w-[88%] sm:max-w-[72%] md:max-w-[65%]">
                 ${msg.is_deleted ? `
                     <div class="px-3 py-1.5 rounded-xl rounded-tl-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                         <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
