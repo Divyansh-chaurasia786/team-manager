@@ -1469,20 +1469,22 @@ function formatTimeDiff(ms) {
 }
 
 function updateAllTaskTimers() {
+    if (document.hidden) return;
     const now = new Date().getTime();
 
-    // 1. Employee Active Countdown Timers (Freeze on submission/completion)
-    document.querySelectorAll('.employee-timer-container').forEach(el => {
+    // 1. Task Countdown Timers (Freeze on submission/completion)
+    document.querySelectorAll('.task-timer-container').forEach(el => {
         const deadlineStr = el.getAttribute('data-deadline');
         if (!deadlineStr) return;
         const deadlineMs = new Date(deadlineStr).getTime();
+        if (isNaN(deadlineMs)) return;
         const diff = deadlineMs - now;
-        const valEl = el.querySelector('.employee-countdown-val');
+        const valEl = el.querySelector('.task-timer-val');
         if (!valEl) return;
 
         const time = formatTimeDiff(diff);
         if (time.isNegative) {
-            el.className = el.className.replace('bg-indigo-50', 'bg-rose-50').replace('text-indigo-700', 'text-rose-700').replace('border-indigo-200', 'border-rose-200');
+            el.className = el.className.replace('text-indigo-700', 'text-rose-600');
             valEl.textContent = `Overdue: ${time.formatted}`;
         } else {
             valEl.textContent = time.formatted;
@@ -1504,8 +1506,8 @@ function updateAllTaskTimers() {
     });
 }
 
-// Tick every 5 seconds for live real-time updates without CPU thrashing
-setInterval(updateAllTaskTimers, 5000);
+// Tick every 1 second for smooth countdown
+setInterval(updateAllTaskTimers, 1000);
 
 // ⚡ Live Sync Polling for TL Task Stream (Detect Member Submissions in Real-Time)
 let lastTLTasksSyncState = {};

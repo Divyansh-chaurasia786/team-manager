@@ -683,6 +683,7 @@ function formatTimeDiff(ms) {
 }
 
 function updateAllTaskTimers() {
+    if (document.hidden) return;
     const now = new Date().getTime();
 
     // 1. Employee Active Countdown Timers (Freeze on submission/completion)
@@ -719,8 +720,8 @@ function updateAllTaskTimers() {
     });
 }
 
-// Tick every 5 seconds for live countdown without eating CPU
-setInterval(updateAllTaskTimers, 5000);
+// Tick every 1 second for smooth countdown
+setInterval(updateAllTaskTimers, 1000);
 
 // ⚡ Real-Time Task Live Sync (Zero Page Reload - Smart Conditional Polling)
 let lastMemberTaskState = {};
