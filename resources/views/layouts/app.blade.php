@@ -308,21 +308,24 @@
                 <div class="flex items-center gap-2">
                     <!-- User Avatar & Profile Dropdown (Desktop & Mobile) -->
                     <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                        <button @click="open = !open" type="button" class="flex items-center gap-2 pl-1.5 sm:pl-2 pr-2 sm:pr-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition cursor-pointer">
-                            @if(auth()->user()->avatar_url)
-                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-7 h-7 rounded-full object-cover border border-indigo-200 shadow-2xs">
-                            @else
-                                <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-                                </div>
-                            @endif
+                        <button @click="open = !open" type="button" class="flex items-center gap-2.5 p-1 sm:pr-3 bg-white hover:bg-slate-50/80 border border-slate-200/90 rounded-full shadow-2xs hover:shadow-xs hover:border-indigo-200/80 transition-all duration-150 cursor-pointer group">
+                            <div class="relative shrink-0">
+                                @if(auth()->user()->avatar_url)
+                                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/20 shadow-2xs">
+                                @else
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 text-white font-black text-xs flex items-center justify-center shadow-xs ring-2 ring-indigo-400/20">
+                                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                    </div>
+                                @endif
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
+                            </div>
                             <div class="text-left hidden md:block">
-                                <div class="text-xs font-bold text-slate-900 leading-none">{{ auth()->user()->name }}</div>
-                                <div class="text-[10px] text-slate-500 font-semibold leading-none mt-0.5">
+                                <div class="text-xs font-bold text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">{{ auth()->user()->name }}</div>
+                                <div class="text-[10px] text-slate-400 font-semibold leading-none mt-1">
                                     {{ auth()->user()->designation ?: (auth()->user()->role === 'ceo' ? 'Chief Executive Officer' : (auth()->user()->role === 'hr' ? 'HR Manager' : (auth()->user()->role === 'tl' ? 'Team Lead' : 'Staff Member'))) }}
                                 </div>
                             </div>
-                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform hidden sm:block" :class="{ 'rotate-180': open }"></i>
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform hidden sm:block group-hover:text-slate-600" :class="{ 'rotate-180': open }"></i>
                         </button>
 
                         <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50">
@@ -710,27 +713,29 @@
 
     <!-- FLOATING CHAT & THOUGHTS HUB BUTTON (Adjusted for mobile bottom bar) -->
     @auth
-        <div class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 group">
-            <a href="{{ route('thoughts.index') }}" 
-               class="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 text-white shadow-xl shadow-indigo-600/35 hover:shadow-2xl hover:shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/20 cursor-pointer"
-               title="Open Team Chat & Thoughts Hub">
-                <!-- Ping animation indicator -->
-                <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-                </span>
-                
-                <i data-lucide="message-square" class="w-6 h-6 transition-transform group-hover:rotate-6"></i>
-            </a>
+        @unless(request()->routeIs('thoughts.*'))
+            <div class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 group">
+                <a href="{{ route('thoughts.index') }}" 
+                   class="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 text-white shadow-xl shadow-indigo-600/35 hover:shadow-2xl hover:shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/20 cursor-pointer"
+                   title="Open Team Chat & Thoughts Hub">
+                    <!-- Ping animation indicator -->
+                    <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+                    </span>
+                    
+                    <i data-lucide="message-square" class="w-6 h-6 transition-transform group-hover:rotate-6"></i>
+                </a>
 
-            <!-- Hover tooltip pill -->
-            <div class="absolute bottom-16 right-0 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-y-2 group-hover:translate-y-0">
-                <div class="bg-slate-900 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg whitespace-nowrap flex items-center gap-1.5 border border-slate-700">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
-                    <span>Team Chat & Thoughts</span>
+                <!-- Hover tooltip pill -->
+                <div class="absolute bottom-16 right-0 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-y-2 group-hover:translate-y-0">
+                    <div class="bg-slate-900 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg whitespace-nowrap flex items-center gap-1.5 border border-slate-700">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>Team Chat & Thoughts</span>
+                    </div>
                 </div>
             </div>
-        </div>
+        @endunless
     @endauth
 
     <!-- ENTERPRISE FOOTER -->

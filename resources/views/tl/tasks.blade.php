@@ -335,7 +335,7 @@
             <button type="button" onclick="document.getElementById('assignTaskModal').classList.add('hidden')" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">✕</button>
         </div>
 
-        <form method="POST" action="{{ route('tasks.store') }}" class="space-y-4">
+        <form id="assignTaskForm" method="POST" action="{{ route('tasks.store') }}" onsubmit="assignTaskAjax(event)" class="space-y-4">
             @csrf
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Task Title</label>
@@ -419,7 +419,7 @@
             </button>
         </div>
 
-        <form id="reassignTaskForm" method="POST" action="" class="space-y-4">
+        <form id="reassignTaskForm" method="POST" action="" onsubmit="reassignTaskAjax(event)" class="space-y-4">
             @csrf
             @method('PUT')
 
@@ -1152,6 +1152,105 @@ async function sendOverdueAlertAjax(btn, taskId) {
         }
     } catch (err) {
         showInstantToast('Error: ' + err.message, 'error');
+// ➕ Instant Task Assignment via AJAX (Zero Full Page Reload)
+async function assignTaskAjax(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Assigning...';
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Task successfully assigned!');
+            form.reset();
+            document.getElementById('assignTaskModal').classList.add('hidden');
+            setTimeout(() => {
+                window.location.reload();
+            }, 600);
+        } else {
+            showInstantToast(data.message || 'Failed to assign task.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    } catch (err) {
+        showInstantToast('Connection error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// 🔁 Instant Task Reassignment via AJAX (Zero Full Page Reload)
+async function reassignTaskAjax(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Reassigning...';
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Task reassigned with new deadline!');
+            closeReassignModal();
+
+            const taskId = data.task_id;
+            const statusContainer = document.querySelector(`.task-status-container-${taskId}`);
+            if (statusContainer) {
+                const titleEl = statusContainer.querySelector('h3');
+                const title = titleEl ? titleEl.innerText : 'Task';
+                statusContainer.innerHTML = `
+                    <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">${title}</h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                        ⚡ In Progress (Reassigned)
+                    </span>
+                `;
+            }
+
+            const deadlineDisplay = document.querySelector(`.task-deadline-display-${taskId}`);
+            if (deadlineDisplay) {
+                deadlineDisplay.innerText = data.new_deadline;
+            }
+
+            const t = allTasksData.find(x => x.id === taskId);
+            if (t) {
+                t.status = 'in-progress';
+                t.deadline = data.new_deadline_iso;
+                t.revision_notes = data.revision_notes;
+            }
+
+            if (window.lucide) lucide.createIcons();
+        } else {
+            showInstantToast(data.message || 'Failed to reassign task.', 'error');
+        }
+    } catch (err) {
+        showInstantToast('Connection error: ' + err.message, 'error');
+    } finally {
         btn.disabled = false;
         btn.innerHTML = origHtml;
     }

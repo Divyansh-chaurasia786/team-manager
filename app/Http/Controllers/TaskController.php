@@ -66,7 +66,11 @@ class TaskController extends Controller
             ->first();
 
         if ($todayAttendance && in_array($todayAttendance->status, ['absent', 'on_leave'])) {
-            return back()->withInput()->with('error', "Cannot assign task: {$assignee->name} is marked " . ucfirst(str_replace('_', ' ', $todayAttendance->status)) . " today. Tasks can only be delegated to active/present team members.");
+            $msg = "Cannot assign task: {$assignee->name} is marked " . ucfirst(str_replace('_', ' ', $todayAttendance->status)) . " today. Tasks can only be delegated to active/present team members.";
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->withInput()->with('error', $msg);
         }
 
         $task = Task::create([
@@ -94,6 +98,23 @@ class TaskController extends Controller
 
         // Instantly dispatch email notification to the assignee
         \App\Services\BrevoMailService::sendTaskAssignedMail($task);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Task successfully assigned to {$assignee->name} and dispatched via email.",
+                'task'    => [
+                    'id'            => $task->id,
+                    'title'         => $task->title,
+                    'description'   => $task->description,
+                    'assigned_to'   => $task->assigned_to,
+                    'assignee_name' => $assignee->name,
+                    'deadline'      => $task->deadline->format('d M Y, h:i A'),
+                    'deadline_iso'  => $task->deadline->toISOString(),
+                    'status'        => $task->status,
+                ],
+            ]);
+        }
 
         return redirect()->route('tasks.index')->with('success', "Task successfully assigned to {$assignee->name}.");
     }
@@ -260,6 +281,18 @@ class TaskController extends Controller
 
         // Dispatch reassignment email notification to assignee
         \App\Services\BrevoMailService::sendTaskAssignedMail($task, isReassignment: true);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'          => true,
+                'message'          => 'Task has been reassigned to member with new deadline and revision directives.',
+                'task_id'          => $task->id,
+                'status'           => 'in-progress',
+                'new_deadline'     => \Carbon\Carbon::parse($newDeadline)->format('d M Y, h:i A'),
+                'new_deadline_iso' => \Carbon\Carbon::parse($newDeadline)->toISOString(),
+                'revision_notes'   => $request->revision_notes,
+            ]);
+        }
 
         return back()->with('success', 'Task has been reassigned to member with new deadline and revision directives.');
     }

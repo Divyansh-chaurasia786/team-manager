@@ -215,5 +215,227 @@ class TeamThoughtTest extends TestCase
         $tlResponse->assertRedirect();
         $this->assertDatabaseMissing('team_thoughts', ['id' => $thought->id]);
     }
+
+    public function test_team_chat_is_strictly_private_and_cannot_be_seen_by_hr_and_ceo(): void
+    {
+        $hr = User::create([
+            'name' => 'HR Manager',
+            'username' => 'hr_chat_tester',
+            'email' => 'hr_chat@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+            'role' => 'hr',
+            'must_change_password' => false,
+        ]);
+
+        $ceo = User::create([
+            'name' => 'CEO Executive',
+            'username' => 'ceo_chat_tester',
+            'email' => 'ceo_chat@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+            'role' => 'ceo',
+            'must_change_password' => false,
+        ]);
+
+        // Private team message
+        $privateThought = TeamThought::create([
+            'user_id'    => $this->member->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'Confidential team internal discussion',
+        ]);
+
+        // 1. HR tries to access team chat -> Redirected to company group
+        $hrResponse = $this->actingAs($hr)->get('/thoughts?group=team');
+        $hrResponse->assertRedirect('/thoughts?group=company');
+
+        // HR AJAX poll for team chat -> 403 Forbidden
+        $hrAjaxResponse = $this->actingAs($hr)->getJson('/thoughts/messages?group=team');
+        $hrAjaxResponse->assertStatus(403);
+
+        // 2. CEO tries to access team chat -> Redirected to company group
+        $ceoResponse = $this->actingAs($ceo)->get('/thoughts?group=team');
+        $ceoResponse->assertRedirect('/thoughts?group=company');
+
+        $ceoAjaxResponse = $this->actingAs($ceo)->getJson('/thoughts/messages?group=team');
+        $ceoAjaxResponse->assertStatus(403);
+
+        // 3. Team Member and TL can access team chat
+        $memberResponse = $this->actingAs($this->member)->get('/thoughts?group=team');
+        $memberResponse->assertStatus(200);
+        $memberResponse->assertSee('Confidential team internal discussion');
+    }
+
+    public function test_sender_can_unsend_message_within_24_hours(): void
+    {
+        $thought = TeamThought::create([
+            'user_id'    => $this->member->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'I made a typo here',
+        ]);
+        $thought->created_at = now()->subHours(2);
+        $thought->save();
+
+        $response = $this->actingAs($this->member)->postJson(route('thoughts.unsend', $thought));
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        $thought->refresh();
+        $this->assertTrue($thought->is_deleted);
+        $this->assertNull($thought->content);
+        $this->assertEquals($this->member->id, $thought->deleted_by);
+    }
+
+    public function test_sender_cannot_unsend_message_after_24_hours(): void
+    {
+        $thought = TeamThought::create([
+            'user_id'    => $this->member->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'Yesterday discussion',
+        ]);
+        $thought->created_at = now()->subHours(25);
+        $thought->save();
+
+        $response = $this->actingAs($this->member)->postJson(route('thoughts.unsend', $thought));
+        $response->assertStatus(422);
+        $response->assertJson(['success' => false]);
+
+        $thought->refresh();
+        $this->assertFalse($thought->is_deleted);
+        $this->assertEquals('Yesterday discussion', $thought->content);
+    }
+
+    public function test_user_cannot_unsend_another_users_message(): void
+    {
+        $thought = TeamThought::create([
+            'user_id'    => $this->tl->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'TL announcement',
+            'created_at' => now()->subHour(),
+        ]);
+
+        // Member attempts to unsend TL's message -> 403
+        $response = $this->actingAs($this->member)->postJson(route('thoughts.unsend', $thought));
+        $response->assertStatus(403);
+
+        $thought->refresh();
+        $this->assertFalse($thought->is_deleted);
+    }
+
+    public function test_team_lead_can_delete_anyones_message_via_ajax(): void
+    {
+        $thought = TeamThought::create([
+            'user_id'    => $this->member->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'Inappropriate remark to be moderated',
+            'created_at' => now()->subHours(30), // Even older than 24h, TL has admin power
+        ]);
+
+        $response = $this->actingAs($this->tl)->deleteJson(route('thoughts.destroy', $thought));
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        $thought->refresh();
+        $this->assertTrue($thought->is_deleted);
+        $this->assertEquals($this->tl->id, $thought->deleted_by);
+    }
+
+    public function test_read_receipts_seen_status_tracking(): void
+    {
+        $thought = TeamThought::create([
+            'user_id'    => $this->tl->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'Please read this update',
+        ]);
+
+        $this->assertEmpty($thought->seen_by ?: []);
+
+        // Member polls messages
+        $this->actingAs($this->member)->getJson('/thoughts/messages?group=team');
+
+        $thought->refresh();
+        $this->assertNotEmpty($thought->seen_by);
+        $this->assertEquals($this->member->id, $thought->seen_by[0]['user_id']);
+        $this->assertEquals($this->member->name, $thought->seen_by[0]['user_name']);
+
+        // Check message info endpoint
+        $infoResponse = $this->actingAs($this->tl)->getJson(route('thoughts.info', $thought));
+        $infoResponse->assertStatus(200);
+        $infoResponse->assertJson(['success' => true]);
+        $this->assertCount(1, $infoResponse->json('seen_by'));
+    }
+
+    public function test_message_reactions_toggle(): void
+    {
+        $thought = TeamThought::create([
+            'user_id'    => $this->tl->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'Great work this week!',
+        ]);
+
+        // 1. Add reaction ❤️
+        $reactResponse = $this->actingAs($this->member)->postJson(route('thoughts.react', $thought), [
+            'emoji' => '❤️',
+        ]);
+        $reactResponse->assertStatus(200);
+        $thought->refresh();
+        $this->assertCount(1, $thought->reactions);
+        $this->assertEquals('❤️', $thought->reactions[0]['emoji']);
+
+        // 2. Click same reaction again -> toggles off
+        $toggleOffResponse = $this->actingAs($this->member)->postJson(route('thoughts.react', $thought), [
+            'emoji' => '❤️',
+        ]);
+        $toggleOffResponse->assertStatus(200);
+        $thought->refresh();
+        $this->assertCount(0, $thought->reactions);
+    }
+
+    public function test_tl_can_add_and_remove_members_from_team_chat_group(): void
+    {
+        $newMember = User::create([
+            'name' => 'Jane Colleague',
+            'username' => 'jane_chat_colleague',
+            'email' => 'jane_chat@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+            'role' => 'member',
+            'must_change_password' => false,
+        ]);
+
+        // 1. TL adds member to group
+        $addResponse = $this->actingAs($this->tl)->postJson(route('thoughts.members.add'), [
+            'user_id' => $newMember->id,
+        ]);
+        $addResponse->assertStatus(200);
+        $addResponse->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('chat_group_members', [
+            'tl_id'     => $this->tl->id,
+            'user_id'   => $newMember->id,
+            'is_active' => true,
+        ]);
+
+        // 2. TL removes member from group
+        $removeResponse = $this->actingAs($this->tl)->deleteJson(route('thoughts.members.remove', $newMember));
+        $removeResponse->assertStatus(200);
+        $removeResponse->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('chat_group_members', [
+            'tl_id'     => $this->tl->id,
+            'user_id'   => $newMember->id,
+            'is_active' => false,
+        ]);
+
+        // 3. Regular member cannot add members
+        $unauthResponse = $this->actingAs($this->member)->postJson(route('thoughts.members.add'), [
+            'user_id' => $newMember->id,
+        ]);
+        $unauthResponse->assertStatus(403);
+    }
 }
 

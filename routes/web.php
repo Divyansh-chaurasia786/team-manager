@@ -173,10 +173,15 @@ Route::middleware('auth')->group(function () {
     Route::put('/plans/{plan}/status', [WeeklyPlanController::class, 'updateStatus'])->name('plans.status.update');
     Route::delete('/plans/{plan}', [WeeklyPlanController::class, 'destroy'])->name('plans.destroy');
 
-    // Team Discussion & Thought Sharing Hub (WhatsApp Live Chat)
+    // Team Discussion & Thought Sharing Hub (WhatsApp & Instagram Live Chat)
     Route::get('/thoughts', [\App\Http\Controllers\TeamThoughtController::class, 'index'])->name('thoughts.index');
     Route::get('/thoughts/messages', [\App\Http\Controllers\TeamThoughtController::class, 'getMessages'])->name('thoughts.messages');
     Route::post('/thoughts', [\App\Http\Controllers\TeamThoughtController::class, 'store'])->name('thoughts.store');
+    Route::post('/thoughts/{thought}/unsend', [\App\Http\Controllers\TeamThoughtController::class, 'unsend'])->name('thoughts.unsend');
+    Route::post('/thoughts/{thought}/react', [\App\Http\Controllers\TeamThoughtController::class, 'react'])->name('thoughts.react');
+    Route::get('/thoughts/{thought}/info', [\App\Http\Controllers\TeamThoughtController::class, 'info'])->name('thoughts.info');
+    Route::post('/thoughts/members', [\App\Http\Controllers\TeamThoughtController::class, 'addMember'])->name('thoughts.members.add');
+    Route::delete('/thoughts/members/{user}', [\App\Http\Controllers\TeamThoughtController::class, 'removeMember'])->name('thoughts.members.remove');
     Route::post('/thoughts/{thought}/drive-upload', [\App\Http\Controllers\TeamThoughtController::class, 'uploadToDrive'])->name('thoughts.drive.upload');
     Route::delete('/thoughts/{thought}', [\App\Http\Controllers\TeamThoughtController::class, 'destroy'])->name('thoughts.destroy');
 
