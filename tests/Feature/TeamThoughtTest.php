@@ -437,5 +437,42 @@ class TeamThoughtTest extends TestCase
         ]);
         $unauthResponse->assertStatus(403);
     }
+
+    public function test_member_can_post_thought_with_document_and_audio(): void
+    {
+        Storage::fake('public');
+
+        // 1. Upload PDF document
+        $pdfFile = UploadedFile::fake()->create('contract.pdf', 500, 'application/pdf');
+        $pdfResponse = $this->actingAs($this->member)->postJson(route('thoughts.store'), [
+            'content' => 'Here is the project PDF',
+            'media' => $pdfFile,
+            'group_type' => 'team',
+        ]);
+
+        $pdfResponse->assertStatus(200);
+        $pdfResponse->assertJson(['success' => true]);
+        $this->assertDatabaseHas('team_thoughts', [
+            'user_id' => $this->member->id,
+            'media_type' => 'document',
+            'media_original_name' => 'contract.pdf',
+        ]);
+
+        // 2. Upload MP3 audio
+        $audioFile = UploadedFile::fake()->create('voice_note.mp3', 200, 'audio/mpeg');
+        $audioResponse = $this->actingAs($this->member)->postJson(route('thoughts.store'), [
+            'content' => 'Listen to this note',
+            'media' => $audioFile,
+            'group_type' => 'team',
+        ]);
+
+        $audioResponse->assertStatus(200);
+        $audioResponse->assertJson(['success' => true]);
+        $this->assertDatabaseHas('team_thoughts', [
+            'user_id' => $this->member->id,
+            'media_type' => 'audio',
+            'media_original_name' => 'voice_note.mp3',
+        ]);
+    }
 }
 

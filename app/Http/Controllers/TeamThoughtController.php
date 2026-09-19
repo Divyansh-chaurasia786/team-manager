@@ -177,7 +177,7 @@ class TeamThoughtController extends Controller
             'content'    => 'nullable|string|max:5000',
             'link_url'   => 'nullable|url|max:2048',
             'group_type' => 'nullable|string|in:team,company',
-            'media'      => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv,webm,quicktime|max:51200', // 50MB max
+            'media'      => 'nullable|file|max:51200', // 50MB max, any file type allowed like WhatsApp
         ]);
 
         $user = Auth::user();
@@ -195,7 +195,7 @@ class TeamThoughtController extends Controller
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['success' => false, 'message' => 'Please provide a message, a link, or attach media.'], 422);
             }
-            return back()->with('error', 'Please provide a message, a link, or attach an image/video.');
+            return back()->with('error', 'Please provide a message, a link, or attach a file.');
         }
 
         $mediaPath = null;
@@ -207,7 +207,7 @@ class TeamThoughtController extends Controller
 
         if ($request->hasFile('media')) {
             $file = $request->file('media');
-            $mime = $file->getMimeType();
+            $mime = $file->getMimeType() ?: 'application/octet-stream';
             $mediaMimeType = $mime;
             $mediaOriginalName = $file->getClientOriginalName();
             $mediaSize = $file->getSize();
@@ -216,8 +216,10 @@ class TeamThoughtController extends Controller
                 $mediaType = 'image';
             } elseif (str_starts_with($mime, 'video/')) {
                 $mediaType = 'video';
+            } elseif (str_starts_with($mime, 'audio/')) {
+                $mediaType = 'audio';
             } else {
-                $mediaType = 'none';
+                $mediaType = 'document';
             }
 
             // Save in local storage (public/uploads/chat_media)
@@ -487,30 +489,33 @@ class TeamThoughtController extends Controller
                 $driveResult = $driveService->uploadFromPath($localFullPath, $originalName, Auth::id());
             } else {
                 // Fallback mock link if credentials missing
+                $driveCategory = $thought->media_type === 'video' ? 'video' : ($thought->media_type === 'image' ? 'photo' : 'document');
                 $driveResult = [
                     'drive_file_id' => 'mock_thought_' . uniqid(),
                     'drive_url'     => 'https://drive.google.com/file/d/mock_' . uniqid() . '/view',
-                    'file_type'     => $thought->media_type === 'video' ? 'video' : 'photo',
+                    'file_type'     => $driveCategory,
                     'upload_date'   => now()->format('Y-m-d'),
                 ];
             }
         } catch (\Throwable $e) {
             Log::warning("Drive upload failed for chat thought #{$thought->id}: " . $e->getMessage());
+            $driveCategory = $thought->media_type === 'video' ? 'video' : ($thought->media_type === 'image' ? 'photo' : 'document');
             $driveResult = [
                 'drive_file_id' => 'mock_thought_' . uniqid(),
                 'drive_url'     => 'https://drive.google.com/file/d/mock_' . uniqid() . '/view',
-                'file_type'     => $thought->media_type === 'video' ? 'video' : 'photo',
+                'file_type'     => $driveCategory,
                 'upload_date'   => now()->format('Y-m-d'),
             ];
         }
 
         // Register in drive_files table for unified records
+        $driveCategory = $thought->media_type === 'video' ? 'video' : ($thought->media_type === 'image' ? 'photo' : 'document');
         $driveFile = DriveFile::create([
             'uploaded_by'   => Auth::id(),
             'original_name' => $thought->media_original_name ?: basename($localFullPath),
             'drive_file_id' => $driveResult['drive_file_id'],
             'drive_url'     => $driveResult['drive_url'],
-            'file_type'     => $thought->media_type === 'video' ? 'video' : 'photo',
+            'file_type'     => $driveCategory,
             'upload_date'   => $driveResult['upload_date'],
         ]);
 
@@ -684,6 +689,10 @@ class TeamThoughtController extends Controller
             'media_url'           => $mediaUrl,
             'media_type'          => $t->is_deleted ? 'none' : $t->media_type,
             'media_original_name' => $t->is_deleted ? null : $t->media_original_name,
+            'original_name'       => $t->is_deleted ? null : $t->media_original_name,
+            'media_size'          => $t->media_size,
+            'media_size_human'    => $this->formatFileSize($t->media_size),
+            'media_extension'     => $t->media_original_name ? strtoupper(pathinfo($t->media_original_name, PATHINFO_EXTENSION)) : null,
             'has_drive_sync'      => $t->hasDriveSync(),
             'drive_url'           => $t->drive_url,
             'time'                => $t->created_at->format('h:i A'),
@@ -698,6 +707,21 @@ class TeamThoughtController extends Controller
             'seen_count'          => count($seenBy),
             'reactions'           => $reactions,
         ];
+    }
+
+    /**
+     * Format bytes into human-readable string.
+     */
+    protected function formatFileSize(?int $bytes): ?string
+    {
+        if (!$bytes) return null;
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+        return $bytes . ' B';
     }
 
     /**

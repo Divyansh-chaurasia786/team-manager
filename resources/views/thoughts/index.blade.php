@@ -186,7 +186,7 @@
             </div>
 
             <!-- Scrollable Messages Feed -->
-            <div id="chatMessagesScrollArea" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 scroll-smooth">
+            <div id="chatMessagesScrollArea" class="flex-1 overflow-y-auto p-3 sm:p-5 pt-6 sm:pt-7 space-y-3 scroll-smooth">
                 
                 <!-- Messages List -->
                 <div id="chatMessagesList" class="space-y-3">
@@ -227,17 +227,50 @@
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                                             <span>You unsent this message</span>
                                         </div>
-                                    @else
+                                     @else
                                         <div class="relative group/bubble w-fit rounded-2xl rounded-tr-xs px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-xs">
                                             @if($thought->media_path || $thought->drive_url)
-                                                @php $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; @endphp
-                                                <div class="mb-1.5 rounded-xl overflow-hidden bg-black/10">
+                                                @php 
+                                                    $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; 
+                                                    $fileName = $thought->original_name ?? basename($thought->media_path ?? 'file');
+                                                    $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION) ?: 'FILE');
+                                                @endphp
+                                                <div class="mb-1.5 rounded-xl overflow-hidden">
                                                     @if($thought->media_type === 'image')
-                                                        <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                        <div class="bg-black/10 rounded-xl overflow-hidden">
+                                                            <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                        </div>
                                                     @elseif($thought->media_type === 'video')
-                                                        <video controls class="max-h-60 rounded-xl bg-black">
-                                                            <source src="{{ $mediaSrc }}">
-                                                        </video>
+                                                        <div class="bg-black rounded-xl overflow-hidden">
+                                                            <video controls class="max-h-60 rounded-xl bg-black">
+                                                                <source src="{{ $mediaSrc }}">
+                                                            </video>
+                                                        </div>
+                                                    @elseif($thought->media_type === 'audio')
+                                                        <div class="p-2 rounded-xl bg-indigo-800/60">
+                                                            <audio controls class="w-full max-w-[260px] h-9">
+                                                                <source src="{{ $mediaSrc }}">
+                                                            </audio>
+                                                        </div>
+                                                    @else
+                                                        <div class="p-2.5 rounded-xl bg-indigo-800/70 text-white flex items-center justify-between gap-3 max-w-xs">
+                                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                                <div class="w-9 h-9 rounded-lg bg-white/20 text-white flex flex-col items-center justify-center shrink-0">
+                                                                    <span class="text-[9px] font-black tracking-tight leading-none">{{ $ext }}</span>
+                                                                </div>
+                                                                <div class="min-w-0">
+                                                                    <p class="text-xs font-bold truncate">{{ $fileName }}</p>
+                                                                    @if($thought->media_size)
+                                                                        <span class="text-[10px] text-indigo-200">
+                                                                            {{ $thought->media_size >= 1048576 ? round($thought->media_size / 1048576, 1) . ' MB' : round($thought->media_size / 1024, 1) . ' KB' }}
+                                                                        </span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-white/20 text-white transition shrink-0" title="Download {{ $fileName }}">
+                                                                <i data-lucide="download" class="w-4 h-4"></i>
+                                                            </a>
+                                                        </div>
                                                     @endif
                                                 </div>
                                             @endif
@@ -270,8 +303,8 @@
                                                 @endif
                                             </div>
 
-                                            <!-- WhatsApp Instant Floating Reaction Bar -->
-                                            <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 left-1 sm:left-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                                            <!-- WhatsApp Instant Floating Reaction Bar (Anchored Right) -->
+                                            <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 right-0 sm:right-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
@@ -331,14 +364,47 @@
                                             </div>
 
                                             @if($thought->media_path || $thought->drive_url)
-                                                @php $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; @endphp
-                                                <div class="mb-1.5 rounded-xl overflow-hidden bg-black/5">
+                                                @php 
+                                                    $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; 
+                                                    $fileName = $thought->original_name ?? basename($thought->media_path ?? 'file');
+                                                    $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION) ?: 'FILE');
+                                                @endphp
+                                                <div class="mb-1.5 rounded-xl overflow-hidden">
                                                     @if($thought->media_type === 'image')
-                                                        <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                        <div class="bg-black/5 rounded-xl overflow-hidden">
+                                                            <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                        </div>
                                                     @elseif($thought->media_type === 'video')
-                                                        <video controls class="max-h-60 rounded-xl bg-black">
-                                                            <source src="{{ $mediaSrc }}">
-                                                        </video>
+                                                        <div class="bg-black rounded-xl overflow-hidden">
+                                                            <video controls class="max-h-60 rounded-xl bg-black">
+                                                                <source src="{{ $mediaSrc }}">
+                                                            </video>
+                                                        </div>
+                                                    @elseif($thought->media_type === 'audio')
+                                                        <div class="p-2 rounded-xl bg-slate-100">
+                                                            <audio controls class="w-full max-w-[260px] h-9">
+                                                                <source src="{{ $mediaSrc }}">
+                                                            </audio>
+                                                        </div>
+                                                    @else
+                                                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 flex items-center justify-between gap-3 max-w-xs">
+                                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                                <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex flex-col items-center justify-center shrink-0">
+                                                                    <span class="text-[9px] font-black tracking-tight leading-none">{{ $ext }}</span>
+                                                                </div>
+                                                                <div class="min-w-0">
+                                                                    <p class="text-xs font-bold truncate">{{ $fileName }}</p>
+                                                                    @if($thought->media_size)
+                                                                        <span class="text-[10px] text-slate-400">
+                                                                            {{ $thought->media_size >= 1048576 ? round($thought->media_size / 1048576, 1) . ' MB' : round($thought->media_size / 1024, 1) . ' KB' }}
+                                                                        </span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-slate-200 text-indigo-600 transition shrink-0" title="Download {{ $fileName }}">
+                                                                <i data-lucide="download" class="w-4 h-4"></i>
+                                                            </a>
+                                                        </div>
                                                     @endif
                                                 </div>
                                             @endif
@@ -360,12 +426,12 @@
                                             <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
                                                 <span>{{ $thought->created_at->format('h:i A') }}</span>
                                                 <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-indigo-600 transition p-0.5 text-slate-400 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
-                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
                                                 </button>
                                             </div>
 
-                                            <!-- WhatsApp Instant Floating Reaction Bar -->
-                                            <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 right-1 sm:right-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                                            <!-- WhatsApp Instant Floating Reaction Bar (Anchored Left) -->
+                                            <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 left-0 sm:left-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
@@ -406,6 +472,7 @@
                 <div class="flex items-center gap-2 min-w-0">
                     <i data-lucide="paperclip" class="w-4 h-4 text-indigo-600 shrink-0"></i>
                     <span id="attachedFileName" class="text-xs font-bold text-slate-800 truncate"></span>
+                    <span id="attachedFileSize" class="text-[11px] text-slate-400 shrink-0"></span>
                 </div>
                 <button type="button" onclick="clearSelectedAttachment()" class="text-slate-400 hover:text-slate-600 text-xs p-1">✕</button>
             </div>
@@ -465,9 +532,9 @@
                     </div>
 
                     <!-- Media Attachment Trigger -->
-                    <label class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition cursor-pointer" title="Attach Media">
+                    <label class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition cursor-pointer" title="Attach Any File">
                         <i data-lucide="paperclip" class="w-5 h-5"></i>
-                        <input type="file" id="chatMediaInput" name="media" accept="image/*,video/*" class="hidden" onchange="handleChatFileSelect(this)">
+                        <input type="file" id="chatMediaInput" name="media" class="hidden" onchange="handleChatFileSelect(this)">
                     </label>
 
                     <!-- Link Trigger -->
@@ -1055,7 +1122,19 @@ function toggleLinkInput(show = null) {
 function handleChatFileSelect(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
+        // 50MB client-side validation
+        if (file.size > 52428800) {
+            alert('File size exceeds the 50MB limit. Please select a smaller file.');
+            input.value = '';
+            clearSelectedAttachment();
+            return;
+        }
         document.getElementById('attachedFileName').textContent = file.name;
+        const sizeStr = file.size >= 1048576 
+            ? (file.size / 1048576).toFixed(1) + ' MB' 
+            : (file.size / 1024).toFixed(1) + ' KB';
+        const sizeEl = document.getElementById('attachedFileSize');
+        if (sizeEl) sizeEl.textContent = `(${sizeStr})`;
         document.getElementById('attachmentPreviewTray').classList.remove('hidden');
     }
 }
@@ -1063,6 +1142,8 @@ function handleChatFileSelect(input) {
 function clearSelectedAttachment() {
     const input = document.getElementById('chatMediaInput');
     if (input) input.value = '';
+    const sizeEl = document.getElementById('attachedFileSize');
+    if (sizeEl) sizeEl.textContent = '';
     document.getElementById('attachmentPreviewTray').classList.add('hidden');
 }
 
@@ -1076,7 +1157,7 @@ function closeImageLightbox() {
     document.getElementById('lightboxImage').src = '';
 }
 
-// 🟢 Send Message
+// 🟢 Send Message (WhatsApp Universal Support)
 async function sendChatMessage(event) {
     event.preventDefault();
     const input = document.getElementById('chatMessageInput');
@@ -1085,8 +1166,22 @@ async function sendChatMessage(event) {
     const linkInput = document.getElementById('linkUrlInput');
     const linkUrl = linkInput ? linkInput.value.trim() : '';
     const hasMedia = mediaInput.files && mediaInput.files[0];
+    const sendBtn = document.getElementById('sendBtn');
 
     if (!content && !hasMedia && !linkUrl) return;
+
+    // Loading state during file upload
+    const origBtnHtml = sendBtn ? sendBtn.innerHTML : '';
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `
+            <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <span>Sending...</span>
+        `;
+    }
 
     const formData = new FormData();
     formData.append('_token', '{{ csrf_token() }}');
@@ -1114,9 +1209,18 @@ async function sendChatMessage(event) {
             renderMessageBubble(data.thought);
             latestMessageId = Math.max(latestMessageId, data.thought.id);
             scrollToBottom();
+        } else {
+            alert(data.message || 'Unable to send message or file. Please try again.');
         }
     } catch (err) {
         console.error('Failed to send message:', err);
+        alert('An error occurred while uploading. Please check your network connection and try again.');
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = origBtnHtml;
+            if (window.lucide) lucide.createIcons();
+        }
     }
 }
 
@@ -1489,6 +1593,32 @@ function renderMessageBubble(msg) {
                         <source src="${msg.media_url}">
                     </video>
                 </div>`;
+        } else if (msg.media_type === 'audio') {
+            mediaHtml = `
+                <div class="mb-1.5 rounded-xl p-2 ${isMe ? 'bg-indigo-800/60' : 'bg-slate-100'}">
+                    <audio controls class="w-full max-w-[260px] h-9">
+                        <source src="${msg.media_url}">
+                    </audio>
+                </div>`;
+        } else {
+            const fileName = msg.original_name || 'Attached File';
+            const ext = (msg.media_extension || 'FILE').toUpperCase();
+            const size = msg.media_size_human || '';
+            mediaHtml = `
+                <div class="mb-1.5 p-2.5 rounded-xl ${isMe ? 'bg-indigo-800/70 text-white' : 'bg-slate-50 border border-slate-200 text-slate-800'} flex items-center justify-between gap-3 max-w-xs">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-9 h-9 rounded-lg ${isMe ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'} flex flex-col items-center justify-center shrink-0">
+                            <span class="text-[9px] font-black tracking-tight leading-none">${ext}</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold truncate">${fileName}</p>
+                            ${size ? `<span class="text-[10px] ${isMe ? 'text-indigo-200' : 'text-slate-400'}">${size}</span>` : ''}
+                        </div>
+                    </div>
+                    <a href="${msg.media_url}" download="${fileName}" class="p-1.5 rounded-lg ${isMe ? 'hover:bg-white/20 text-white' : 'hover:bg-slate-200 text-indigo-600'} transition shrink-0" title="Download file">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </a>
+                </div>`;
         }
     }
 
@@ -1541,12 +1671,12 @@ function renderMessageBubble(msg) {
                         <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
                             <span>${msg.time}</span>
                             <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-white transition p-0.5 text-indigo-200 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
-                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
                             </button>
                             ${checkmarks}
                         </div>
-                        <!-- WhatsApp Instant Floating Reaction Bar -->
-                        <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 left-1 sm:left-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                        <!-- WhatsApp Instant Floating Reaction Bar (Anchored Right) -->
+                        <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 right-0 sm:right-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
                             <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
                             <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
                             <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
@@ -1587,11 +1717,11 @@ function renderMessageBubble(msg) {
                         <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
                             <span>${msg.time}</span>
                             <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-indigo-600 transition p-0.5 text-slate-400 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
-                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
                             </button>
                         </div>
-                        <!-- WhatsApp Instant Floating Reaction Bar -->
-                        <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 right-1 sm:right-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                        <!-- WhatsApp Instant Floating Reaction Bar (Anchored Left) -->
+                        <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 left-0 sm:left-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
                             <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
                             <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
                             <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>

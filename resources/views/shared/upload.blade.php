@@ -10,7 +10,7 @@
     $hasOAuthConfig = !empty(config('services.google.client_id')) || \Illuminate\Support\Facades\Cache::has('google_oauth_credentials');
 @endphp
 
-<div class="space-y-6 pb-28 lg:pb-16" x-data="{ showDriveSetupHelp: false, showDriveConfigModal: {{ request('open_config') ? 'true' : 'false' }}, configTab: 'oauth' }">
+<div class="space-y-6 pb-28 lg:pb-16" x-data="{ showDriveSetupHelp: false }">
 
     <!-- Header Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -25,10 +25,6 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" @click="showDriveConfigModal = true" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer">
-                <i data-lucide="settings-2" class="w-4 h-4"></i>
-                <span>Cloud Credentials</span>
-            </button>
             <a href="{{ route('history.index') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition">
                 <i data-lucide="history" class="w-4 h-4"></i>
                 <span>Audit & History</span>
@@ -68,10 +64,6 @@
                     <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                     <span>Open in Drive</span>
                 </a>
-                <button type="button" @click="showDriveConfigModal = true" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-                    <span>Credentials</span>
-                </button>
                 @if(empty($connectedAccount['is_service_account']))
                     <form method="POST" action="{{ route('google.disconnect') }}" onsubmit="return confirm('Disconnect Google Drive?')">
                         @csrf
@@ -111,23 +103,13 @@
                     <i data-lucide="help-circle" class="w-4 h-4 text-slate-500"></i>
                     <span>Setup Help</span>
                 </button>
-                @if($hasOAuthConfig)
-                    <a href="{{ route('google.connect') }}" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer group">
-                        <svg class="w-4 h-4 text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
-                        </svg>
-                        <span>Connect Google Drive</span>
-                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"></i>
-                    </a>
-                @else
-                    <button type="button" @click="showDriveConfigModal = true" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer group">
-                        <svg class="w-4 h-4 text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
-                        </svg>
-                        <span>Connect Google Drive</span>
-                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"></i>
-                    </button>
-                @endif
+                <a href="{{ route('google.connect') }}" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer group">
+                    <svg class="w-4 h-4 text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
+                    </svg>
+                    <span>Connect Google Drive</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"></i>
+                </a>
             </div>
         </div>
     @endif
@@ -365,126 +347,6 @@
                     <span>Connect Google Drive</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Interactive Cloud Credentials Modal (OAuth 2.0 & Service Account) -->
-    <div x-show="showDriveConfigModal" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4">
-        <div @click.outside="showDriveConfigModal = false" class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <i data-lucide="sliders" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-black text-slate-900">Configure Google Drive Cloud</h3>
-                        <p class="text-[11px] text-slate-400">Manage OAuth 2.0 credentials & Service Accounts</p>
-                    </div>
-                </div>
-                <button type="button" @click="showDriveConfigModal = false" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">✕</button>
-            </div>
-
-            <!-- Modal Tabs -->
-            <div class="flex items-center gap-2 mt-4 p-1 bg-slate-100 rounded-xl">
-                <button type="button" @click="configTab = 'oauth'" :class="configTab === 'oauth' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer">
-                    OAuth 2.0 (User Login)
-                </button>
-                <button type="button" @click="configTab = 'service_account'" :class="configTab === 'service_account' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer">
-                    Service Account (Bot)
-                </button>
-                <button type="button" @click="configTab = 'status'" :class="configTab === 'status' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer">
-                    Current Status
-                </button>
-            </div>
-
-            <!-- Tab 1: OAuth Form -->
-            <div x-show="configTab === 'oauth'" class="py-4 space-y-4">
-                <p class="text-xs text-slate-500">
-                    Enter your Google Cloud OAuth 2.0 credentials. These will be securely stored to enable 1-click login for team members without needing server restarts.
-                </p>
-                <form method="POST" action="{{ route('google.configure') }}" class="space-y-3">
-                    @csrf
-                    <input type="hidden" name="type" value="oauth">
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Google Client ID</label>
-                        <input type="text" name="client_id" value="{{ \Illuminate\Support\Facades\Cache::get('google_oauth_credentials')['client_id'] ?? config('services.google.client_id') }}" placeholder="e.g. 123456789-abc.apps.googleusercontent.com" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Google Client Secret</label>
-                        <input type="password" name="client_secret" value="{{ \Illuminate\Support\Facades\Cache::get('google_oauth_credentials')['client_secret'] ?? config('services.google.client_secret') }}" placeholder="Enter Google Client Secret" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-
-                    <div class="pt-2 flex items-center justify-between">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer">
-                            Save OAuth Credentials
-                        </button>
-                        @if($hasOAuthConfig)
-                            <a href="{{ route('google.connect') }}" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                                <span>Authorize Now</span>
-                                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                            </a>
-                        @endif
-                    </div>
-                </form>
-            </div>
-
-            <!-- Tab 2: Service Account Form -->
-            <div x-show="configTab === 'service_account'" class="py-4 space-y-4">
-                <p class="text-xs text-slate-500">
-                    Paste your Google Cloud Service Account JSON key. The app will use this bot account to autonomously create folders and upload files.
-                </p>
-                <form method="POST" action="{{ route('google.configure') }}" class="space-y-3">
-                    @csrf
-                    <input type="hidden" name="type" value="service_account">
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Service Account JSON</label>
-                        <textarea name="service_account_json" rows="6" placeholder='{"type": "service_account", "project_id": "...", ...}' required class="w-full px-3 py-2 text-[11px] font-mono bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                    </div>
-
-                    <div class="pt-2 flex items-center justify-end">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer">
-                            Save Service Account
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Tab 3: Current Status -->
-            <div x-show="configTab === 'status'" class="py-4 space-y-3">
-                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500 font-medium">Connection Status:</span>
-                        <span class="font-bold {{ $isGoogleConnected ? 'text-emerald-600' : 'text-amber-600' }}">
-                            {{ $isGoogleConnected ? 'Active & Ready' : 'Not Connected' }}
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500 font-medium">Account:</span>
-                        <span class="font-bold text-slate-800">{{ $connectedAccount['email'] ?? 'ecofone-drive-bot@ecofone-team-manager.iam.gserviceaccount.com (Default Bot)' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500 font-medium">Account Type:</span>
-                        <span class="font-bold text-indigo-600">{{ $connectedAccount['type'] ?? 'Service Account' }}</span>
-                    </div>
-                </div>
-
-                <form method="POST" action="{{ route('google.configure') }}" onsubmit="return confirm('Reset credentials to system default?')">
-                    @csrf
-                    <input type="hidden" name="type" value="reset">
-                    <button type="submit" class="w-full py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-bold rounded-xl transition cursor-pointer">
-                        Reset to Default EcoFone Credentials
-                    </button>
-                </form>
-            </div>
-
-            <div class="pt-3 border-t border-slate-100 flex justify-end">
-                <button type="button" @click="showDriveConfigModal = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
-                    Close
-                </button>
             </div>
         </div>
     </div>
