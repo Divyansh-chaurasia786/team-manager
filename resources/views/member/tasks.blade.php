@@ -56,16 +56,10 @@
             </button>
         </div>
 
-        <!-- Search + Toggle View Mode -->
-        <div class="flex items-center gap-2">
-            <div class="relative flex-1 sm:w-56">
-                <input type="text" id="deliverablesSearch" oninput="filterDeliverablesCards()" placeholder="Search tasks..." class="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:outline-none transition">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
-            </div>
-            <button type="button" onclick="toggleAllCards()" id="toggleAllBtn" class="px-2.5 py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1 shrink-0 cursor-pointer" title="Expand or collapse all task details">
-                <i data-lucide="chevrons-down-up" class="w-3.5 h-3.5 text-slate-500"></i>
-                <span id="toggleAllText" class="hidden sm:inline">Collapse All</span>
-            </button>
+        <!-- Search Input -->
+        <div class="relative w-full sm:w-60">
+            <input type="text" id="deliverablesSearch" oninput="filterDeliverablesCards()" placeholder="Search tasks..." class="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:outline-none transition">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
         </div>
     </div>
 
@@ -198,8 +192,8 @@
                     @endif
                 </div>
 
-                <!-- Expandable Deep Details Drawer (Collapsed by default on mobile, can toggle) -->
-                <div id="task-details-{{ $task->id }}" class="task-details-drawer mt-2.5 pt-2.5 border-t border-slate-100 space-y-2.5">
+                <!-- Expandable Deep Details Drawer (Collapsed by default, single-open accordion) -->
+                <div id="task-details-{{ $task->id }}" class="task-details-drawer hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-2.5">
                     
                     <!-- Full Description -->
                     @if($task->description)
@@ -395,61 +389,39 @@
 <script>
 let currentActiveTaskId = null;
 let currentFilter = 'all';
-let allExpanded = true;
 
-// Toggle details for a single task card
+// Toggle details for a single task card (Single-open accordion: only one task open at a time)
 function toggleTaskDetails(taskId) {
-    const drawer = document.getElementById(`task-details-${taskId}`);
-    const icon = document.getElementById(`expand-icon-${taskId}`);
-    const label = document.getElementById(`expand-label-${taskId}`);
+    const targetDrawer = document.getElementById(`task-details-${taskId}`);
+    if (!targetDrawer) return;
 
-    if (!drawer) return;
+    const willOpen = targetDrawer.classList.contains('hidden');
 
-    const isHidden = drawer.classList.contains('hidden');
-    if (isHidden) {
-        drawer.classList.remove('hidden');
-        if (icon) icon.style.transform = 'rotate(180deg)';
-        if (label) label.textContent = 'Hide';
-    } else {
-        drawer.classList.add('hidden');
-        if (icon) icon.style.transform = 'rotate(0deg)';
-        if (label) label.textContent = 'Details';
-    }
-}
-
-// Global toggle for all cards
-function toggleAllCards() {
-    allExpanded = !allExpanded;
-    const drawers = document.querySelectorAll('.task-details-drawer');
-    const toggleBtnText = document.getElementById('toggleAllText');
-
-    drawers.forEach(drawer => {
-        const taskId = drawer.id.replace('task-details-', '');
-        const icon = document.getElementById(`expand-icon-${taskId}`);
-        const label = document.getElementById(`expand-label-${taskId}`);
-
-        if (allExpanded) {
-            drawer.classList.remove('hidden');
-            if (icon) icon.style.transform = 'rotate(180deg)';
-            if (label) label.textContent = 'Hide';
-        } else {
+    // Close all other drawers so only ONE task can be open at any time
+    document.querySelectorAll('.task-details-drawer').forEach(drawer => {
+        if (drawer.id !== `task-details-${taskId}`) {
             drawer.classList.add('hidden');
-            if (icon) icon.style.transform = 'rotate(0deg)';
-            if (label) label.textContent = 'Details';
+            const otherId = drawer.id.replace('task-details-', '');
+            const otherIcon = document.getElementById(`expand-icon-${otherId}`);
+            const otherLabel = document.getElementById(`expand-label-${otherId}`);
+            if (otherIcon) otherIcon.style.transform = 'rotate(0deg)';
+            if (otherLabel) otherLabel.textContent = 'Details';
         }
     });
 
-    if (toggleBtnText) {
-        toggleBtnText.textContent = allExpanded ? 'Collapse All' : 'Expand All';
+    const targetIcon = document.getElementById(`expand-icon-${taskId}`);
+    const targetLabel = document.getElementById(`expand-label-${taskId}`);
+
+    if (willOpen) {
+        targetDrawer.classList.remove('hidden');
+        if (targetIcon) targetIcon.style.transform = 'rotate(180deg)';
+        if (targetLabel) targetLabel.textContent = 'Hide';
+    } else {
+        targetDrawer.classList.add('hidden');
+        if (targetIcon) targetIcon.style.transform = 'rotate(0deg)';
+        if (targetLabel) targetLabel.textContent = 'Details';
     }
 }
-
-// Auto-collapse on small mobile screens if there are > 2 tasks so it's clean and scannable
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.innerWidth < 640 && {{ $tasks->count() }} > 2) {
-        toggleAllCards(); // Sets to collapsed by default on mobile with many tasks!
-    }
-});
 
 // Quick Tabs Filter
 function setDeliverableFilter(category) {
