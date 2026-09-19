@@ -612,7 +612,7 @@
     </header>
 
     <!-- MAIN PAGE CONTAINER -->
-    <main class="flex-grow w-full mx-auto {{ request()->routeIs('thoughts.*') ? 'p-0 max-w-none h-[100dvh] md:h-auto md:max-w-7xl md:px-6 lg:px-8 md:py-6' : 'max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6' }} flex flex-col">
+    <main class="flex-grow w-full mx-auto {{ request()->routeIs('thoughts.*') ? 'p-0 max-w-none h-[100dvh] md:h-[calc(100vh_-_4rem)] md:max-w-7xl md:px-4 lg:px-6 md:py-3.5 overflow-hidden' : 'max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6' }} flex flex-col min-h-0">
         @unless(request()->routeIs('thoughts.*'))
             <!-- Toast Alerts -->
             @if(session('success'))

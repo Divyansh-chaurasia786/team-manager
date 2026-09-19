@@ -8,18 +8,18 @@
     $isManagement = in_array(auth()->user()->role, ['hr', 'ceo']);
 @endphp
 
-<div class="h-full flex flex-col flex-1 min-h-0">
+<div class="h-full flex flex-col flex-1 min-h-0 overflow-hidden">
 
     <!-- Desktop Top Breadcrumb Header Bar (Hidden on Mobile for Native WhatsApp Feel) -->
-    <div class="hidden md:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+    <div class="hidden md:flex items-center justify-between gap-3 mb-2.5 shrink-0 select-none">
         <div>
-            <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-1">
+            <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-0.5">
                 <a href="{{ auth()->user()->isTL() ? route('tl.dashboard') : (auth()->user()->role === 'ceo' ? route('ceo.dashboard') : (auth()->user()->role === 'hr' ? route('hr.dashboard') : route('member.dashboard'))) }}" class="hover:text-[#008069] transition">Dashboard</a>
                 <span>/</span>
                 <span class="text-slate-700 font-medium">Team Chat</span>
             </div>
             <div class="flex items-center gap-2.5 flex-wrap">
-                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <h1 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2 leading-none">
                     <span>Team Collaboration Hub</span>
                 </h1>
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 {{ $groupType === 'team' ? 'bg-[#e7fce3] border border-[#a3e899] text-[#008069]' : 'bg-emerald-50 border border-emerald-200 text-emerald-800' }}">
@@ -30,18 +30,18 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <span class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+            <span class="px-3 py-1 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                 <span class="w-2 h-2 rounded-full bg-[#00a884] animate-pulse"></span>
                 <span>{{ count($teamUsers) }} Active Members</span>
             </span>
         </div>
     </div>
 
-    <!-- Main Integrated Chat Workspace (Full Height on Mobile, WhatsApp Web Style Frame on Desktop) -->
-    <div class="flex-1 flex flex-col md:flex-row bg-white md:rounded-2xl md:border md:border-[#d1d7db] md:shadow-md overflow-hidden h-[100dvh] md:h-[calc(100vh-11.5rem)] md:min-h-[620px] relative">
+    <!-- Main Integrated Chat Workspace (Full Height on Mobile, Full-Height WhatsApp Web Frame on Desktop) -->
+    <div class="flex-1 min-h-0 h-[100dvh] md:h-auto flex flex-col md:flex-row bg-white md:rounded-2xl md:border md:border-[#d1d7db] md:shadow-md overflow-hidden relative">
 
         <!-- 🟢 LEFT SIDEBAR (Desktop WhatsApp Web Channel List & Roster / Mobile Slide-Over Sheet) -->
-        <div id="chatSidebar" class="hidden md:flex w-full md:w-80 lg:w-92 bg-white md:border-r md:border-[#e9edef] flex-col shrink-0 absolute md:relative inset-0 z-40 md:z-auto transition-transform duration-200">
+        <div id="chatSidebar" class="hidden md:flex w-full md:w-80 lg:w-96 bg-white md:border-r md:border-[#e9edef] flex-col shrink-0 h-full min-h-0 absolute md:relative inset-0 z-40 md:z-auto transition-transform duration-200">
             
             <!-- Sidebar Header: Green Theme on Mobile, WhatsApp Web #f0f2f5 on Desktop -->
             <div class="h-14 sm:h-16 px-3.5 sm:px-4 bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#111b21] border-b border-slate-200 md:border-[#e9edef] flex items-center justify-between shrink-0 select-none">
@@ -177,7 +177,7 @@
             </div>
 
             <!-- Team Members Roster (WhatsApp Web Contact List) -->
-            <div class="flex-1 overflow-y-auto divide-y divide-slate-100 md:divide-[#f5f6f6]">
+            <div class="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 md:divide-[#f5f6f6]">
                 <div class="px-3.5 py-2 bg-slate-50/80 md:bg-[#f0f2f5]/60 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-slate-400 md:text-[#54656f] flex items-center justify-between border-b border-slate-100 md:border-[#e9edef] select-none">
                     <span>Channel Contacts ({{ count($teamUsers) }})</span>
                     @if(auth()->user()->isTL() && $groupType === 'team')
@@ -219,7 +219,7 @@
         </div>
 
         <!-- 💬 RIGHT MAIN CHAT AREA (Mobile WhatsApp App on Mobile, WhatsApp Web on Desktop) -->
-        <div class="flex-1 flex flex-col h-full relative min-w-0" style="background-color: #efeae2; background-image: radial-gradient(#d5cdc4 0.75px, transparent 0.75px); background-size: 16px 16px;">
+        <div class="flex-1 min-h-0 flex flex-col h-full relative" style="background-color: #efeae2; background-image: radial-gradient(#d5cdc4 0.75px, transparent 0.75px); background-size: 16px 16px;">
 
             <!-- WhatsApp Header Bar (Mobile Green #008069, Desktop WhatsApp Web #f0f2f5) -->
             <div class="h-14 sm:h-16 px-2.5 sm:px-4 bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#111b21] md:border-b md:border-[#e9edef] flex items-center justify-between shrink-0 shadow-xs md:shadow-none z-30 select-none">
@@ -313,7 +313,7 @@
             </div>
 
             <!-- Scrollable Messages Feed (WhatsApp Bubbles) -->
-            <div id="chatMessagesScrollArea" class="flex-1 overflow-y-auto p-2.5 sm:p-4 md:p-5 pt-3 sm:pt-5 space-y-2.5 scroll-smooth">
+            <div id="chatMessagesScrollArea" class="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-4 md:p-5 pt-3 sm:pt-5 space-y-2.5 scroll-smooth">
                 
                 <div id="chatMessagesList" class="space-y-2 sm:space-y-2.5">
                     @php 
