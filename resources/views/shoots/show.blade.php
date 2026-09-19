@@ -3,151 +3,312 @@
 @section('page-title', 'Reel Production Studio')
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-5 pb-12" x-data="{ 
+<div class="max-w-7xl mx-auto space-y-6 pb-28 lg:pb-16" x-data="{ 
     showPhaseEditModal: false, 
     showCrewAssignModal: false,
     activePhaseTab: '{{ $shoot->status }}',
-    teleprompterLarge: false 
+    teleprompterLarge: false,
+    copyAlert: false,
+    copyAlertMessage: '',
+    showNotification(msg) {
+        this.copyAlertMessage = msg;
+        this.copyAlert = true;
+        setTimeout(() => { this.copyAlert = false; }, 2500);
+    }
 }">
 
+    <!-- Toast Notification for Copy Actions -->
+    <div x-show="copyAlert" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         x-cloak
+         class="fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 bg-slate-900 text-white rounded-2xl shadow-xl text-xs font-bold border border-slate-700">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+        <span x-text="copyAlertMessage">Copied to clipboard!</span>
+    </div>
+
     <!-- =================================================================== -->
-    <!-- TOP HEADER: TITLE, LOGO, REEL SHOOT CREW & WHATSAPP ACTION          -->
+    <!-- HERO HEADER: NAVIGATION, BADGES, TITLE & PRIMARY ACTIONS            -->
     <!-- =================================================================== -->
-    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-4">
-        <div class="flex items-center justify-between gap-4 flex-wrap">
-            
-            <!-- Left: Back Navigation, Pure EcoFone Logo & Shoot Title -->
-            <div class="flex items-center gap-3.5">
+    <div class="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/90 shadow-xs space-y-5">
+        
+        <!-- Top Row: Back Button, Logo & Actions -->
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5 flex-wrap">
                 <a href="{{ route('shoots.index') }}" 
-                   class="p-2.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-500 hover:text-indigo-600 transition shrink-0 shadow-2xs"
+                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
                    title="Back to All Shoots">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500"></i>
+                    <span>All Shoots</span>
                 </a>
 
-                <!-- Pure EcoFone Logo (Crisp, without extra text labels) -->
-                <div class="p-2 bg-slate-50 rounded-2xl border border-slate-200/70 inline-flex items-center justify-center shrink-0">
-                    <img src="{{ asset('images/logo.png') }}" alt="EcoFone" class="h-8 sm:h-9 w-auto object-contain">
+                <!-- Pure EcoFone Logo -->
+                <div class="p-1.5 bg-slate-50 rounded-xl border border-slate-200/70 inline-flex items-center justify-center shrink-0">
+                    <img src="{{ asset('images/logo.png') }}" alt="EcoFone" class="h-6 sm:h-7 w-auto object-contain">
                 </div>
 
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-mono text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-lg border border-orange-200/80">
-                            REEL #{{ str_pad($shoot->id, 4, '0', STR_PAD_LEFT) }}
-                        </span>
-                        <span class="text-xs font-bold text-slate-300">&bull;</span>
-                        <span class="inline-flex items-center gap-1 text-xs font-bold text-slate-600">
-                            <i data-lucide="{{ $shoot->platform_info['icon'] }}" class="w-3.5 h-3.5 text-indigo-600"></i>
-                            <span>Upload Platform: {{ $shoot->platform_info['label'] }}</span>
-                        </span>
-                        @if($shoot->instagram_handle)
-                            <span class="text-xs font-mono font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-lg border border-pink-200/80">
-                                {{ $shoot->instagram_handle }}
-                            </span>
-                        @endif
-                        @if($shoot->youtube_channel)
-                            <span class="text-xs font-mono font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-lg border border-red-200/80">
-                                {{ $shoot->youtube_channel }}
-                            </span>
-                        @endif
-                    </div>
-                    <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug mt-1">
-                        {{ $shoot->title }}
-                    </h1>
-                </div>
-            </div>
+                <span class="font-mono text-xs font-extrabold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-200/80 shadow-2xs">
+                    REEL #{{ str_pad($shoot->id, 4, '0', STR_PAD_LEFT) }}
+                </span>
 
-            <!-- Right: ONLY WhatsApp Share Button (Visible only when reel is scheduled) -->
-            @if($shoot->status === 'scheduled')
-            <div>
-                <button type="button" 
-                        onclick="shareOnWhatsApp()" 
-                        class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl text-xs font-black transition flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
-                        title="Share reel shoot details directly to WhatsApp">
-                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                    </svg>
-                    <span>Share on WhatsApp</span>
-                </button>
-            </div>
-            @endif
-        </div>
-
-        <!-- REEL SHOOT CREW (Placed directly at Header for instant visibility) -->
-        <div class="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-500"></i>
-                    <span>Reel Shoot Crew</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-black border uppercase tracking-wider {{ $shoot->status_badge['class'] }}">
+                    <span class="w-1.5 h-1.5 rounded-full {{ $shoot->status === 'shooting' ? 'bg-amber-500 animate-ping' : 'bg-current opacity-70' }}"></span>
+                    <span>{{ $shoot->status_badge['label'] }}</span>
                 </span>
             </div>
 
-            <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap flex-1 justify-start sm:justify-end text-xs">
-                <!-- 0. Managing Member / Shoot Supervisor -->
-                <div class="flex items-center gap-2 {{ $shoot->managing_member_id ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-100 border-slate-200' }} px-3 py-1.5 rounded-xl border transition shadow-2xs">
-                    <div class="w-6 h-6 rounded-lg {{ $shoot->managing_member_id ? 'bg-indigo-700' : 'bg-slate-800' }} text-white flex items-center justify-center font-bold text-xs shrink-0">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div>
-                        <span class="text-[9px] font-extrabold uppercase {{ $shoot->managing_member_id ? 'text-indigo-700' : 'text-slate-600' }} block leading-none">Managing Member (Lead)</span>
-                        <strong class="text-xs font-black text-slate-900 leading-none">{{ $shoot->managing_member_name }}</strong>
-                    </div>
-                </div>
-
-                <!-- 1. Camera Operator / Videographer -->
-                <div class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 px-3 py-1.5 rounded-xl border border-slate-200/80 transition shadow-2xs">
-                    <div class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                        <i data-lucide="video" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div>
-                        <span class="text-[9px] font-extrabold uppercase text-indigo-600 block leading-none">Camera / Videographer</span>
-                        <strong class="text-xs font-black text-slate-900 leading-none">{{ $shoot->camera_name }}</strong>
-                    </div>
-                </div>
-
-                <!-- 2. Model / Presenter / Creator -->
-                <div class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 px-3 py-1.5 rounded-xl border border-slate-200/80 transition shadow-2xs">
-                    <div class="w-6 h-6 rounded-lg bg-pink-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div>
-                        <span class="text-[9px] font-extrabold uppercase text-pink-600 block leading-none">Model / Presenter / Creator</span>
-                        <strong class="text-xs font-black text-slate-900 leading-none">{{ $shoot->model_display_name }}</strong>
-                    </div>
-                </div>
-
-                <!-- 3. Video Editor -->
-                <div class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100/80 px-3 py-1.5 rounded-xl border border-slate-200/80 transition shadow-2xs">
-                    <div class="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                        <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div>
-                        <span class="text-[9px] font-extrabold uppercase text-purple-600 block leading-none">Video Editor</span>
-                        <strong class="text-xs font-black text-slate-900 leading-none">{{ $shoot->editor_display_name }}</strong>
-                    </div>
-                </div>
-
-                @if($shoot->other_crew)
-                    <div class="text-[11px] text-slate-500 font-semibold px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-200/60">
-                        + {{ $shoot->other_crew }}
-                    </div>
-                @endif
-
-                @if(auth()->user()->isTL())
+            <!-- Action Buttons Group -->
+            <div class="flex items-center gap-2 flex-wrap">
+                @if($shoot->status === 'scheduled')
                     <button type="button" 
-                            @click="showCrewAssignModal = true"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/80 transition cursor-pointer"
-                            title="TL: Reassign cast and crew for this shoot">
-                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-                        <span>Assign Crew</span>
+                            onclick="shareOnWhatsApp()" 
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm shadow-emerald-600/25 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        </svg>
+                        <span>Share on WhatsApp</span>
+                    </button>
+                    
+                    <button type="button" 
+                            onclick="copyCallSheet()" 
+                            class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                            title="Copy call sheet text to clipboard">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
                     </button>
                 @endif
+
+                @if(auth()->user()->isTL() || auth()->user()->isCEO() || auth()->user()->isHR())
+                    <button type="button" 
+                            @click="showCrewAssignModal = true; $nextTick(() => lucide.createIcons())" 
+                            class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200/80 transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Assign Crew</span>
+                        <span class="sm:hidden">Crew</span>
+                    </button>
+                @endif
+
+                <button type="button" 
+                        @click="showPhaseEditModal = true; $nextTick(() => lucide.createIcons())" 
+                        class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                        title="Edit Shoot Logistics & Script">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    <span>Edit</span>
+                </button>
             </div>
         </div>
+
+        <!-- Main Title & Target Handles -->
+        <div class="space-y-2">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    <i data-lucide="{{ $shoot->platform_info['icon'] }}" class="w-3.5 h-3.5 text-indigo-600"></i>
+                    <span>Upload Platform: {{ $shoot->platform_info['label'] }}</span>
+                </span>
+
+                @if($shoot->instagram_handle)
+                    <span class="inline-flex items-center gap-1 text-xs font-mono font-bold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-lg border border-pink-200/70">
+                        <i data-lucide="instagram" class="w-3 h-3 text-pink-600"></i>
+                        <span>{{ $shoot->instagram_handle }}</span>
+                    </span>
+                @endif
+
+                @if($shoot->youtube_channel)
+                    <span class="inline-flex items-center gap-1 text-xs font-mono font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200/70">
+                        <i data-lucide="youtube" class="w-3 h-3 text-red-600"></i>
+                        <span>{{ $shoot->youtube_channel }}</span>
+                    </span>
+                @endif
+            </div>
+
+            <h1 class="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                {{ $shoot->title }}
+            </h1>
+        </div>
+
+        <!-- Vitals Strip: Date, Location, Manager, Creator -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-4 border-t border-slate-100">
+            <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70">
+                <span class="text-[10px] font-extrabold uppercase text-slate-400 flex items-center gap-1">
+                    <i data-lucide="calendar" class="w-3 h-3 text-orange-500"></i>
+                    <span>Shooting Date:</span>
+                </span>
+                <p class="text-xs font-bold text-slate-900 mt-1 truncate">
+                    {{ $shoot->shoot_date ? $shoot->shoot_date->format('d M Y, h:i A') : 'Schedule TBD' }}
+                </p>
+            </div>
+
+            <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70">
+                <span class="text-[10px] font-extrabold uppercase text-slate-400 flex items-center gap-1">
+                    <i data-lucide="map-pin" class="w-3 h-3 text-indigo-500"></i>
+                    <span>Location</span>
+                </span>
+                <p class="text-xs font-bold text-slate-900 mt-1 truncate">
+                    {{ $shoot->location ?: 'Main Studio Set' }}
+                </p>
+            </div>
+
+            <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70">
+                <span class="text-[10px] font-extrabold uppercase text-slate-400 flex items-center gap-1">
+                    <i data-lucide="shield-check" class="w-3 h-3 text-emerald-600"></i>
+                    <span>Shoot Lead</span>
+                </span>
+                <p class="text-xs font-bold text-slate-900 mt-1 truncate">
+                    {{ $shoot->managing_member_name }}
+                </p>
+            </div>
+
+            <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70">
+                <span class="text-[10px] font-extrabold uppercase text-slate-400 flex items-center gap-1">
+                    <i data-lucide="user" class="w-3 h-3 text-violet-500"></i>
+                    <span>Scheduled By</span>
+                </span>
+                <p class="text-xs font-bold text-slate-900 mt-1 truncate">
+                    {{ $shoot->creator->name }}
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- REEL SHOOT CREW: CLEAN, BALANCED RESPONSIVE GRID (1 col mobile, 4 desktop) -->
+    <!-- =================================================================== -->
+    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+                <h2 class="text-xs font-black uppercase tracking-wider text-slate-800">Reel Shoot Crew</h2>
+            </div>
+
+            @if(auth()->user()->isTL() || auth()->user()->isCEO() || auth()->user()->isHR())
+                <button type="button" 
+                        @click="showCrewAssignModal = true; $nextTick(() => lucide.createIcons())" 
+                        class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition cursor-pointer">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                    <span>Reassign</span>
+                </button>
+            @endif
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            
+            <!-- 0. Managing Member / Lead -->
+            <div class="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 flex items-center gap-3 transition hover:bg-indigo-50">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="text-[9px] font-extrabold uppercase text-indigo-700 tracking-wider block leading-tight">Managing Member (Lead)</span>
+                    <strong class="text-sm font-black text-slate-900 truncate block mt-0.5">{{ $shoot->managing_member_name }}</strong>
+                    <span class="text-[10px] text-indigo-600/80 font-medium block">Lead &amp; Supervisor</span>
+                </div>
+            </div>
+
+            <!-- 1. Camera / Videographer -->
+            <div class="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-200/80 flex items-center gap-3 transition hover:bg-sky-50">
+                <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <i data-lucide="video" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="text-[9px] font-extrabold uppercase text-sky-700 tracking-wider block leading-tight">Camera / Videographer</span>
+                    <strong class="text-sm font-black text-slate-900 truncate block mt-0.5">{{ $shoot->camera_name }}</strong>
+                    <span class="text-[10px] text-sky-600/80 font-medium block">Cinematography</span>
+                </div>
+            </div>
+
+            <!-- 2. Model / Presenter / Creator -->
+            <div class="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-200/80 flex items-center gap-3 transition hover:bg-pink-50">
+                <div class="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="text-[9px] font-extrabold uppercase text-pink-700 tracking-wider block leading-tight">Model / Presenter / Creator</span>
+                    <strong class="text-sm font-black text-slate-900 truncate block mt-0.5">{{ $shoot->model_display_name }}</strong>
+                    <span class="text-[10px] text-pink-600/80 font-medium block">On-Screen Talent</span>
+                </div>
+            </div>
+
+            <!-- 3. Video Editor -->
+            <div class="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-200/80 flex items-center gap-3 transition hover:bg-purple-50">
+                <div class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <i data-lucide="scissors" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="text-[9px] font-extrabold uppercase text-purple-700 tracking-wider block leading-tight">Video Editor</span>
+                    <strong class="text-sm font-black text-slate-900 truncate block mt-0.5">{{ $shoot->editor_display_name }}</strong>
+                    <span class="text-[10px] text-purple-600/80 font-medium block">Post-Production</span>
+                </div>
+            </div>
+
+        </div>
+
+        @if($shoot->other_crew)
+            <div class="px-3.5 py-2.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center gap-2 text-xs text-slate-600">
+                <i data-lucide="info" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                <span><strong class="text-slate-800">Additional Crew &amp; Support:</strong> {{ $shoot->other_crew }}</span>
+            </div>
+        @endif
     </div>
 
     <!-- =================================================================== -->
     <!-- 2-COLUMN ARCHITECTURE: LEFT (PIPELINE) | RIGHT (PHASE CAPABILITY)    -->
     <!-- =================================================================== -->
+    @php
+        $stages = [
+            'planning'  => [
+                'label' => 'Planning', 
+                'capability' => 'Hook & Concept Ideation', 
+                'icon' => 'sparkles',
+                'desc' => 'Define angle, props & first 3s hook'
+            ],
+            'scripting' => [
+                'label' => 'Scripting', 
+                'capability' => 'Dialogue & Teleprompter', 
+                'icon' => 'file-text',
+                'desc' => 'Write lines & scene instructions'
+            ],
+            'scheduled' => [
+                'label' => 'Scheduled', 
+                'capability' => 'WhatsApp Call Sheet Dispatch', 
+                'icon' => 'calendar-check',
+                'desc' => 'Lock time, set & dispatch crew'
+            ],
+            'shooting'  => [
+                'label' => 'Shooting', 
+                'capability' => 'On-Set Teleprompter Filming', 
+                'icon' => 'video',
+                'desc' => 'Record vertical takes on camera'
+            ],
+            'editing'   => [
+                'label' => 'Editing', 
+                'capability' => 'Post-Production & Cuts', 
+                'icon' => 'scissors',
+                'desc' => 'Sound design, SFX & video edits'
+            ],
+            'review'    => [
+                'label' => 'Review', 
+                'capability' => 'Quality Review & Sign-Off', 
+                'icon' => 'eye',
+                'desc' => 'Inspect pacing, audio & captions'
+            ],
+            'published' => [
+                'label' => 'Published', 
+                'capability' => 'Live Social Media Launch', 
+                'icon' => 'check-circle-2',
+                'desc' => 'View live Instagram / YouTube post'
+            ],
+        ];
+        $stageKeys = array_keys($stages);
+        $currentIndex = array_search($shoot->status, $stageKeys);
+        $currentStageConfig = $stages[$shoot->status] ?? $stages['scheduled'];
+    @endphp
+
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
         <!-- ============================================================= -->
@@ -155,104 +316,7 @@
         <!-- ============================================================= -->
         <div class="lg:col-span-4 space-y-4">
 
-            <!-- 1. Vitals Card (Shooting Date & Location) -->
-            <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2.5 text-xs text-slate-600">
-                <div class="flex items-center gap-2.5 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/60">
-                    <div class="w-7 h-7 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Shooting Date:</span>
-                        <strong class="text-slate-900 font-bold text-xs truncate block">{{ $shoot->shoot_date ? $shoot->shoot_date->format('d M Y, h:i A') : 'Schedule TBD' }}</strong>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2.5 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/60">
-                    <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Location:</span>
-                        <strong class="text-slate-900 font-bold text-xs truncate block">{{ $shoot->location ?: 'Main Studio Set' }}</strong>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2.5 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/60">
-                    <div class="w-7 h-7 rounded-lg {{ $shoot->managing_member_id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700' }} flex items-center justify-center shrink-0">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Managed By:</span>
-                        <strong class="text-slate-900 font-bold text-xs truncate block">
-                            {{ $shoot->managing_member_name }}
-                            @if(!$shoot->managing_member_id)
-                                <span class="text-[10px] text-indigo-600 font-medium">(TL Direct)</span>
-                            @endif
-                        </strong>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2.5 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/60">
-                    <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                        <i data-lucide="user" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Scheduled by:</span>
-                        <strong class="text-slate-900 font-bold text-xs truncate block">{{ $shoot->creator->name }}</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. Vertical Production Pipeline with Capabilities -->
-            @php
-                $stages = [
-                    'planning'  => [
-                        'label' => 'Planning', 
-                        'capability' => 'Hook & Concept Ideation', 
-                        'icon' => 'sparkles',
-                        'desc' => 'Define angle, props & first 3s hook'
-                    ],
-                    'scripting' => [
-                        'label' => 'Scripting', 
-                        'capability' => 'Dialogue & Teleprompter', 
-                        'icon' => 'file-text',
-                        'desc' => 'Write lines & scene instructions'
-                    ],
-                    'scheduled' => [
-                        'label' => 'Scheduled', 
-                        'capability' => 'WhatsApp Call Sheet Dispatch', 
-                        'icon' => 'calendar-check',
-                        'desc' => 'Lock time, set & dispatch crew'
-                    ],
-                    'shooting'  => [
-                        'label' => 'Shooting', 
-                        'capability' => 'On-Set Teleprompter Filming', 
-                        'icon' => 'video',
-                        'desc' => 'Record vertical takes on camera'
-                    ],
-                    'editing'   => [
-                        'label' => 'Editing', 
-                        'capability' => 'Post-Production & Cuts', 
-                        'icon' => 'scissors',
-                        'desc' => 'Sound design, SFX & video edits'
-                    ],
-                    'review'    => [
-                        'label' => 'Review', 
-                        'capability' => 'Quality Review & Sign-Off', 
-                        'icon' => 'eye',
-                        'desc' => 'Inspect pacing, audio & captions'
-                    ],
-                    'published' => [
-                        'label' => 'Published', 
-                        'capability' => 'Live Social Media Launch', 
-                        'icon' => 'check-circle-2',
-                        'desc' => 'View live Instagram / YouTube post'
-                    ],
-                ];
-                $stageKeys = array_keys($stages);
-                $currentIndex = array_search($shoot->status, $stageKeys);
-            @endphp
-
+            <!-- Production Pipeline Stepper -->
             <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                     <div class="flex items-center gap-2">
@@ -261,8 +325,8 @@
                         </div>
                         <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider">Production Stages</h3>
                     </div>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider {{ $shoot->status_badge['class'] }}">
-                        {{ $shoot->status_badge['label'] }}
+                    <span class="text-[10px] font-extrabold text-slate-400">
+                        Step {{ $currentIndex + 1 }} of {{ count($stages) }}
                     </span>
                 </div>
 
@@ -332,24 +396,21 @@
         </div>
 
         <!-- ============================================================= -->
-        <!-- RIGHT WORKSPACE: ACTIVE STAGE CAPABILITY, HOOK & SCRIPT       -->
+        <!-- RIGHT WORKSPACE: ACTIVE STAGE BANNER, HOOK, SCRIPT & PROPS    -->
         <!-- ============================================================= -->
         <div class="lg:col-span-8 space-y-5">
 
             <!-- 1. Active Phase Capability Spotlight Banner -->
-            @php
-                $currentStageConfig = $stages[$shoot->status] ?? $stages['scheduled'];
-            @endphp
-            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-5 text-white shadow-sm flex items-center justify-between gap-4 flex-wrap">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-6 text-white shadow-md flex items-center justify-between gap-4 flex-wrap">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center shrink-0">
                         <i data-lucide="{{ $currentStageConfig['icon'] }}" class="w-5 h-5"></i>
                     </div>
                     <div>
                         <div class="text-[10px] font-black uppercase tracking-widest text-indigo-300">
-                            Active Phase &bull; {{ ucfirst($shoot->status) }}
+                            Current Stage &bull; {{ ucfirst($shoot->status) }}
                         </div>
-                        <div class="text-sm font-black text-white mt-0.5">
+                        <div class="text-base font-black text-white mt-0.5">
                             {{ $currentStageConfig['capability'] }}
                         </div>
                         <div class="text-xs text-slate-300 mt-0.5">
@@ -359,29 +420,29 @@
                 </div>
 
                 <!-- Phase Quick Capability Actions -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     @if($shoot->status === 'planning')
                         <button type="button" @click="showPhaseEditModal = true; activePhaseTab = 'planning'" class="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                            <span>Refine Hook &amp; Concept</span>
+                            <span>Refine Hook</span>
                         </button>
                     @elseif($shoot->status === 'scripting')
                         <button type="button" @click="showPhaseEditModal = true; activePhaseTab = 'scripting'" class="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                            <span>Edit Script Dialogue</span>
+                            <span>Edit Script</span>
                         </button>
                     @elseif($shoot->status === 'scheduled')
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-500/30">
-                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                            <span>Ready to Shoot</span>
-                        </span>
+                        <button type="button" onclick="shareOnWhatsApp()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                            <span>WhatsApp Dispatch</span>
+                        </button>
                     @elseif($shoot->status === 'shooting')
                         <button type="button" @click="teleprompterLarge = !teleprompterLarge" class="px-3.5 py-2 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
                             <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-                            <span x-text="teleprompterLarge ? 'Normal Text' : 'Teleprompter Mode'">Teleprompter Mode</span>
+                            <span x-text="teleprompterLarge ? 'Normal Script' : 'Teleprompter Mode'">Teleprompter Mode</span>
                         </button>
                     @elseif($shoot->status === 'editing')
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded-xl border border-purple-500/30">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-purple-500/20 text-purple-300 px-3.5 py-2 rounded-xl border border-purple-500/30">
                             <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
                             <span>In Post-Production</span>
                         </span>
@@ -396,7 +457,7 @@
                                 </button>
                             </form>
                         @else
-                            <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-amber-500/20 text-amber-300 px-3 py-1.5 rounded-xl border border-amber-500/30">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-amber-500/20 text-amber-300 px-3.5 py-2 rounded-xl border border-amber-500/30">
                                 <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                                 <span>Awaiting Manager Sign-Off</span>
                             </span>
@@ -416,7 +477,7 @@
             </div>
 
             <!-- 2. Opening Hook Spotlight Card (First 3-Seconds) -->
-            <div class="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 shadow-xs space-y-2.5">
+            <div class="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 shadow-xs space-y-3">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2 text-amber-800">
                         <div class="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-2xs">
@@ -424,20 +485,35 @@
                         </div>
                         <h2 class="text-xs font-black uppercase tracking-wider">First 3-Second Hook</h2>
                     </div>
-                    <span class="text-[10px] font-extrabold uppercase text-amber-700 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-300/60">
-                        High Retention
-                    </span>
+                    
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-extrabold uppercase text-amber-700 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-300/60">
+                            High Retention
+                        </span>
+                        @if($shoot->hook)
+                            <button type="button" 
+                                    onclick="copyHookText()" 
+                                    class="p-1 rounded-lg text-amber-700 hover:bg-amber-100/80 transition cursor-pointer"
+                                    title="Copy hook to clipboard">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
                 @if($shoot->hook)
                     <div class="p-4 rounded-2xl bg-white border border-amber-200/90 shadow-2xs">
-                        <p class="font-black text-slate-900 italic text-sm sm:text-base leading-relaxed">
+                        <p id="shootHookText" class="font-black text-slate-900 italic text-sm sm:text-base leading-relaxed">
                             "{{ $shoot->hook }}"
                         </p>
                     </div>
                 @else
-                    <div class="p-4 rounded-2xl bg-white/60 border border-dashed border-amber-200 text-slate-400 text-xs text-center">
-                        No opening hook specified for this reel yet. Click the sliders icon above to draft one!
+                    <div class="p-5 rounded-2xl bg-white/60 border border-dashed border-amber-200 text-slate-400 text-xs text-center flex flex-col items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-amber-300"></i>
+                        <p class="font-bold text-slate-600">No opening hook drafted yet.</p>
+                        <button type="button" @click="showPhaseEditModal = true" class="text-indigo-600 hover:underline font-bold text-xs mt-1">
+                            + Add opening hook
+                        </button>
                     </div>
                 @endif
             </div>
@@ -459,22 +535,41 @@
                         $wordCount = str_word_count($shoot->script ?? '');
                         $estSeconds = max(15, round($wordCount / 2.5));
                     @endphp
-                    <span class="text-xs text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-xl border border-slate-200/80">
-                        {{ $wordCount }} words &bull; ~{{ $estSeconds }}s reel
-                    </span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-xl border border-slate-200/80">
+                            {{ $wordCount }} words &bull; ~{{ $estSeconds }}s
+                        </span>
+                        @if($shoot->script)
+                            <button type="button" 
+                                    onclick="copyScriptText()" 
+                                    class="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                                    title="Copy script to clipboard">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" 
+                                    @click="teleprompterLarge = !teleprompterLarge" 
+                                    class="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                                    title="Toggle Teleprompter size">
+                                <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Teleprompter Script Content with Dynamic Sizing -->
                 @if($shoot->script)
                     <div id="teleprompterScriptText" 
-                         :class="teleprompterLarge ? 'text-lg sm:text-xl p-8 bg-slate-900 text-amber-300 font-semibold' : 'text-sm sm:text-base p-5 sm:p-6 bg-slate-50 text-slate-900 font-medium'"
-                         class="rounded-2xl border border-slate-200/80 font-sans leading-relaxed whitespace-pre-line select-text transition-all duration-200">
+                         :class="teleprompterLarge ? 'text-lg sm:text-2xl p-8 bg-slate-950 text-amber-300 font-bold leading-loose shadow-2xl' : 'text-sm sm:text-base p-5 sm:p-6 bg-slate-50 text-slate-900 font-medium leading-relaxed'"
+                         class="rounded-2xl border border-slate-200/80 font-sans whitespace-pre-line select-text transition-all duration-200">
 {{ $shoot->script }}
                     </div>
                 @else
-                    <div class="p-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-slate-400">
-                        <i data-lucide="file-edit" class="w-7 h-7 mx-auto mb-1.5 text-slate-300"></i>
+                    <div class="p-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-slate-400 space-y-2">
+                        <i data-lucide="file-edit" class="w-8 h-8 mx-auto text-slate-300"></i>
                         <p class="font-bold text-slate-700 text-xs">No script has been drafted for this shoot yet.</p>
+                        <button type="button" @click="showPhaseEditModal = true" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold transition hover:bg-indigo-700 cursor-pointer">
+                            Write Script Now
+                        </button>
                     </div>
                 @endif
 
@@ -509,7 +604,7 @@
                 @if($shoot->concept_notes)
                     <div class="space-y-1">
                         <span class="font-bold text-slate-700 block">Concept &amp; Props Notes:</span>
-                        <p class="text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                        <p class="text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
                             {{ $shoot->concept_notes }}
                         </p>
                     </div>
@@ -518,14 +613,14 @@
                 @if($shoot->reference_links)
                     <div class="space-y-1.5 pt-1.5">
                         <span class="font-bold text-slate-700 block">Audio &amp; Reel References:</span>
-                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 break-all space-y-1.5">
+                        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 break-all space-y-2">
                             @foreach(explode(',', $shoot->reference_links) as $link)
                                 @php $cleanLink = trim($link); @endphp
                                 @if(filter_var($cleanLink, FILTER_VALIDATE_URL))
                                     <div>
-                                        <a href="{{ $cleanLink }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1.5">
-                                            <i data-lucide="external-link" class="w-3 h-3"></i>
-                                            <span>{{ $cleanLink }}</span>
+                                        <a href="{{ $cleanLink }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs hover:border-indigo-300 transition">
+                                            <i data-lucide="external-link" class="w-3.5 h-3.5 shrink-0"></i>
+                                            <span class="truncate max-w-xs sm:max-w-md">{{ $cleanLink }}</span>
                                         </a>
                                     </div>
                                 @else
@@ -537,7 +632,7 @@
                 @endif
 
                 @if(!$shoot->concept_notes && !$shoot->reference_links)
-                    <p class="text-slate-400 text-center py-2 italic">No additional concept notes or audio references added.</p>
+                    <p class="text-slate-400 text-center py-3 italic">No additional concept notes or audio references added.</p>
                 @endif
             </div>
 
@@ -549,7 +644,7 @@
     <!-- MODAL: PHASE CAPABILITY EDITOR                                      -->
     <!-- =================================================================== -->
     <div x-show="showPhaseEditModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showPhaseEditModal = false" class="bg-white rounded-3xl max-w-2xl w-full p-4 sm:p-6 lg:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-4 sm:space-y-5">
+        <div @click.outside="showPhaseEditModal = false" class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-5">
             
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-3">
@@ -661,9 +756,9 @@
     <!-- =================================================================== -->
     <!-- MODAL: TL ASSIGN CREW                                               -->
     <!-- =================================================================== -->
-    @if(auth()->user()->isTL())
+    @if(auth()->user()->isTL() || auth()->user()->isCEO() || auth()->user()->isHR())
     <div x-show="showCrewAssignModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showCrewAssignModal = false" class="bg-white rounded-3xl max-w-xl w-full p-4 sm:p-6 lg:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-4 sm:space-y-5">
+        <div @click.outside="showCrewAssignModal = false" class="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-5">
             
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-3">
@@ -685,12 +780,12 @@
                 @method('PATCH')
 
                 <!-- 0. Managing Member (Lead & Status Controller) -->
-                <div class="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2">
+                <div class="p-4 rounded-2xl bg-indigo-950 text-white space-y-2 border border-indigo-900">
                     <label class="block text-xs font-black text-indigo-300 uppercase flex items-center gap-1.5">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400"></i>
                         <span>Managing Member (Shoot Lead / Status Updater)</span>
                     </label>
-                    <select name="managing_member_id" class="w-full px-3 py-2 rounded-xl border border-slate-700 text-xs bg-slate-800 text-white focus:ring-2 focus:ring-indigo-400 font-semibold">
+                    <select name="managing_member_id" class="w-full px-3.5 py-2.5 rounded-xl border border-indigo-800 text-xs bg-indigo-900 text-white focus:ring-2 focus:ring-indigo-400 font-semibold">
                         <option value="">-- No Member Assigned (Managed directly by TL) --</option>
                         @foreach($members as $m)
                             <option value="{{ $m->id }}" {{ $shoot->managing_member_id === $m->id ? 'selected' : '' }}>
@@ -698,18 +793,18 @@
                             </option>
                         @endforeach
                     </select>
-                    <p class="text-[10px] text-slate-400 leading-tight">
+                    <p class="text-[10px] text-indigo-300/80 leading-tight">
                         Assigned member can mark shooting completed and change status from their dashboard. If unassigned, the TL manages it directly.
                     </p>
                 </div>
 
                 <!-- 1. Camera / Videographer -->
                 <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-                    <label class="block text-xs font-bold text-indigo-700 uppercase flex items-center gap-1.5">
-                        <i data-lucide="video" class="w-3.5 h-3.5 text-indigo-600"></i>
+                    <label class="block text-xs font-bold text-sky-800 uppercase flex items-center gap-1.5">
+                        <i data-lucide="video" class="w-3.5 h-3.5 text-sky-600"></i>
                         <span>Camera / Videographer</span>
                     </label>
-                    <select name="camera_person_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:ring-2 focus:ring-indigo-500 font-medium">
+                    <select name="camera_person_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:ring-2 focus:ring-sky-500 font-medium">
                         <option value="">-- Select Team Member --</option>
                         @foreach($members as $m)
                             <option value="{{ $m->id }}" {{ $shoot->camera_person_id === $m->id ? 'selected' : '' }}>
@@ -756,7 +851,7 @@
 
                 <!-- 4. Other Crew Notes -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Additional Crew Notes / Assistant</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Additional Crew Notes / Support</label>
                     <input type="text" name="other_crew" value="{{ old('other_crew', $shoot->other_crew) }}" placeholder="e.g. Lighting Tech, Assistant Director" class="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white">
                 </div>
 
@@ -776,7 +871,7 @@
 
 </div>
 
-<!-- WhatsApp Share Script with Exact User Rules -->
+<!-- WhatsApp & Clipboard Helper Scripts -->
 <script>
     function generateShootSummary() {
         const title = @json($shoot->title);
@@ -798,7 +893,7 @@
         const location = @json($shoot->location ?: 'Main Studio Set');
         const status = @json(ucfirst($shoot->status));
 
-        // Managing Member & Crew: NAMES ONLY, NO mobile numbers in chat!
+        // Managing Member & Crew
         const manager = @json($shoot->managing_member_name);
         const camera = @json($shoot->camera_name);
         const model = @json($shoot->model_display_name);
@@ -830,7 +925,6 @@
             text += `📝 *SCRIPT SUMMARY:*\n${shortScript}\n\n`;
         }
 
-        // NO website link! Only share reference link if it exists!
         if (refLinks && refLinks.trim()) {
             text += `🔗 *Reference Links:*\n${refLinks.trim()}`;
         }
@@ -842,6 +936,42 @@
         const text = generateShootSummary();
         const url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
         window.open(url, '_blank');
+    }
+
+    function copyCallSheet() {
+        const text = generateShootSummary();
+        navigator.clipboard.writeText(text).then(() => {
+            const el = document.querySelector('[x-data]');
+            if (el && el._x_dataStack) {
+                el._x_dataStack[0].showNotification('WhatsApp call sheet copied!');
+            }
+        }).catch(() => {
+            alert('Call sheet copied to clipboard');
+        });
+    }
+
+    function copyHookText() {
+        const hook = @json($shoot->hook ?: '');
+        if (hook) {
+            navigator.clipboard.writeText(hook).then(() => {
+                const el = document.querySelector('[x-data]');
+                if (el && el._x_dataStack) {
+                    el._x_dataStack[0].showNotification('Opening hook copied!');
+                }
+            });
+        }
+    }
+
+    function copyScriptText() {
+        const script = @json($shoot->script ?: '');
+        if (script) {
+            navigator.clipboard.writeText(script).then(() => {
+                const el = document.querySelector('[x-data]');
+                if (el && el._x_dataStack) {
+                    el._x_dataStack[0].showNotification('Script copied to clipboard!');
+                }
+            });
+        }
     }
 </script>
 @endsection
