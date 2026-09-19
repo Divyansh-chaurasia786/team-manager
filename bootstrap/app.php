@@ -12,6 +12,22 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(function () {
+            $user = auth()->user();
+            if (!$user) {
+                return route('login');
+            }
+            if ($user->must_change_password) {
+                return route('password.force_change');
+            }
+            return match($user->role) {
+                'tl'    => route('tl.dashboard'),
+                'hr'    => route('hr.dashboard'),
+                'ceo'   => route('ceo.dashboard'),
+                default => route('member.dashboard'),
+            };
+        });
         $middleware->alias([
             'role'                 => \App\Http\Middleware\RoleMiddleware::class,
             'force_password_change' => \App\Http\Middleware\ForcePasswordChange::class,

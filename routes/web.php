@@ -15,8 +15,27 @@ use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\PersonalTaskController;
 use Illuminate\Support\Facades\Route;
 
-// Redirect root to login
-Route::get('/', fn() => redirect()->route('login'));
+// Root route: Redirect authenticated users to their role-specific dashboard, and guests to login
+Route::get('/', function () {
+    if (auth()->check()) {
+        $user = auth()->user();
+        if ($user->must_change_password) {
+            return redirect()->route('password.force_change');
+        }
+        return match($user->role) {
+            'tl'    => redirect()->route('tl.dashboard'),
+            'hr'    => redirect()->route('hr.dashboard'),
+            'ceo'   => redirect()->route('ceo.dashboard'),
+            default => redirect()->route('member.dashboard'),
+        };
+    }
+    return redirect()->route('login');
+})->name('home');
+
+// Dashboard fallback alias
+Route::get('/dashboard', function () {
+    return redirect()->route('home');
+})->name('dashboard')->middleware('auth');
 
 // Database Connection & Health Verification Diagnostic Endpoint
 Route::get('/db-health', function () {
