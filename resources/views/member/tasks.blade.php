@@ -721,14 +721,157 @@ function updateAllTaskTimers() {
 
 // Tick every second for live update
 setInterval(updateAllTaskTimers, 1000);
+
+// ⚡ Real-Time Task Live Sync (Zero Page Reload - Instant Backend Polling)
+let lastMemberTaskState = {};
+let isFirstMemberSync = true;
+
+async function liveSyncMemberTasks() {
+    try {
+        const response = await fetch('/tasks/sync', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data.success || !Array.isArray(data.tasks)) return;
+
+        let stateChanged = false;
+
+        // 1. Update Segmented Control Tab Counts
+        if (data.counts) {
+            const allBadge = document.querySelector('#deliverableTabs [data-filter="all"] span:last-child');
+            if (allBadge && allBadge.textContent != data.counts.total) allBadge.textContent = data.counts.total;
+
+            const actionBadge = document.querySelector('#deliverableTabs [data-filter="active"] span:last-child');
+            if (actionBadge && actionBadge.textContent != data.counts.pending) actionBadge.textContent = data.counts.pending;
+
+            const reviewBadge = document.querySelector('#deliverableTabs [data-filter="submitted"] span:last-child');
+            if (reviewBadge && reviewBadge.textContent != data.counts.submitted) reviewBadge.textContent = data.counts.submitted;
+
+            const doneBadge = document.querySelector('#deliverableTabs [data-filter="completed"] span:last-child');
+            if (doneBadge && doneBadge.textContent != data.counts.completed) doneBadge.textContent = data.counts.completed;
+        }
+
+        // 2. Iterate each task from backend
+        data.tasks.forEach(task => {
+            const card = document.getElementById(`task-card-${task.id}`);
+            if (!card) {
+                // If this is not the initial load and a brand new task was delegated to member
+                if (!isFirstMemberSync) {
+                    showInstantToast(`📋 New task assigned by TL: "${task.title}"! Refreshing...`);
+                    setTimeout(() => window.location.reload(), 1200);
+                }
+                return;
+            }
+
+            const currentStatus = card.getAttribute('data-status');
+            const prevRecorded = lastMemberTaskState[task.id];
+
+            // If task status changed
+            if (currentStatus && currentStatus !== task.status) {
+                stateChanged = true;
+                card.setAttribute('data-status', task.status);
+
+                const newCat = (task.status === 'pending' || task.status === 'in-progress') ? 'active' : (task.status === 'submitted' ? 'submitted' : 'completed');
+                card.setAttribute('data-category', newCat);
+
+                const badgeCol = card.querySelector(`.task-status-badge-${task.id}`);
+                const actionContainer = card.querySelector(`.task-action-container-${task.id}`);
+
+                if (task.status === 'completed') {
+                    // 🎉 APPROVED BY TL!
+                    if (badgeCol) {
+                        badgeCol.innerHTML = `
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1 animate-in zoom-in-90 duration-200">
+                                <i data-lucide="check-circle" class="w-3 h-3 text-emerald-600"></i> Done
+                            </span>
+                        `;
+                    }
+
+                    if (actionContainer) {
+                        actionContainer.innerHTML = `
+                            <span class="inline-flex items-center text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 gap-1 animate-in fade-in duration-200">
+                                <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-600"></i>
+                                <span>Approved</span>
+                            </span>
+                        `;
+                    }
+
+                    // Remove revision / in-review styling, add completed emerald glow
+                    card.classList.remove('border-amber-200', 'bg-amber-50/15', 'border-purple-200');
+                    card.classList.add('border-emerald-200', 'bg-emerald-50/5');
+
+                    // Celebratory Notification
+                    showInstantToast(`🎉 Great job! Team Lead approved "${task.title}"!`, 'success');
+                } else if (task.status === 'in-progress' && task.is_reassigned) {
+                    // ⚠️ REASSIGNED / REVISION REQUESTED
+                    if (badgeCol) {
+                        badgeCol.innerHTML = `
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> In Progress
+                            </span>
+                        `;
+                    }
+
+                    if (actionContainer) {
+                        const safeTitle = (task.title || '').replace(/'/g, "\\'");
+                        actionContainer.innerHTML = `
+                            <button type="button" onclick="openSubmissionModal(${task.id}, '${safeTitle}')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs transition shadow-2xs flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+                                <span>Submit Work</span>
+                            </button>
+                        `;
+                    }
+
+                    card.classList.remove('border-slate-200/90', 'border-emerald-200');
+                    card.classList.add('border-amber-200', 'bg-amber-50/15');
+
+                    showInstantToast(`⚠️ Team Lead requested revisions on "${task.title}": ${task.revision_notes || 'Please review directives.'}`, 'warning');
+                } else if (task.status === 'submitted') {
+                    if (badgeCol) {
+                        badgeCol.innerHTML = `
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span> In Review
+                            </span>
+                        `;
+                    }
+                }
+            }
+
+            // Record state
+            lastMemberTaskState[task.id] = {
+                status: task.status,
+                updates_count: task.updates_count
+            };
+        });
+
+        isFirstMemberSync = false;
+
+        if (stateChanged) {
+            filterDeliverablesCards();
+            if (window.lucide) lucide.createIcons();
+        }
+    } catch (e) {
+        // Silently catch network interruption
+    }
+}
+
+// Live polling every 3.5 seconds
+setInterval(liveSyncMemberTasks, 3500);
+
 document.addEventListener('DOMContentLoaded', () => {
     updateAllTaskTimers();
+    liveSyncMemberTasks();
     if (window.lucide) {
         lucide.createIcons();
     }
 });
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     updateAllTaskTimers();
+    liveSyncMemberTasks();
 }
 </script>
 @endpush

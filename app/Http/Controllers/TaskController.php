@@ -523,4 +523,70 @@ class TaskController extends Controller
 
         return back()->with('error', 'Failed to dispatch email reminder. Please check email configuration.');
     }
+
+    /**
+     * Live synchronization endpoint for real-time task status updates (zero refresh).
+     */
+    public function sync(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        if ($user->isOperationsLead()) {
+            $tasksQuery = Task::with(['assignedTo', 'assignedBy', 'updates']);
+            if ($user->isTL()) {
+                $memberIds = User::where('created_by', $user->id)->pluck('id');
+                $tasksQuery->where(function ($q) use ($user, $memberIds) {
+                    $q->where('assigned_by', $user->id)
+                      ->orWhereIn('assigned_to', $memberIds);
+                });
+            }
+            $tasks = $tasksQuery->latest()->get();
+        } else {
+            $tasks = Task::with(['assignedBy', 'updates'])->where('assigned_to', $user->id)->latest()->get();
+        }
+
+        $tasksData = $tasks->map(function ($t) {
+            return [
+                'id'                     => $t->id,
+                'title'                  => $t->title,
+                'description'            => $t->description,
+                'status'                 => $t->status,
+                'is_overdue'             => $t->isOverdue(),
+                'is_reassigned'          => $t->isReassigned(),
+                'reassignment_count'     => $t->reassignment_count ?? 0,
+                'revision_notes'         => $t->revision_notes,
+                'deadline_iso'           => $t->deadline ? $t->deadline->toISOString() : null,
+                'deadline_formatted'     => $t->deadline ? $t->deadline->format('d M, h:i A') : 'None',
+                'submitted_at_iso'       => $t->submitted_at ? $t->submitted_at->toISOString() : null,
+                'submitted_at_formatted' => $t->submitted_at ? $t->submitted_at->format('d M, h:i A') : null,
+                'reviewed_at_iso'        => $t->reviewed_at ? $t->reviewed_at->toISOString() : null,
+                'reviewed_at_formatted'  => $t->reviewed_at ? $t->reviewed_at->format('d M, h:i A') : null,
+                'review_duration'        => $t->review_duration,
+                'due_label'              => $t->due_label,
+                'updates_count'          => $t->updates->count(),
+                'assignee_name'          => $t->assignedTo->name ?? '',
+                'assigner_name'          => $t->assignedBy->name ?? 'Team Lead',
+                'updated_at_timestamp'   => $t->updated_at?->timestamp,
+            ];
+        });
+
+        $counts = [
+            'total'       => $tasks->count(),
+            'pending'     => $tasks->whereIn('status', ['pending', 'in-progress'])->count(),
+            'submitted'   => $tasks->where('status', 'submitted')->count(),
+            'completed'   => $tasks->where('status', 'completed')->count(),
+            'overdue'     => $tasks->filter(fn($t) => $t->isOverdue())->count(),
+        ];
+
+        return response()->json([
+            'success'   => true,
+            'role'      => $user->role,
+            'counts'    => $counts,
+            'tasks'     => $tasksData,
+            'timestamp' => now()->timestamp,
+        ]);
+    }
 }

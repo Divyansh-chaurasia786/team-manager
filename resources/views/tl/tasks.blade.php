@@ -1323,9 +1323,92 @@ function updateAllTaskTimers() {
 
 // Tick every second for live real-time updates
 setInterval(updateAllTaskTimers, 1000);
-document.addEventListener('DOMContentLoaded', updateAllTaskTimers);
+
+// ⚡ Live Sync Polling for TL Task Stream (Detect Member Submissions in Real-Time)
+let lastTLTasksSyncState = {};
+async function liveSyncTLTasks() {
+    try {
+        const res = await fetch('/tasks/sync', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.tasks)) return;
+
+        let needsIconRefresh = false;
+
+        data.tasks.forEach(t => {
+            const row = document.getElementById(`task-row-${t.id}`);
+            if (!row) return;
+
+            const prev = lastTLTasksSyncState[t.id];
+            if (prev && prev.status !== t.status) {
+                // Status changed!
+                if (t.status === 'submitted') {
+                    showInstantToast(`📥 Member submitted deliverable for "${t.title}"! Ready for review.`);
+                    // Update actions container to include approve button if missing
+                    const actionsRow = row.querySelector(`.task-actions-row-${t.id}`);
+                    if (actionsRow && !actionsRow.querySelector(`#approve-btn-${t.id}`)) {
+                        const approveForm = document.createElement('form');
+                        approveForm.method = 'POST';
+                        approveForm.action = `/tasks/${t.id}/complete`;
+                        approveForm.className = 'm-0';
+                        approveForm.onsubmit = function(ev) { approveTaskAjax(ev, t.id); };
+                        approveForm.innerHTML = `
+                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="_method" value="PUT">
+                            <button type="submit" id="approve-btn-${t.id}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                <span>Approve</span>
+                            </button>
+                        `;
+                        actionsRow.appendChild(approveForm);
+                    }
+
+                    // Update status badge
+                    const statusContainer = row.querySelector(`.task-status-container-${t.id}`);
+                    if (statusContainer) {
+                        const titleH3 = statusContainer.querySelector('h3');
+                        const titleText = titleH3 ? titleH3.innerText : t.title;
+                        statusContainer.innerHTML = `
+                            <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">${titleText}</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center gap-1">
+                                <i data-lucide="clock" class="w-3 h-3"></i>
+                                <span>Submitted • In Review</span>
+                            </span>
+                        `;
+                    }
+                    needsIconRefresh = true;
+                }
+            }
+
+            lastTLTasksSyncState[t.id] = {
+                status: t.status,
+                is_overdue: t.is_overdue
+            };
+        });
+
+        if (needsIconRefresh && window.lucide) {
+            lucide.createIcons();
+        }
+    } catch (e) {
+        // Silently handle transient errors
+    }
+}
+
+// Poll every 3.5 seconds
+setInterval(liveSyncTLTasks, 3500);
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateAllTaskTimers();
+    liveSyncTLTasks();
+});
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     updateAllTaskTimers();
+    liveSyncTLTasks();
 }
 </script>
 

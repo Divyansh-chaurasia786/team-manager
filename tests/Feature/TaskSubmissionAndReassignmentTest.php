@@ -295,5 +295,52 @@ class TaskSubmissionAndReassignmentTest extends TestCase
         $response->assertStatus(403);
         $this->assertDatabaseHas('tasks', ['id' => $this->task->id]);
     }
+
+    public function test_tasks_sync_endpoint_returns_live_state_and_counts_for_member(): void
+    {
+        $response = $this->actingAs($this->member)
+            ->get(route('tasks.sync'));
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'success',
+            'role',
+            'counts' => ['total', 'pending', 'submitted', 'completed', 'overdue'],
+            'tasks' => [
+                '*' => ['id', 'title', 'status', 'is_overdue', 'assignee_name']
+            ]
+        ]);
+        $response->assertJson([
+            'success' => true,
+            'counts' => [
+                'total' => 1,
+                'pending' => 1,
+                'submitted' => 0,
+                'completed' => 0,
+                'overdue' => 0,
+            ]
+        ]);
+    }
+
+    public function test_tl_dashboard_displays_overdue_tasks_section_and_counter(): void
+    {
+        // Create an overdue task
+        Task::create([
+            'title' => 'Critical Overdue Deliverable',
+            'description' => 'Should have been submitted yesterday',
+            'assigned_to' => $this->member->id,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->subDay(),
+            'status' => 'in-progress',
+        ]);
+
+        $response = $this->actingAs($this->tl)
+            ->get(route('tl.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Overdue Deliverables');
+        $response->assertSee('Critical Overdue Deliverable');
+        $response->assertSee('Overdue Tasks');
+    }
 }
 

@@ -123,6 +123,7 @@ Route::middleware(['auth', 'role:hr'])->prefix('hr')->name('hr.')->group(functio
 // Shared auth routes (TL, HR, CEO, and members)
 Route::middleware('auth')->group(function () {
     // Tasks
+    Route::get('/tasks/sync', [TaskController::class, 'sync'])->name('tasks.sync');
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::put('/tasks/{task}/update', [TaskController::class, 'addUpdate'])->name('tasks.update.add');

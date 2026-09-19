@@ -15,11 +15,26 @@ class TLDashboardController extends Controller
     {
         $tl = Auth::user();
         $members = User::where('created_by', $tl->id)->get();
-        $tasks = Task::with(['assignedTo', 'updates'])->where('assigned_by', $tl->id)->latest()->get();
+        $memberIds = $members->pluck('id');
+
+        $tasks = Task::with(['assignedTo', 'updates'])
+            ->where(function ($q) use ($tl, $memberIds) {
+                $q->where('assigned_by', $tl->id)
+                  ->orWhereIn('assigned_to', $memberIds);
+            })
+            ->latest()
+            ->get();
+
+        // Overdue tasks calculation
+        $overdueTasks = $tasks->filter(fn($t) => $t->isOverdue())->values();
+        $overdueCount = $overdueTasks->count();
 
         // ⏰ 2-Day Scheduled Task Reminders (Tasks due within 2 days or overdue, actionable only)
         $upcomingTaskReminders = Task::with(['assignedTo'])
-            ->where('assigned_by', $tl->id)
+            ->where(function ($q) use ($tl, $memberIds) {
+                $q->where('assigned_by', $tl->id)
+                  ->orWhereIn('assigned_to', $memberIds);
+            })
             ->whereNotIn('status', ['completed', 'submitted'])
             ->where('deadline', '<=', now()->addDays(2))
             ->orderBy('deadline', 'asc')
@@ -49,6 +64,7 @@ class TLDashboardController extends Controller
             'in-progress' => $tasks->where('status', 'in-progress')->count(),
             'submitted'   => $tasks->where('status', 'submitted')->count(),
             'completed'   => $tasks->where('status', 'completed')->count(),
+            'overdue'     => $overdueCount,
         ];
 
         // Tasks per member
@@ -90,7 +106,8 @@ class TLDashboardController extends Controller
         return view('tl.dashboard', compact(
             'members', 'tasks', 'statusCounts', 'taskPerMember',
             'completionTrend', 'driveStats', 'driveFiles', 'recentActivities',
-            'upcomingTaskReminders', 'upcomingShootReminders'
+            'upcomingTaskReminders', 'upcomingShootReminders',
+            'overdueTasks', 'overdueCount'
         ));
     }
 }

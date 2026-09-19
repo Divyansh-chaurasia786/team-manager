@@ -229,8 +229,79 @@
         </div>
     @endif
 
+    <!-- 🚨 OVERDUE DELIVERABLES REQUIRING IMMEDIATE ATTENTION -->
+    @if(isset($overdueCount) && $overdueCount > 0)
+        <div class="bg-gradient-to-r from-rose-500/15 via-red-500/10 to-rose-500/5 rounded-3xl p-5 sm:p-6 border-2 border-rose-300 shadow-sm space-y-3.5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-600/30 shrink-0">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm sm:text-base font-black text-rose-950">🚨 Overdue Deliverables (Immediate Attention Required)</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+                                {{ $overdueCount }} Overdue Task(s)
+                            </span>
+                        </div>
+                        <p class="text-xs text-rose-700 mt-0.5">
+                            These deliverables have exceeded their deadline without being completed. Please review, follow up, or extend deadlines.
+                        </p>
+                    </div>
+                </div>
+
+                <a href="{{ route('tasks.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 text-white hover:bg-rose-700 rounded-xl text-xs font-bold transition shadow-xs">
+                    <span>Manage in Tasks</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+
+            <!-- Overdue Task Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                @foreach($overdueTasks->take(6) as $otask)
+                    <div class="bg-white rounded-2xl p-4 border border-rose-200 shadow-2xs hover:border-rose-400 hover:shadow-sm transition flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between gap-1.5 mb-2">
+                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                                    <i data-lucide="clock" class="w-3 h-3 text-rose-600"></i>
+                                    <span>{{ $otask->due_label }}</span>
+                                </span>
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-slate-100 text-slate-600">
+                                    {{ ucfirst($otask->status) }}
+                                </span>
+                            </div>
+
+                            <h3 class="font-bold text-slate-900 text-sm leading-snug line-clamp-2">
+                                {{ $otask->title }}
+                            </h3>
+
+                            <div class="mt-2.5 space-y-1 text-xs text-slate-500">
+                                <div class="flex items-center gap-1.5">
+                                    <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                                    <span>Assigned to: <strong class="text-slate-800">{{ $otask->assignedTo->name ?? 'Member' }}</strong></span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
+                                    <i data-lucide="calendar-x" class="w-3.5 h-3.5 text-rose-500"></i>
+                                    <span>Deadline: <strong>{{ $otask->deadline ? $otask->deadline->format('d M, h:i A') : 'None' }}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-[10px] text-slate-400 font-medium">Overdue task</span>
+                            <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-rose-600 hover:text-rose-800 inline-flex items-center gap-1">
+                                <span>Review Task</span>
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <!-- 📊 TEAM VITALS & WORKFORCE METRICS (Authentic HRMS Cards) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         <a href="{{ route('tl.members') }}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-indigo-300 hover:-translate-y-0.5 transition-all group">
             <div class="flex items-center justify-between">
                 <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
@@ -244,6 +315,24 @@
             </div>
         </a>
 
+        <!-- Overdue Tasks Card -->
+        <a href="{{ route('tasks.index') }}" class="bg-white p-4 sm:p-5 rounded-2xl border {{ ($overdueCount ?? 0) > 0 ? 'border-rose-300 bg-rose-50/10' : 'border-slate-200' }} shadow-xs hover:shadow-md hover:border-rose-400 hover:-translate-y-0.5 transition-all group">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-xl {{ ($overdueCount ?? 0) > 0 ? 'bg-rose-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white' : 'bg-slate-100 text-slate-600' }} flex items-center justify-center transition-colors shadow-xs">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ ($overdueCount ?? 0) > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600' }}">
+                    {{ ($overdueCount ?? 0) > 0 ? 'Urgent' : 'Clear' }}
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-xs font-semibold {{ ($overdueCount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-500' }} uppercase tracking-wider">Overdue Tasks</div>
+                <div class="text-2xl font-black {{ ($overdueCount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-900' }} mt-0.5" id="tlMetricOverdue">
+                    {{ $overdueCount ?? 0 }} <span class="text-xs font-medium text-slate-400">tasks</span>
+                </div>
+            </div>
+        </a>
+
         <a href="{{ route('tasks.index') }}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-emerald-300 hover:-translate-y-0.5 transition-all group">
             <div class="flex items-center justify-between">
                 <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
@@ -253,7 +342,7 @@
             </div>
             <div class="mt-3">
                 <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tasks Done</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['completed'] }} <span class="text-xs font-medium text-slate-400">/ {{ $tasks->count() }}</span></div>
+                <div class="text-2xl font-black text-slate-900 mt-0.5" id="tlMetricCompleted">{{ $statusCounts['completed'] }} <span class="text-xs font-medium text-slate-400">/ {{ $tasks->count() }}</span></div>
             </div>
         </a>
 
@@ -266,11 +355,11 @@
             </div>
             <div class="mt-3">
                 <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Progress</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['in-progress'] }} <span class="text-xs font-medium text-slate-400">active</span></div>
+                <div class="text-2xl font-black text-slate-900 mt-0.5" id="tlMetricInProgress">{{ $statusCounts['in-progress'] }} <span class="text-xs font-medium text-slate-400">active</span></div>
             </div>
         </a>
 
-        <a href="{{ route('tasks.index') }}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-purple-300 hover:-translate-y-0.5 transition-all group">
+        <a href="{{ route('tasks.index') }}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-purple-300 hover:-translate-y-0.5 transition-all group col-span-2 sm:col-span-1">
             <div class="flex items-center justify-between">
                 <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
                     <i data-lucide="inbox" class="w-5 h-5"></i>
@@ -279,7 +368,7 @@
             </div>
             <div class="mt-3">
                 <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted Work</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['submitted'] }} <span class="text-xs font-medium text-slate-400">items</span></div>
+                <div class="text-2xl font-black text-slate-900 mt-0.5" id="tlMetricSubmitted">{{ $statusCounts['submitted'] }} <span class="text-xs font-medium text-slate-400">items</span></div>
             </div>
         </a>
     </div>
@@ -313,11 +402,12 @@
                         <canvas id="statusDonut"></canvas>
                     </div>
                 @endif
-                <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-medium text-slate-600 w-full">
-                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Pending: <strong>{{ $statusCounts['pending'] }}</strong></div>
-                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> In Progress: <strong>{{ $statusCounts['in-progress'] }}</strong></div>
-                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> Submitted: <strong>{{ $statusCounts['submitted'] }}</strong></div>
-                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Completed: <strong>{{ $statusCounts['completed'] }}</strong></div>
+                <div class="grid grid-cols-2 gap-2 mt-4 text-xs font-medium text-slate-600 w-full">
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Pending: <strong>{{ $statusCounts['pending'] }}</strong></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> In Progress: <strong>{{ $statusCounts['in-progress'] }}</strong></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> Submitted: <strong>{{ $statusCounts['submitted'] }}</strong></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Completed: <strong>{{ $statusCounts['completed'] }}</strong></div>
+                    <div class="flex items-center gap-1.5 col-span-2 text-rose-600 font-bold"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Overdue Deliverables: <strong>{{ $overdueCount ?? 0 }}</strong></div>
                 </div>
             </div>
         </div>
@@ -371,21 +461,30 @@
                             <th class="py-2.5 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($tasks->take(5) as $task)
-                            <tr class="hover:bg-slate-50/80 transition">
+                    <tbody class="divide-y divide-slate-100" id="tlRecentTasksTbody">
+                        @forelse($tasks->take(6) as $task)
+                            <tr class="hover:bg-slate-50/80 transition" id="tl-task-row-{{ $task->id }}">
                                 <td class="py-3">
                                     <div class="font-bold text-slate-900">{{ $task->title }}</div>
                                     <div class="text-[11px] text-slate-400 truncate max-w-xs">{{ $task->description }}</div>
                                 </td>
                                 <td class="py-3">
-                                    <span class="font-semibold text-slate-700">{{ $task->assignedTo->name }}</span>
+                                    <span class="font-semibold text-slate-700">{{ $task->assignedTo->name ?? 'Member' }}</span>
                                 </td>
-                                <td class="py-3 font-medium text-slate-500">
-                                    {{ $task->deadline->format('d M, h:i A') }}
+                                <td class="py-3 font-medium {{ $task->isOverdue() ? 'text-rose-600 font-bold' : 'text-slate-500' }}">
+                                    <div class="flex items-center gap-1">
+                                        @if($task->isOverdue())
+                                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
+                                        @endif
+                                        <span>{{ $task->deadline->format('d M, h:i A') }}</span>
+                                    </div>
                                 </td>
                                 <td class="py-3">
-                                    @if($task->status === 'completed')
+                                    @if($task->isOverdue())
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1 animate-pulse">
+                                            <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-600"></i> Overdue
+                                        </span>
+                                    @elseif($task->status === 'completed')
                                         <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Done</span>
                                     @elseif($task->status === 'submitted')
                                         <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">Review</span>
@@ -529,14 +628,15 @@
 document.addEventListener("DOMContentLoaded", function () {
     // 1. Status Donut Chart
     const statusEl = document.getElementById('statusDonut');
+    let statusChartInstance = null;
     if (statusEl && typeof Chart !== 'undefined') {
-        new Chart(statusEl, {
+        statusChartInstance = new Chart(statusEl, {
             type: 'doughnut',
             data: {
-                labels: ['Pending', 'In Progress', 'Submitted', 'Completed'],
+                labels: ['Pending', 'In Progress', 'Submitted', 'Completed', 'Overdue'],
                 datasets: [{
-                    data: [{{ $statusCounts['pending'] }}, {{ $statusCounts['in-progress'] }}, {{ $statusCounts['submitted'] }}, {{ $statusCounts['completed'] }}],
-                    backgroundColor: ['#94A3B8', '#F59E0B', '#4F46E5', '#10B981'],
+                    data: [{{ $statusCounts['pending'] }}, {{ $statusCounts['in-progress'] }}, {{ $statusCounts['submitted'] }}, {{ $statusCounts['completed'] }}, {{ $overdueCount ?? 0 }}],
+                    backgroundColor: ['#94A3B8', '#F59E0B', '#4F46E5', '#10B981', '#F43F5E'],
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -612,6 +712,59 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
+    // ⚡ 3. Live Sync Polling for TL Dashboard (Zero Page Reload)
+    let lastTlTaskHash = '';
+    async function syncTLDashboardLive() {
+        try {
+            const res = await fetch('/tasks/sync', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success) return;
+
+            // Check if anything changed
+            const taskHash = JSON.stringify(data.counts) + '_' + (data.tasks ? data.tasks.map(t => `${t.id}:${t.status}:${t.is_overdue}`).join('|') : '');
+            if (lastTlTaskHash && lastTlTaskHash !== taskHash) {
+                // Update Metric Counters
+                const overdueEl = document.getElementById('tlMetricOverdue');
+                if (overdueEl) overdueEl.innerHTML = `${data.counts.overdue} <span class="text-xs font-medium text-slate-400">tasks</span>`;
+
+                const completedEl = document.getElementById('tlMetricCompleted');
+                if (completedEl) completedEl.innerHTML = `${data.counts.completed} <span class="text-xs font-medium text-slate-400">/ ${data.counts.total}</span>`;
+
+                const progressEl = document.getElementById('tlMetricInProgress');
+                if (progressEl) progressEl.innerHTML = `${data.counts.pending} <span class="text-xs font-medium text-slate-400">active</span>`;
+
+                const submittedEl = document.getElementById('tlMetricSubmitted');
+                if (submittedEl) submittedEl.innerHTML = `${data.counts.submitted} <span class="text-xs font-medium text-slate-400">items</span>`;
+
+                // Update Donut Chart if available
+                if (statusChartInstance) {
+                    statusChartInstance.data.datasets[0].data = [
+                        data.counts.pending,
+                        data.counts.pending,
+                        data.counts.submitted,
+                        data.counts.completed,
+                        data.counts.overdue
+                    ];
+                    statusChartInstance.update();
+                }
+
+                if (window.lucide) lucide.createIcons();
+            }
+            lastTlTaskHash = taskHash;
+        } catch (e) {
+            // Silently handle transient network hiccup
+        }
+    }
+
+    // Poll every 4 seconds
+    setInterval(syncTLDashboardLive, 4000);
 });
 </script>
 @endpush
