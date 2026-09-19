@@ -64,10 +64,10 @@
     </style>
     @stack('styles')
 </head>
-<body class="min-h-screen bg-slate-50 antialiased text-slate-800 flex flex-col pb-16 lg:pb-0" x-data="{ mobileMenuOpen: false }">
+<body class="min-h-screen bg-slate-50 antialiased text-slate-800 flex flex-col {{ request()->routeIs('thoughts.*') ? 'p-0 overflow-hidden' : 'pb-16 lg:pb-0' }}" x-data="{ mobileMenuOpen: false }">
 
     <!-- TOP HEADER NAVBAR (EcoFone HRMS Portal Theme) -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs {{ request()->routeIs('thoughts.*') ? 'hidden md:block' : '' }}">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 gap-2">
 
@@ -612,35 +612,38 @@
     </header>
 
     <!-- MAIN PAGE CONTAINER -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col">
-        <!-- Toast Alerts -->
-        @if(session('success'))
-            <div class="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-xs">
-                <div class="flex items-center gap-2 min-w-0">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
-                    <span class="truncate">{{ session('success') }}</span>
+    <main class="flex-grow w-full mx-auto {{ request()->routeIs('thoughts.*') ? 'p-0 max-w-none h-[100dvh] md:h-auto md:max-w-7xl md:px-6 lg:px-8 md:py-6' : 'max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6' }} flex flex-col">
+        @unless(request()->routeIs('thoughts.*'))
+            <!-- Toast Alerts -->
+            @if(session('success'))
+                <div class="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-xs">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                        <span class="truncate">{{ session('success') }}</span>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800 p-1 shrink-0">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
                 </div>
-                <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800 p-1 shrink-0">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-        @endif
+            @endif
 
-        @if(session('error'))
-            <div class="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-800 text-xs font-bold flex items-center justify-between shadow-xs">
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
-                    <span class="break-words leading-relaxed">{{ session('error') }}</span>
+            @if(session('error'))
+                <div class="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-800 text-xs font-bold flex items-center justify-between shadow-xs">
+                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
+                        <span class="break-words leading-relaxed">{{ session('error') }}</span>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-800 p-1 shrink-0">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
                 </div>
-                <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-800 p-1 shrink-0">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-        @endif
+            @endif
+        @endunless
 
         @yield('content')
     </main>
 
+    @unless(request()->routeIs('thoughts.*'))
     <!-- MOBILE BOTTOM QUICK-BAR (Fixed, thumb-friendly on all mobile phones) -->
     <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-1 px-2 shadow-lg flex items-center justify-around">
         @if(auth()->user()->role === 'ceo')
@@ -723,6 +726,7 @@
             <span class="text-[10px] leading-none font-semibold">More</span>
         </button>
     </nav>
+    @endunless
 
     <!-- FLOATING CHAT & THOUGHTS HUB BUTTON (Adjusted for mobile bottom bar) -->
     @auth

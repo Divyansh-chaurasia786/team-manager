@@ -8,10 +8,10 @@
     $isManagement = in_array(auth()->user()->role, ['hr', 'ceo']);
 @endphp
 
-<div class="space-y-4">
+<div class="h-full flex flex-col flex-1 min-h-0">
 
-    <!-- Top Page Header Bar (Cohesive with EcoFone Portal) -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <!-- Desktop Top Breadcrumb Header Bar (Hidden on Mobile for Native WhatsApp Feel) -->
+    <div class="hidden md:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-1">
                 <a href="{{ auth()->user()->isTL() ? route('tl.dashboard') : (auth()->user()->role === 'ceo' ? route('ceo.dashboard') : (auth()->user()->role === 'hr' ? route('hr.dashboard') : route('member.dashboard'))) }}" class="hover:text-indigo-600 transition">Dashboard</a>
@@ -22,7 +22,7 @@
                 <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Team Collaboration & Chat Hub</h1>
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 {{ $groupType === 'team' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-indigo-50 border border-indigo-200 text-indigo-700' }}">
                     <i data-lucide="{{ $groupType === 'team' ? 'lock' : 'building-2' }}" class="w-3.5 h-3.5"></i>
-                    <span>{{ $groupType === 'team' ? 'Private' : 'Company Hub' }}</span>
+                    <span>{{ $groupType === 'team' ? 'Private Team' : 'Company Hub' }}</span>
                 </span>
             </div>
             <p class="text-xs text-slate-500 mt-0.5">Real-time team messaging, project announcements, and media coordination</p>
@@ -36,65 +36,65 @@
         </div>
     </div>
 
-    <!-- Main Integrated Chat Workspace Card -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden h-[calc(100vh-14.5rem)] min-h-[580px] flex flex-col md:flex-row relative">
+    <!-- Main Integrated Chat Workspace (Full Height on Mobile, Rounded Card on Desktop) -->
+    <div class="flex-1 flex flex-col md:flex-row bg-white md:rounded-3xl md:border md:border-slate-200/90 shadow-sm overflow-hidden h-[100dvh] md:h-[calc(100vh-13.5rem)] md:min-h-[580px] relative">
 
-        <!-- 🟢 LEFT SIDEBAR: Channels & Team Members -->
-        <div id="chatSidebar" class="hidden md:flex w-full md:w-80 lg:w-88 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative inset-0 z-30 md:z-auto">
+        <!-- 🟢 LEFT SIDEBAR (Desktop Channels & Team Roster / Mobile Slide-Over Group Info Sheet) -->
+        <div id="chatSidebar" class="hidden md:flex w-full md:w-80 lg:w-88 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative inset-0 z-40 md:z-auto transition-transform duration-200">
             
-            <!-- Sidebar Top: User Info & Close (Mobile) -->
-            <div class="h-16 px-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between shrink-0">
+            <!-- WhatsApp Mobile Group Info Header (Green Theme on Mobile) -->
+            <div class="h-14 sm:h-16 px-4 bg-[#008069] md:bg-slate-50/90 text-white md:text-slate-900 border-b border-slate-200/80 flex items-center justify-between shrink-0 select-none">
                 <div class="flex items-center gap-2.5 min-w-0">
-                    <button type="button" onclick="toggleMobileSidebar(false)" class="md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition" title="Back to Chat">
-                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <button type="button" onclick="toggleMobileSidebar(false)" class="md:hidden p-1.5 -ml-1 text-white hover:bg-black/10 rounded-full transition cursor-pointer" title="Back to Chat">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
                     </button>
                     <div class="relative shrink-0">
                         @if(auth()->user()->avatar_url)
-                            <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/20">
+                            <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-full object-cover ring-2 ring-white/30 md:ring-indigo-500/20">
                         @else
-                            <div class="w-9 h-9 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center ring-2 ring-indigo-400/20">
+                            <div class="w-9 h-9 rounded-full bg-[#128c7e] md:bg-indigo-600 text-white font-black text-xs flex items-center justify-center ring-2 ring-white/30 md:ring-indigo-400/20">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
                             </div>
                         @endif
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 md:bg-emerald-500 rounded-full ring-2 ring-white"></span>
                     </div>
                     <div class="min-w-0">
-                        <h3 class="text-xs font-bold text-slate-900 truncate leading-tight">{{ auth()->user()->name }}</h3>
-                        <span class="text-[10px] text-indigo-600 font-semibold">{{ auth()->user()->isTL() ? 'Team Lead' : (auth()->user()->isAdmin() ? strtoupper(auth()->user()->role) : 'Staff') }}</span>
+                        <h3 class="text-xs sm:text-sm font-bold truncate leading-tight">{{ auth()->user()->name }}</h3>
+                        <span class="text-[10px] text-emerald-100 md:text-indigo-600 font-semibold">{{ auth()->user()->isTL() ? 'Team Lead' : (auth()->user()->isAdmin() ? strtoupper(auth()->user()->role) : 'Staff Member') }}</span>
                     </div>
                 </div>
 
                 @if(auth()->user()->isTL() && $groupType === 'team')
-                    <button type="button" onclick="openManageMembersModal()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer" title="Manage Members">
+                    <button type="button" onclick="openManageMembersModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 md:bg-indigo-50 md:hover:bg-indigo-100 text-white md:text-indigo-700 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer" title="Manage Members">
                         <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
                         <span>Admin</span>
                     </button>
                 @endif
             </div>
 
-            <!-- Group Switcher Tabs -->
-            <div class="p-2.5 bg-slate-50/50 border-b border-slate-100 grid grid-cols-2 gap-1.5">
+            <!-- Group Switcher Tabs (WhatsApp / Portal Channels) -->
+            <div class="p-2.5 bg-slate-50/70 border-b border-slate-100 grid grid-cols-2 gap-1.5 select-none">
                 @if(!$isManagement)
                     <a href="{{ route('thoughts.index', ['group' => 'team']) }}" 
-                       class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'team' ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
-                        <i data-lucide="lock" class="w-3.5 h-3.5 {{ $groupType === 'team' ? 'text-indigo-600' : 'text-slate-400' }}"></i>
-                        <span class="truncate">Private</span>
+                       class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'team' ? 'bg-[#008069] text-white md:bg-white md:text-indigo-700 shadow-2xs md:border md:border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 {{ $groupType === 'team' ? 'text-white md:text-indigo-600' : 'text-slate-400' }}"></i>
+                        <span class="truncate">Private Team</span>
                     </a>
                 @else
-                    <div class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-slate-200/50 cursor-not-allowed" title="Private team chat">
+                    <div class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-slate-200/50 cursor-not-allowed" title="Private team chat (Lead & members only)">
                         <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                        <span class="truncate">Private</span>
+                        <span class="truncate">Private Team</span>
                     </div>
                 @endif
 
                 <a href="{{ route('thoughts.index', ['group' => 'company']) }}" 
-                   class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'company' ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
-                    <i data-lucide="building-2" class="w-3.5 h-3.5 {{ $groupType === 'company' ? 'text-indigo-600' : 'text-slate-400' }}"></i>
+                   class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'company' ? 'bg-[#008069] text-white md:bg-white md:text-indigo-700 shadow-2xs md:border md:border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
+                    <i data-lucide="building-2" class="w-3.5 h-3.5 {{ $groupType === 'company' ? 'text-white md:text-indigo-600' : 'text-slate-400' }}"></i>
                     <span class="truncate">Company Hub</span>
                 </a>
             </div>
 
-            <!-- Member Search -->
+            <!-- In-Chat Search Input -->
             <div class="p-2.5 bg-white border-b border-slate-100">
                 <div class="relative flex items-center">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3"></i>
@@ -102,7 +102,7 @@
                         type="text" 
                         id="searchChatInput" 
                         placeholder="Search messages..." 
-                        class="w-full pl-8 pr-3 py-1.5 bg-slate-50 focus:bg-white text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 transition border border-slate-200 placeholder:text-slate-400"
+                        class="w-full pl-8 pr-3 py-1.5 bg-slate-50 focus:bg-white text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-[#008069] md:focus:ring-indigo-500 transition border border-slate-200 placeholder:text-slate-400"
                     >
                 </div>
             </div>
@@ -110,9 +110,9 @@
             <!-- Team Members Roster -->
             <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
                 <div class="px-3.5 py-2 bg-slate-50/70 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                    <span>Active Channel Members ({{ count($teamUsers) }})</span>
+                    <span>Channel Members ({{ count($teamUsers) }})</span>
                     @if(auth()->user()->isTL() && $groupType === 'team')
-                        <button type="button" onclick="openManageMembersModal()" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer">
+                        <button type="button" onclick="openManageMembersModal()" class="text-[#008069] md:text-indigo-600 hover:underline font-bold cursor-pointer">
                             + Edit
                         </button>
                     @endif
@@ -135,7 +135,7 @@
                                 <div class="text-xs font-bold text-slate-800 truncate flex items-center gap-1">
                                     <span>{{ $member->name }}</span>
                                     @if($member->isTL())
-                                        <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-indigo-100 text-indigo-700">TL</span>
+                                        <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-emerald-50 text-emerald-700 md:bg-indigo-100 md:text-indigo-700">TL</span>
                                     @endif
                                 </div>
                                 <div class="text-[10px] text-slate-400 truncate">
@@ -143,56 +143,94 @@
                                 </div>
                             </div>
                         </div>
-                        <span class="text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition">@mention</span>
+                        <span class="text-[10px] font-bold text-[#008069] md:text-indigo-600 opacity-0 group-hover:opacity-100 transition">@mention</span>
                     </div>
                 @endforeach
             </div>
         </div>
 
-        <!-- 💬 RIGHT MAIN CHAT AREA (Bespoke EcoFone Portal Style) -->
-        <div class="flex-1 flex flex-col h-full bg-slate-50/60 relative min-w-0">
+        <!-- 💬 RIGHT MAIN CHAT AREA (WhatsApp Style on Mobile, Elegant on Desktop) -->
+        <div class="flex-1 flex flex-col h-full relative min-w-0" style="background-color: #efeae2; background-image: radial-gradient(#d5cdc4 0.75px, transparent 0.75px); background-size: 16px 16px;">
 
-            <!-- Chat Channel Header Bar -->
-            <div class="h-16 px-4 bg-white border-b border-slate-200/80 flex items-center justify-between shrink-0 shadow-2xs z-20">
-                <div class="flex items-center gap-3 min-w-0">
-                    <button type="button" onclick="toggleMobileSidebar(true)" class="md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition shrink-0" title="Channels & Members">
-                        <i data-lucide="users" class="w-5 h-5"></i>
-                    </button>
-                    <div class="w-9 h-9 rounded-xl {{ $groupType === 'team' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-violet-50 text-violet-600 border border-violet-100' }} flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                        <i data-lucide="{{ $groupType === 'team' ? 'lock' : 'building-2' }}" class="w-4 h-4"></i>
+            <!-- WhatsApp App Top Header Bar (Authentic Mobile WhatsApp Header) -->
+            <div class="h-14 sm:h-16 px-2.5 sm:px-4 bg-[#008069] md:bg-white text-white md:text-slate-900 md:border-b md:border-slate-200/80 flex items-center justify-between shrink-0 shadow-xs z-30 select-none">
+                
+                <!-- Left: Back Button, Avatar, Title & Subtitle -->
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer" onclick="toggleMobileSidebar(true)" title="Tap for Group Info">
+                    <!-- Mobile WhatsApp Back Arrow (Returns to Dashboard) -->
+                    <a href="{{ auth()->user()->isTL() ? route('tl.dashboard') : (auth()->user()->role === 'ceo' ? route('ceo.dashboard') : (auth()->user()->role === 'hr' ? route('hr.dashboard') : route('member.dashboard'))) }}" 
+                       onclick="event.stopPropagation()"
+                       class="md:hidden p-1 -ml-1 text-white hover:bg-black/10 rounded-full transition flex items-center" 
+                       title="Back to Dashboard">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+
+                    <!-- Channel Avatar (Round WhatsApp Style) -->
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#128c7e] md:bg-indigo-50 text-white md:text-indigo-600 border border-white/20 md:border-indigo-100 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
+                        <i data-lucide="{{ $groupType === 'team' ? 'users' : 'building-2' }}" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                     </div>
+
+                    <!-- Channel Info -->
                     <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-black text-slate-900 truncate leading-tight">
-                                {{ $groupType === 'team' ? (auth()->user()->isTL() ? auth()->user()->name . "'s Team" : ($teamUsers->firstWhere('role', 'tl')?->name ? $teamUsers->firstWhere('role', 'tl')->name . "'s Team" : 'Private Team')) : 'EcoFone Company Hub' }}
-                            </h3>
-                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase {{ $groupType === 'team' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800' }}">
-                                {{ $groupType === 'team' ? 'Private' : 'Company' }}
+                        <div class="flex items-center gap-1.5">
+                            <h2 class="text-xs sm:text-sm font-bold text-white md:text-slate-900 truncate leading-tight">
+                                {{ $groupType === 'team' ? (auth()->user()->isTL() ? auth()->user()->name . "'s Team" : ($teamUsers->firstWhere('role', 'tl')?->name ? $teamUsers->firstWhere('role', 'tl')->name . "'s Team" : 'Team Chat')) : 'EcoFone Company Hub' }}
+                            </h2>
+                            <span class="md:hidden px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-white/20 text-white">
+                                {{ $groupType === 'team' ? 'Private' : 'Hub' }}
                             </span>
                         </div>
-                        <div class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 truncate">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span>{{ count($teamUsers) }} participants</span>
-                        </div>
+                        <p class="text-[10px] sm:text-[11px] text-emerald-100 md:text-slate-500 font-normal truncate mt-0.5">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 md:bg-emerald-500 mr-1"></span>
+                            <span>{{ count($teamUsers) }} members • tap for info</span>
+                        </p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-1.5">
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Live Sync</span>
-                    </span>
+                <!-- Right: Quick Channel Switch, Search & Actions -->
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <!-- Mobile Channel Toggle Pill (Switch Private vs Company with 1 tap) -->
+                    <a href="{{ route('thoughts.index', ['group' => $groupType === 'team' ? 'company' : 'team']) }}" 
+                       class="md:hidden px-2 py-1 rounded-lg bg-black/15 hover:bg-black/25 text-white text-[10px] font-bold flex items-center gap-1 transition"
+                       title="Switch to {{ $groupType === 'team' ? 'Company Hub' : 'Private Team' }}">
+                        <i data-lucide="{{ $groupType === 'team' ? 'building-2' : 'lock' }}" class="w-3 h-3"></i>
+                        <span>{{ $groupType === 'team' ? 'Hub' : 'Private' }}</span>
+                    </a>
+
+                    <!-- Search Toggle -->
+                    <button type="button" onclick="toggleMobileSearch()" class="p-1.5 text-white md:text-slate-600 hover:bg-black/10 md:hover:bg-slate-100 rounded-full transition cursor-pointer" title="Search Chat">
+                        <i data-lucide="search" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    </button>
+
+                    <!-- Group Info / Members Button -->
+                    <button type="button" onclick="toggleMobileSidebar(true)" class="p-1.5 text-white md:text-slate-600 hover:bg-black/10 md:hover:bg-slate-100 rounded-full transition cursor-pointer" title="Group Info">
+                        <i data-lucide="more-vertical" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Scrollable Messages Feed -->
-            <div id="chatMessagesScrollArea" class="flex-1 overflow-y-auto p-3 sm:p-5 pt-6 sm:pt-7 space-y-3 scroll-smooth">
+            <!-- Slide-down Mobile Search Bar -->
+            <div id="mobileSearchTray" class="hidden px-3 py-2 bg-white border-b border-slate-200 z-20 shadow-xs animate-in slide-in-from-top-2 duration-150">
+                <div class="relative flex items-center">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3"></i>
+                    <input 
+                        type="text" 
+                        id="mobileSearchInput" 
+                        placeholder="Search in this chat..." 
+                        class="w-full pl-9 pr-8 py-1.5 bg-slate-100 text-xs rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#008069] transition"
+                        oninput="handleMobileSearch(this.value)"
+                    >
+                    <button type="button" onclick="toggleMobileSearch(false)" class="absolute right-2.5 text-slate-400 hover:text-slate-700 text-xs font-bold p-1">✕</button>
+                </div>
+            </div>
+
+            <!-- Scrollable Messages Feed (WhatsApp Bubbles) -->
+            <div id="chatMessagesScrollArea" class="flex-1 overflow-y-auto p-2.5 sm:p-4 md:p-5 pt-3 sm:pt-5 space-y-2.5 scroll-smooth">
                 
-                <!-- Messages List -->
-                <div id="chatMessagesList" class="space-y-3">
+                <div id="chatMessagesList" class="space-y-2 sm:space-y-2.5">
                     @php 
                         $lastDate = null; 
-                        $userColors = ['#4f46e5', '#0284c7', '#059669', '#d97706', '#7c3aed', '#db2777'];
+                        $userColors = ['#075e54', '#128c7e', '#0284c7', '#059669', '#d97706', '#7c3aed', '#db2777'];
                     @endphp
 
                     @foreach($thoughts as $thought)
@@ -210,8 +248,8 @@
                         @endphp
 
                         @if($lastDate !== $msgDate)
-                            <div class="flex justify-center my-3">
-                                <span class="px-3 py-0.5 rounded-full bg-white border border-slate-200/80 shadow-2xs text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <div class="flex justify-center my-2 select-none">
+                                <span class="px-3 py-1 rounded-lg bg-white/90 text-[#54656f] text-[10px] sm:text-[11px] font-bold shadow-2xs uppercase tracking-wider border border-slate-200/50">
                                     {{ $msgDate }}
                                 </span>
                             </div>
@@ -219,55 +257,55 @@
                         @endif
 
                         @if($isMe)
-                            <!-- Outgoing Message (Self) -->
+                            <!-- 🟢 Outgoing Message (Self: WhatsApp Light Green Bubble) -->
                             <div class="flex justify-end message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
-                                <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
+                                <div class="flex flex-col items-end max-w-[88%] sm:max-w-[72%]">
                                     @if($thought->is_deleted)
-                                        <div class="px-3.5 py-1.5 rounded-2xl rounded-tr-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                                        <div class="px-3 py-1.5 rounded-xl rounded-tr-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                                             <span>You unsent this message</span>
                                         </div>
-                                     @else
-                                        <div class="relative group/bubble w-fit rounded-2xl rounded-tr-xs px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-xs">
+                                    @else
+                                        <div class="relative group/bubble w-fit rounded-xl rounded-tr-none px-3 py-1.5 bg-[#d9fdd3] text-[#111b21] shadow-2xs border border-[#c1f3b8]">
                                             @if($thought->media_path || $thought->drive_url)
                                                 @php 
                                                     $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; 
                                                     $fileName = $thought->original_name ?? basename($thought->media_path ?? 'file');
                                                     $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION) ?: 'FILE');
                                                 @endphp
-                                                <div class="mb-1.5 rounded-xl overflow-hidden">
+                                                <div class="mb-1 rounded-lg overflow-hidden">
                                                     @if($thought->media_type === 'image')
-                                                        <div class="bg-black/10 rounded-xl overflow-hidden">
-                                                            <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                        <div class="bg-black/5 rounded-lg overflow-hidden">
+                                                            <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-64 rounded-lg object-cover cursor-pointer hover:opacity-95 transition">
                                                         </div>
                                                     @elseif($thought->media_type === 'video')
-                                                        <div class="bg-black rounded-xl overflow-hidden">
-                                                            <video controls class="max-h-60 rounded-xl bg-black">
+                                                        <div class="bg-black rounded-lg overflow-hidden">
+                                                            <video controls class="max-h-64 rounded-lg bg-black w-full">
                                                                 <source src="{{ $mediaSrc }}">
                                                             </video>
                                                         </div>
                                                     @elseif($thought->media_type === 'audio')
-                                                        <div class="p-2 rounded-xl bg-indigo-800/60">
-                                                            <audio controls class="w-full max-w-[260px] h-9">
+                                                        <div class="p-1.5 rounded-lg bg-[#b6eeb0]/50">
+                                                            <audio controls class="w-full max-w-[240px] sm:max-w-[280px] h-8">
                                                                 <source src="{{ $mediaSrc }}">
                                                             </audio>
                                                         </div>
                                                     @else
-                                                        <div class="p-2.5 rounded-xl bg-indigo-800/70 text-white flex items-center justify-between gap-3 max-w-xs">
-                                                            <div class="flex items-center gap-2.5 min-w-0">
-                                                                <div class="w-9 h-9 rounded-lg bg-white/20 text-white flex flex-col items-center justify-center shrink-0">
-                                                                    <span class="text-[9px] font-black tracking-tight leading-none">{{ $ext }}</span>
+                                                        <div class="p-2 rounded-lg bg-[#c8f5c0] text-[#111b21] flex items-center justify-between gap-2.5 max-w-xs">
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <div class="w-8 h-8 rounded-lg bg-white/70 text-[#008069] font-black text-[9px] flex items-center justify-center shrink-0 shadow-2xs">
+                                                                    {{ $ext }}
                                                                 </div>
                                                                 <div class="min-w-0">
                                                                     <p class="text-xs font-bold truncate">{{ $fileName }}</p>
                                                                     @if($thought->media_size)
-                                                                        <span class="text-[10px] text-indigo-200">
+                                                                        <span class="text-[10px] text-[#667781]">
                                                                             {{ $thought->media_size >= 1048576 ? round($thought->media_size / 1048576, 1) . ' MB' : round($thought->media_size / 1024, 1) . ' KB' }}
                                                                         </span>
                                                                     @endif
                                                                 </div>
                                                             </div>
-                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-white/20 text-white transition shrink-0" title="Download {{ $fileName }}">
+                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-black/10 text-[#008069] transition shrink-0" title="Download">
                                                                 <i data-lucide="download" class="w-4 h-4"></i>
                                                             </a>
                                                         </div>
@@ -276,42 +314,42 @@
                                             @endif
 
                                             @if(!empty($thought->content))
-                                                <div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text">{{ trim($thought->content) }}</div>
+                                                <div class="text-[13px] sm:text-[14px] leading-snug break-words whitespace-pre-line select-text font-normal">{{ trim($thought->content) }}</div>
                                             @endif
 
                                             @if(!empty($thought->link_url))
-                                                <div class="mt-1 p-1.5 rounded-xl bg-indigo-800/60">
-                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-100 hover:text-white font-semibold flex items-center gap-1 truncate">
+                                                <div class="mt-1 p-1.5 rounded-lg bg-[#c8f5c0]/70">
+                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-[#008069] hover:underline font-semibold flex items-center gap-1 truncate">
                                                         <i data-lucide="link" class="w-3 h-3 shrink-0"></i>
                                                         <span class="truncate">{{ $thought->link_url }}</span>
                                                     </a>
                                                 </div>
                                             @endif
 
-                                            <!-- Timestamp & Read Status Dock -->
-                                            <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
+                                            <!-- Timestamp & Read Status Double-Checkmarks (WhatsApp Style) -->
+                                            <div class="flex items-center justify-end gap-1 mt-0.5 text-[10px] text-[#667781] select-none">
                                                 <span>{{ $thought->created_at->format('h:i A') }}</span>
-                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-white transition p-0.5 text-indigo-200 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-slate-900 transition p-0.5 text-[#667781] opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
                                                     <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                                                 </button>
                                                 @if(count($seenBy) > 0)
-                                                    <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer text-sky-300" title="Seen by {{ count($seenBy) }} members">
+                                                    <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer text-[#53bdeb]" title="Seen by {{ count($seenBy) }} members">
                                                         <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
                                                     </button>
                                                 @else
-                                                    <svg class="w-3.5 h-3.5 text-indigo-300" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
+                                                    <svg class="w-3.5 h-3.5 text-[#8696a0]" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
                                                 @endif
                                             </div>
 
-                                            <!-- WhatsApp Instant Floating Reaction Bar (Anchored Right) -->
+                                            <!-- WhatsApp Instant Floating Reaction Bar (Desktop Hover / Mobile Tap) -->
                                             <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 right-0 sm:right-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
-                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">👍</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">❤️</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😂</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😮</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😢')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😢</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">🙏</button>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More">+</button>
                                                 @if($thought->isUnsendableBy(auth()->user()))
                                                     <span class="w-px h-3 bg-slate-200 mx-0.5"></span>
                                                     <button type="button" onclick="unsendMessage({{ $thought->id }})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Unsend">✕</button>
@@ -324,7 +362,7 @@
                                             @foreach($groupedReactions as $emoji => $names)
                                                 @php $iReacted = in_array(auth()->user()->name, $names); @endphp
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" 
-                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none {{ $iReacted ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-300 text-indigo-700 font-black ring-1 ring-indigo-300/50 shadow-2xs' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs' }}" 
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none {{ $iReacted ? 'bg-[#d9fdd3] border-[#008069] text-[#008069] font-black ring-1 ring-[#008069]/30 shadow-2xs' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs' }}" 
                                                         title="{{ implode(', ', $names) }}">
                                                     <span class="leading-none text-sm">{{ $emoji }}</span>
                                                     <span class="text-[10px] font-bold">{{ count($names) }}</span>
@@ -335,11 +373,11 @@
                                 </div>
                             </div>
                         @else
-                            <!-- Incoming Teammate Message (Left aligned with avatar) -->
-                            <div class="flex items-start gap-2 message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
+                            <!-- ⚪ Incoming Teammate Message (WhatsApp Crisp White Bubble) -->
+                            <div class="flex items-start gap-1.5 message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
                                 <div class="shrink-0 pt-0.5">
                                     @if($thought->user?->avatar_url)
-                                        <img src="{{ $thought->user->avatar_url }}" alt="{{ $thought->user->name }}" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200">
+                                        <img src="{{ $thought->user->avatar_url }}" alt="{{ $thought->user->name }}" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 shadow-2xs">
                                     @else
                                         <div class="w-7 h-7 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-2xs" style="background-color: {{ $senderColor }};">
                                             {{ strtoupper(substr($thought->user?->name ?? 'U', 0, 1)) }}
@@ -347,19 +385,19 @@
                                     @endif
                                 </div>
 
-                                <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
+                                <div class="flex flex-col items-start max-w-[88%] sm:max-w-[72%]">
                                     @if($thought->is_deleted)
-                                        <div class="px-3.5 py-1.5 rounded-2xl rounded-tl-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                                        <div class="px-3 py-1.5 rounded-xl rounded-tl-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                                             <span>This message was deleted</span>
                                         </div>
                                     @else
-                                        <div class="relative group/bubble w-fit rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/90 shadow-2xs">
-                                            <!-- Sender Name in Bubble -->
-                                            <div class="text-[11px] font-bold leading-tight mb-1 flex items-center gap-1" style="color: {{ $senderColor }};">
+                                        <div class="relative group/bubble w-fit rounded-xl rounded-tl-none px-3 py-1.5 bg-white text-[#111b21] shadow-2xs border border-slate-200/70">
+                                            <!-- Sender Name (Colored WhatsApp Group Style) -->
+                                            <div class="text-[11px] font-bold leading-tight mb-0.5 flex items-center gap-1" style="color: {{ $senderColor }};">
                                                 <span>{{ $thought->user?->name ?? 'Member' }}</span>
                                                 @if($thought->user?->isTL())
-                                                    <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-600">TL</span>
+                                                    <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">TL</span>
                                                 @endif
                                             </div>
 
@@ -369,28 +407,28 @@
                                                     $fileName = $thought->original_name ?? basename($thought->media_path ?? 'file');
                                                     $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION) ?: 'FILE');
                                                 @endphp
-                                                <div class="mb-1.5 rounded-xl overflow-hidden">
+                                                <div class="mb-1 rounded-lg overflow-hidden">
                                                     @if($thought->media_type === 'image')
-                                                        <div class="bg-black/5 rounded-xl overflow-hidden">
-                                                            <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                        <div class="bg-black/5 rounded-lg overflow-hidden">
+                                                            <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-64 rounded-lg object-cover cursor-pointer hover:opacity-95 transition">
                                                         </div>
                                                     @elseif($thought->media_type === 'video')
-                                                        <div class="bg-black rounded-xl overflow-hidden">
-                                                            <video controls class="max-h-60 rounded-xl bg-black">
+                                                        <div class="bg-black rounded-lg overflow-hidden">
+                                                            <video controls class="max-h-64 rounded-lg bg-black w-full">
                                                                 <source src="{{ $mediaSrc }}">
                                                             </video>
                                                         </div>
                                                     @elseif($thought->media_type === 'audio')
-                                                        <div class="p-2 rounded-xl bg-slate-100">
-                                                            <audio controls class="w-full max-w-[260px] h-9">
+                                                        <div class="p-1.5 rounded-lg bg-slate-100">
+                                                            <audio controls class="w-full max-w-[240px] sm:max-w-[280px] h-8">
                                                                 <source src="{{ $mediaSrc }}">
                                                             </audio>
                                                         </div>
                                                     @else
-                                                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 flex items-center justify-between gap-3 max-w-xs">
-                                                            <div class="flex items-center gap-2.5 min-w-0">
-                                                                <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex flex-col items-center justify-center shrink-0">
-                                                                    <span class="text-[9px] font-black tracking-tight leading-none">{{ $ext }}</span>
+                                                        <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 flex items-center justify-between gap-2.5 max-w-xs">
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <div class="w-8 h-8 rounded-lg bg-[#008069]/10 text-[#008069] font-black text-[9px] flex items-center justify-center shrink-0">
+                                                                    {{ $ext }}
                                                                 </div>
                                                                 <div class="min-w-0">
                                                                     <p class="text-xs font-bold truncate">{{ $fileName }}</p>
@@ -401,7 +439,7 @@
                                                                     @endif
                                                                 </div>
                                                             </div>
-                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-slate-200 text-indigo-600 transition shrink-0" title="Download {{ $fileName }}">
+                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-slate-200 text-[#008069] transition shrink-0" title="Download">
                                                                 <i data-lucide="download" class="w-4 h-4"></i>
                                                             </a>
                                                         </div>
@@ -410,12 +448,12 @@
                                             @endif
 
                                             @if(!empty($thought->content))
-                                                <div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text text-slate-800">{{ trim($thought->content) }}</div>
+                                                <div class="text-[13px] sm:text-[14px] leading-snug break-words whitespace-pre-line select-text text-[#111b21]">{{ trim($thought->content) }}</div>
                                             @endif
 
                                             @if(!empty($thought->link_url))
-                                                <div class="mt-1 p-1.5 rounded-xl bg-slate-50 border border-slate-100">
-                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-600 hover:underline font-semibold flex items-center gap-1 truncate">
+                                                <div class="mt-1 p-1.5 rounded-lg bg-slate-50 border border-slate-150">
+                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-[#008069] hover:underline font-semibold flex items-center gap-1 truncate">
                                                         <i data-lucide="link" class="w-3 h-3 shrink-0"></i>
                                                         <span class="truncate">{{ $thought->link_url }}</span>
                                                     </a>
@@ -423,22 +461,22 @@
                                             @endif
 
                                             <!-- Timestamp Dock -->
-                                            <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
+                                            <div class="flex items-center justify-end gap-1 mt-0.5 text-[10px] text-[#667781] select-none">
                                                 <span>{{ $thought->created_at->format('h:i A') }}</span>
-                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-indigo-600 transition p-0.5 text-slate-400 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
-                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-slate-900 transition p-0.5 text-[#667781] opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                                                 </button>
                                             </div>
 
-                                            <!-- WhatsApp Instant Floating Reaction Bar (Anchored Left) -->
+                                            <!-- WhatsApp Instant Floating Reaction Bar (Desktop Hover / Mobile Tap) -->
                                             <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 left-0 sm:left-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
-                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">👍</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">❤️</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😂</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😮</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😢')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😢</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">🙏</button>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More">+</button>
                                                 @if(auth()->user()->isTL())
                                                     <span class="w-px h-3 bg-slate-200 mx-0.5"></span>
                                                     <button type="button" onclick="deleteMessage({{ $thought->id }})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Delete">✕</button>
@@ -451,7 +489,7 @@
                                             @foreach($groupedReactions as $emoji => $names)
                                                 @php $iReacted = in_array(auth()->user()->name, $names); @endphp
                                                 <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" 
-                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none {{ $iReacted ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-300 text-indigo-700 font-black ring-1 ring-indigo-300/50 shadow-2xs' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs' }}" 
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none {{ $iReacted ? 'bg-[#d9fdd3] border-[#008069] text-[#008069] font-black ring-1 ring-[#008069]/30 shadow-2xs' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs' }}" 
                                                         title="{{ implode(', ', $names) }}">
                                                     <span class="leading-none text-sm">{{ $emoji }}</span>
                                                     <span class="text-[10px] font-bold">{{ count($names) }}</span>
@@ -467,39 +505,40 @@
 
             </div>
 
-            <!-- Attachment Preview Bar -->
-            <div id="attachmentPreviewTray" class="hidden px-4 py-2 bg-white border-t border-slate-200 flex items-center justify-between gap-2">
+            <!-- Attachment Preview Tray -->
+            <div id="attachmentPreviewTray" class="hidden px-4 py-2 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-between gap-2 shadow-xs">
                 <div class="flex items-center gap-2 min-w-0">
-                    <i data-lucide="paperclip" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+                    <i data-lucide="paperclip" class="w-4 h-4 text-[#008069] shrink-0"></i>
                     <span id="attachedFileName" class="text-xs font-bold text-slate-800 truncate"></span>
                     <span id="attachedFileSize" class="text-[11px] text-slate-400 shrink-0"></span>
                 </div>
-                <button type="button" onclick="clearSelectedAttachment()" class="text-slate-400 hover:text-slate-600 text-xs p-1">✕</button>
+                <button type="button" onclick="clearSelectedAttachment()" class="text-slate-400 hover:text-slate-700 text-xs font-bold p-1">✕</button>
             </div>
 
-            <!-- Link Attachment Input -->
-            <div id="linkInputTray" class="hidden px-4 py-2 bg-white border-t border-slate-200">
+            <!-- Link Attachment Input Tray -->
+            <div id="linkInputTray" class="hidden px-3 sm:px-4 py-2 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-xs">
                 <div class="relative flex items-center">
                     <i data-lucide="link" class="w-3.5 h-3.5 text-slate-400 absolute left-3"></i>
-                    <input type="url" id="linkUrlInput" placeholder="Paste URL link (https://...)" class="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    <button type="button" onclick="toggleLinkInput(false)" class="absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                    <input type="url" id="linkUrlInput" placeholder="Paste link (https://...)" class="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#008069]">
+                    <button type="button" onclick="toggleLinkInput(false)" class="absolute right-2.5 text-slate-400 hover:text-slate-700 text-xs font-bold p-1">✕</button>
                 </div>
             </div>
 
-            <!-- ⌨️ Chat Input Bar (Clean EcoFone Portal Theme) -->
-            <div class="p-3 bg-white border-t border-slate-200 shrink-0">
-                <form id="chatMessageForm" onsubmit="sendChatMessage(event)" class="flex items-center gap-2">
+            <!-- ⌨️ Mobile WhatsApp Floating Input Bar & Desktop Composer -->
+            <div class="p-2 sm:p-3 bg-transparent shrink-0 relative z-20">
+                <form id="chatMessageForm" onsubmit="sendChatMessage(event)" class="flex items-end gap-1.5 sm:gap-2">
                     @csrf
                     <input type="hidden" name="group_type" value="{{ $groupType }}">
 
-                    <!-- Emoji Picker Trigger -->
-                    <div class="relative">
-                        <button type="button" onclick="toggleEmojiPicker()" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition cursor-pointer" title="Insert Emojis">
+                    <!-- WhatsApp Pill Input Capsule -->
+                    <div class="flex-1 bg-white rounded-3xl shadow-sm border border-slate-200/80 flex items-center px-2 sm:px-3 py-1.5 gap-1 sm:gap-1.5 min-w-0">
+                        <!-- Emoji Picker Button -->
+                        <button type="button" onclick="toggleEmojiPicker()" class="p-1.5 text-slate-500 hover:text-[#008069] active:scale-95 transition shrink-0 cursor-pointer" title="Insert Emoji">
                             <i data-lucide="smile" class="w-5 h-5"></i>
                         </button>
 
                         <!-- Real WhatsApp / Instagram Style Emoji Drawer -->
-                        <div id="emojiPickerTray" class="hidden absolute bottom-12 left-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-40 overflow-hidden animate-in zoom-in-95 duration-100">
+                        <div id="emojiPickerTray" class="hidden absolute bottom-14 left-2 sm:left-4 w-[calc(100vw-1rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-50 overflow-hidden animate-in zoom-in-95 duration-100">
                             <!-- Search & Close Header -->
                             <div class="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
                                 <div class="relative flex items-center flex-1">
@@ -507,8 +546,8 @@
                                     <input 
                                         type="text" 
                                         id="chatEmojiSearchInput" 
-                                        placeholder="Search emojis (e.g. smile, love, clap, fire)..." 
-                                        class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800"
+                                        placeholder="Search emojis (smile, heart, fire)..." 
+                                        class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#008069] text-slate-800"
                                         oninput="filterChatEmojis(this.value)"
                                     >
                                 </div>
@@ -517,7 +556,7 @@
 
                             <!-- WhatsApp Style Category Tabs -->
                             <div class="px-2 py-1.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-1 overflow-x-auto text-[11px] font-bold select-none scrollbar-none">
-                                <button type="button" onclick="switchChatEmojiCategory('all')" class="chat-cat-tab px-2.5 py-1 rounded-lg bg-white text-indigo-600 shadow-2xs border border-slate-200 shrink-0">✨ All</button>
+                                <button type="button" onclick="switchChatEmojiCategory('all')" class="chat-cat-tab px-2.5 py-1 rounded-lg bg-white text-[#008069] shadow-2xs border border-slate-200 shrink-0">✨ All</button>
                                 <button type="button" onclick="switchChatEmojiCategory('smileys')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
                                 <button type="button" onclick="switchChatEmojiCategory('gestures')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
                                 <button type="button" onclick="switchChatEmojiCategory('hearts')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
@@ -527,41 +566,39 @@
                             </div>
 
                             <!-- Emoji Grid -->
-                            <div id="emojiGridContainer" class="p-2.5 overflow-y-auto max-h-60 grid grid-cols-8 gap-1.5 text-xl select-none min-h-[180px]"></div>
+                            <div id="emojiGridContainer" class="p-2.5 overflow-y-auto max-h-60 grid grid-cols-7 sm:grid-cols-8 gap-1.5 text-xl select-none min-h-[180px]"></div>
                         </div>
-                    </div>
 
-                    <!-- Media Attachment Trigger -->
-                    <label class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition cursor-pointer" title="Attach Any File">
-                        <i data-lucide="paperclip" class="w-5 h-5"></i>
-                        <input type="file" id="chatMediaInput" name="media" class="hidden" onchange="handleChatFileSelect(this)">
-                    </label>
-
-                    <!-- Link Trigger -->
-                    <button type="button" onclick="toggleLinkInput()" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition cursor-pointer" title="Attach Link">
-                        <i data-lucide="link" class="w-5 h-5"></i>
-                    </button>
-
-                    <!-- Text Input Field -->
-                    <div class="flex-1 relative">
+                        <!-- Text Input Field (WhatsApp Placeholder "Message") -->
                         <input 
                             type="text" 
                             id="chatMessageInput" 
                             name="content" 
                             autocomplete="off" 
-                            placeholder="Type a message..." 
-                            class="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/60 focus:bg-white text-slate-800 placeholder:text-slate-400 text-xs sm:text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 border border-slate-200 transition"
+                            placeholder="Message" 
+                            class="flex-1 bg-transparent text-[14px] sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none min-w-0 py-1"
                         >
+
+                        <!-- Media Attachment Trigger -->
+                        <label class="p-1.5 text-slate-500 hover:text-[#008069] active:scale-95 transition shrink-0 cursor-pointer" title="Attach Photos, Audio or Docs">
+                            <i data-lucide="paperclip" class="w-5 h-5"></i>
+                            <input type="file" id="chatMediaInput" name="media" class="hidden" onchange="handleChatFileSelect(this)">
+                        </label>
+
+                        <!-- Link Trigger -->
+                        <button type="button" onclick="toggleLinkInput()" class="p-1.5 text-slate-500 hover:text-[#008069] active:scale-95 transition shrink-0 cursor-pointer" title="Attach Web Link">
+                            <i data-lucide="link" class="w-5 h-5"></i>
+                        </button>
                     </div>
 
-                    <!-- EcoFone Indigo Send Button -->
+                    <!-- WhatsApp Detached Circular Green Send Button -->
                     <button 
                         type="submit" 
                         id="sendBtn" 
-                        class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition shrink-0 cursor-pointer active:scale-95"
+                        class="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white flex items-center justify-center shadow-md active:scale-95 transition shrink-0 cursor-pointer"
+                        title="Send Message"
                     >
-                        <span>Send</span>
-                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <i data-lucide="send" class="w-5 h-5 ml-0.5"></i>
                     </button>
                 </form>
             </div>
@@ -572,81 +609,81 @@
 
 </div>
 
-<!-- Message Info Modal -->
+<!-- Message Info Modal (Read Receipts) -->
 <div id="messageInfoModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-xs w-full p-4 shadow-xl border border-slate-200">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 class="text-xs font-bold text-slate-800">Message Info</h3>
-            <button type="button" onclick="closeMessageInfoModal()" class="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+    <div class="bg-white rounded-3xl max-w-xs w-full p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-sm font-black text-slate-900">Message Info</h3>
+            <button type="button" onclick="closeMessageInfoModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold">✕</button>
         </div>
-        <div class="py-2.5">
-            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1.5">Read by</div>
-            <div id="seenByList" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
+        <div class="py-3">
+            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Read by</div>
+            <div id="seenByList" class="space-y-1.5 max-h-52 overflow-y-auto"></div>
         </div>
-        <button type="button" onclick="closeMessageInfoModal()" class="w-full py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">Close</button>
+        <button type="button" onclick="closeMessageInfoModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">Close</button>
     </div>
 </div>
 
 <!-- TL Manage Group Members Modal -->
 @if(auth()->user()->isTL())
 <div id="manageMembersModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-xl border border-slate-200">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-                <h3 class="text-xs font-bold text-slate-800">Manage Team Members</h3>
-                <p class="text-[10px] text-slate-400">Add or remove from private team channel</p>
+                <h3 class="text-sm font-black text-slate-900">Manage Team Channel</h3>
+                <p class="text-[10px] text-slate-400">Add or remove members from this private group</p>
             </div>
-            <button type="button" onclick="closeManageMembersModal()" class="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+            <button type="button" onclick="closeManageMembersModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold">✕</button>
         </div>
 
-        <div class="py-2.5 border-b border-slate-100">
+        <div class="py-3 border-b border-slate-100">
             <div class="flex items-center gap-1.5">
-                <select id="newMemberSelect" class="flex-1 px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl">
-                    <option value="">Select employee...</option>
+                <select id="newMemberSelect" class="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-[#008069]">
+                    <option value="">Select team member...</option>
                     @foreach($candidateUsers as $candidate)
                         <option value="{{ $candidate->id }}">{{ $candidate->name }}</option>
                     @endforeach
                 </select>
-                <button type="button" onclick="addMemberToGroup()" class="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold cursor-pointer">Add</button>
+                <button type="button" onclick="addMemberToGroup()" class="px-3.5 py-2 rounded-xl bg-[#008069] hover:bg-[#006e5a] text-white text-xs font-bold cursor-pointer transition">Add</button>
             </div>
         </div>
 
-        <div class="py-2">
-            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1.5">Current Members ({{ count($teamUsers) }})</div>
-            <div class="space-y-1.5 max-h-48 overflow-y-auto">
+        <div class="py-2.5">
+            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Current Members ({{ count($teamUsers) }})</div>
+            <div class="space-y-1.5 max-h-52 overflow-y-auto">
                 @foreach($teamUsers as $u)
-                    <div class="flex items-center justify-between p-1.5 rounded-xl bg-slate-50 text-xs">
-                        <span class="font-semibold text-slate-800 truncate">{{ $u->name }}</span>
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 text-xs">
+                        <span class="font-bold text-slate-800 truncate">{{ $u->name }}</span>
                         @if($u->id !== auth()->id())
-                            <button type="button" onclick="removeMemberFromGroup({{ $u->id }}, '{{ addslashes($u->name) }}')" class="px-2 py-0.5 rounded bg-rose-50 text-rose-600 text-[10px] font-bold cursor-pointer">Remove</button>
+                            <button type="button" onclick="removeMemberFromGroup({{ $u->id }}, '{{ addslashes($u->name) }}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold cursor-pointer transition">Remove</button>
                         @else
-                            <span class="text-[10px] font-bold text-indigo-600">Admin</span>
+                            <span class="text-[10px] font-bold text-[#008069]">Lead Admin</span>
                         @endif
                     </div>
                 @endforeach
             </div>
         </div>
 
-        <button type="button" onclick="closeManageMembersModal()" class="w-full py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl mt-1 cursor-pointer">Done</button>
+        <button type="button" onclick="closeManageMembersModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl mt-2 cursor-pointer transition">Done</button>
     </div>
 </div>
 @endif
 
 <!-- Image Lightbox Modal -->
-<div id="imageLightbox" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer" onclick="closeImageLightbox()">
+<div id="imageLightbox" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 cursor-pointer" onclick="closeImageLightbox()">
     <div class="relative max-w-4xl max-h-[90vh] flex items-center justify-center" onclick="event.stopPropagation()">
         <img id="lightboxImage" src="" alt="Enlarged Photo" class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain">
-        <button type="button" onclick="closeImageLightbox()" class="absolute -top-10 right-0 text-white font-bold text-lg hover:text-slate-300">✕ Close</button>
+        <button type="button" onclick="closeImageLightbox()" class="absolute -top-10 right-0 text-white font-bold text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">✕ Close</button>
     </div>
 </div>
 
-<!-- WhatsApp Style Custom Reaction Picker Modal (+ button) -->
-<div id="messageReactionPickerModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-3 animate-in fade-in duration-100" onclick="closeReactionPickerModal()">
-    <div class="bg-white rounded-2xl max-w-sm sm:max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
+<!-- WhatsApp Custom Reaction Picker Modal (+ button) -->
+<div id="messageReactionPickerModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-3 animate-in fade-in duration-100" onclick="closeReactionPickerModal()">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
         <!-- Modal Header -->
         <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black">+</span>
+                <span class="w-6 h-6 rounded-lg bg-emerald-100 text-[#008069] flex items-center justify-center text-xs font-black">+</span>
                 <h3 class="text-xs sm:text-sm font-black text-slate-800">Add Reaction</h3>
             </div>
             <button type="button" onclick="closeReactionPickerModal()" class="w-7 h-7 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition text-sm font-bold cursor-pointer">✕</button>
@@ -659,8 +696,8 @@
                 <input 
                     type="text" 
                     id="reactionModalSearchInput" 
-                    placeholder="Search any emoji (e.g. fire, clap, win, cake)..." 
-                    class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 transition" 
+                    placeholder="Search emoji (fire, clap, cake)..." 
+                    class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#008069] text-slate-800 transition" 
                     oninput="filterReactionModalEmojis(this.value)"
                 >
             </div>
@@ -668,7 +705,7 @@
 
         <!-- Category Selector -->
         <div class="px-2 py-1.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-1 overflow-x-auto text-[11px] font-bold select-none scrollbar-none">
-            <button type="button" onclick="switchReactionCategory('all')" class="reaction-cat-tab px-2.5 py-1 rounded-lg bg-white text-indigo-600 shadow-2xs border border-slate-200 shrink-0">✨ All</button>
+            <button type="button" onclick="switchReactionCategory('all')" class="reaction-cat-tab px-2.5 py-1 rounded-lg bg-white text-[#008069] shadow-2xs border border-slate-200 shrink-0">✨ All</button>
             <button type="button" onclick="switchReactionCategory('smileys')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
             <button type="button" onclick="switchReactionCategory('gestures')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
             <button type="button" onclick="switchReactionCategory('hearts')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
@@ -678,9 +715,7 @@
         </div>
 
         <!-- Emoji Grid -->
-        <div id="reactionModalGrid" class="p-3 overflow-y-auto flex-1 grid grid-cols-7 sm:grid-cols-8 gap-2 text-2xl select-none min-h-[220px]">
-            <!-- Populated via JavaScript -->
-        </div>
+        <div id="reactionModalGrid" class="p-3 overflow-y-auto flex-1 grid grid-cols-7 sm:grid-cols-8 gap-2 text-2xl select-none min-h-[220px]"></div>
     </div>
 </div>
 
@@ -719,7 +754,7 @@ const emojiCatalog = [
     { emoji: '😍', name: 'heart eyes love crush romantic enamored adoration', cat: 'smileys' },
     { emoji: '🥰', name: 'smiling face hearts adore love affection cute sweet', cat: 'smileys' },
     { emoji: '😘', name: 'blowing kiss kiss love mwah romance sweetheart', cat: 'smileys' },
-    { emoji: '😋', name: 'savoring food delicious yum tasty tongue delicious hungry', cat: 'smileys' },
+    { emoji: '😋', name: 'savoring food delicious yum tasty tongue hungry', cat: 'smileys' },
     { emoji: '😛', name: 'face tongue playful goofy silly joke', cat: 'smileys' },
     { emoji: '😜', name: 'winking face tongue crazy wild fun party', cat: 'smileys' },
     { emoji: '🤪', name: 'zany face goofy weird silly wacky wild', cat: 'smileys' },
@@ -736,7 +771,7 @@ const emojiCatalog = [
     { emoji: '😶', name: 'face without mouth speechless mute quiet blank', cat: 'smileys' },
     { emoji: '😏', name: 'smirking face smug flirt slick clever sneaky', cat: 'smileys' },
     { emoji: '😒', name: 'unamused face annoyed bored irritated unimpressed', cat: 'smileys' },
-    { emoji: '🙄', name: 'rolling eyes eye roll duh whatever eye-roll', cat: 'smileys' },
+    { emoji: '🙄', name: 'rolling eyes eye roll duh whatever', cat: 'smileys' },
     { emoji: '😬', name: 'grimacing face awkward yikes oops nervous cringe', cat: 'smileys' },
     { emoji: '🤥', name: 'lying face pinocchio lie cap fake dishonest long nose', cat: 'smileys' },
     { emoji: '😔', name: 'pensive face sad sorrow regret depressed mourn', cat: 'smileys' },
@@ -755,7 +790,7 @@ const emojiCatalog = [
     { emoji: '😵', name: 'crossed out eyes dead knocked out dizzy shock stunned', cat: 'smileys' },
     { emoji: '🤯', name: 'exploding head mind blown shock wow impossible insane eureka', cat: 'smileys' },
     { emoji: '🤠', name: 'cowboy hat face yeehaw western sheriff texas cool', cat: 'smileys' },
-    { emoji: '🥳', name: 'partying face party celebration birthday congrats hooray festivity', cat: 'smileys' },
+    { emoji: '🥳', name: 'partying face party celebration birthday congrats hooray', cat: 'smileys' },
     { emoji: '😎', name: 'sunglasses cool confident slick boss swag awesome', cat: 'smileys' },
     { emoji: '🤓', name: 'nerd face glasses geek smart genius tech programmer', cat: 'smileys' },
     { emoji: '🧐', name: 'monocle detective inspect analyze classy curious examine', cat: 'smileys' },
@@ -772,17 +807,17 @@ const emojiCatalog = [
     { emoji: '😥', name: 'sad relieved face phew close call whew relief', cat: 'smileys' },
     { emoji: '😢', name: 'crying face tear sad emotional upset sorrow weep', cat: 'smileys' },
     { emoji: '😭', name: 'loudly crying face bawling heartbroken devastated sob scream', cat: 'smileys' },
-    { emoji: '😱', name: 'screaming fear scream shock horrified terror home alone scream', cat: 'smileys' },
+    { emoji: '😱', name: 'screaming fear scream shock horrified terror', cat: 'smileys' },
     { emoji: '😤', name: 'steam nose proud determined victory win angry focus', cat: 'smileys' },
     { emoji: '😡', name: 'enraged face angry mad furious pissed red wrath', cat: 'smileys' },
     { emoji: '😠', name: 'angry face mad grumpy irritated cross annoyed', cat: 'smileys' },
-    { emoji: '🤬', name: 'symbols mouth cursing swearing bleep angry rage profane', cat: 'smileys' },
+    { emoji: '🤬', name: 'symbols mouth cursing swearing bleep angry rage', cat: 'smileys' },
     { emoji: '😈', name: 'smiling face horns devil naughty mischief evil evil smile', cat: 'smileys' },
     { emoji: '💀', name: 'skull dead dying laugh funny skeleton rip bones', cat: 'smileys' },
     { emoji: '☠️', name: 'skull crossbones danger poison pirate lethal warning hazard', cat: 'smileys' },
     { emoji: '💩', name: 'pile of poo poop funny crap turd', cat: 'smileys' },
     { emoji: '👻', name: 'ghost spooky halloween spirit phantom boo', cat: 'smileys' },
-    { emoji: '🤖', name: 'robot bot AI tech automation automation artificial intelligence mechanical', cat: 'smileys' },
+    { emoji: '🤖', name: 'robot bot AI tech automation artificial intelligence', cat: 'smileys' },
 
     // Gestures & Hands
     { emoji: '👍', name: 'thumbs up ok like agree approve good yes correct nice done', cat: 'gestures' },
@@ -821,7 +856,7 @@ const emojiCatalog = [
     { emoji: '💅', name: 'nail polish sassy fab flawless careless manicure salon', cat: 'gestures' },
     { emoji: '🤳', name: 'selfie camera photo pose picture phone snapshot', cat: 'gestures' },
     { emoji: '💪', name: 'flexed biceps strong muscle strength gym workout flex fitness power', cat: 'gestures' },
-    { emoji: '🧠', name: 'brain smart think intelligence mind genius mental intellect intellect', cat: 'gestures' },
+    { emoji: '🧠', name: 'brain smart think intelligence mind genius mental intellect', cat: 'gestures' },
     { emoji: '👀', name: 'eyes look watching see peek suspicious observe witness glance spy', cat: 'gestures' },
 
     // Hearts & Affection
@@ -937,7 +972,7 @@ const emojiCatalog = [
     { emoji: '🍣', name: 'sushi japanese fish rice gourmet raw roll wasabi', cat: 'animals' },
     { emoji: '🍩', name: 'doughnut donut sweet dessert glazed snack pastry sugar bake', cat: 'animals' },
     { emoji: '🍦', name: 'soft ice cream dessert cold sweet summer treat dairy cone', cat: 'animals' },
-    { emoji: '🎂', name: 'birthday cake sweet celebration party party dessert candle festive', cat: 'animals' },
+    { emoji: '🎂', name: 'birthday cake sweet celebration party dessert candle festive', cat: 'animals' },
     { emoji: '🍫', name: 'chocolate bar sweet snack dark milk cocoa candy dessert', cat: 'animals' },
     { emoji: '🍿', name: 'popcorn movie snack cinema entertainment butter theater', cat: 'animals' },
     { emoji: '🍻', name: 'clinking beer mugs drink party cheers celebrate alcohol bar pub', cat: 'animals' },
@@ -991,33 +1026,95 @@ document.addEventListener("DOMContentLoaded", function() {
             closeReactionPickerModal();
             closeMessageInfoModal();
             closeImageLightbox();
+            toggleMobileSidebar(false);
+            toggleMobileSearch(false);
         }
     });
 
     const searchInput = document.getElementById('searchChatInput');
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
-            const query = e.target.value.toLowerCase().trim();
-            const items = document.querySelectorAll('.message-item');
-            items.forEach(item => {
-                const text = item.getAttribute('data-text') || '';
-                if (!query || text.includes(query)) {
-                    item.classList.remove('hidden');
-                } else {
-                    item.classList.add('hidden');
-                }
-            });
+            filterMessagesInDom(e.target.value);
         });
     }
 });
 
-// 🟢 Chat Input Emoji Picker Logic (WhatsApp/Instagram Style)
+// 🟢 Mobile Navigation & Search Helpers
+function toggleMobileSidebar(show) {
+    const sidebar = document.getElementById('chatSidebar');
+    if (!sidebar) return;
+    if (show) {
+        sidebar.classList.remove('hidden');
+        sidebar.classList.add('flex');
+    } else {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex');
+    }
+}
+
+function toggleMobileSearch(force = null) {
+    const tray = document.getElementById('mobileSearchTray');
+    if (!tray) return;
+    const isHidden = tray.classList.contains('hidden');
+    const shouldShow = force !== null ? force : isHidden;
+    if (shouldShow) {
+        tray.classList.remove('hidden');
+        const inp = document.getElementById('mobileSearchInput');
+        if (inp) inp.focus();
+    } else {
+        tray.classList.add('hidden');
+        filterMessagesInDom('');
+        const inp = document.getElementById('mobileSearchInput');
+        if (inp) inp.value = '';
+    }
+}
+
+function handleMobileSearch(val) {
+    filterMessagesInDom(val);
+}
+
+function filterMessagesInDom(query) {
+    const q = (query || '').toLowerCase().trim();
+    const items = document.querySelectorAll('.message-item');
+    items.forEach(item => {
+        const text = item.getAttribute('data-text') || '';
+        if (!q || text.includes(q)) {
+            item.classList.remove('hidden');
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+}
+
+function mentionMember(name) {
+    toggleMobileSidebar(false);
+    const input = document.getElementById('chatMessageInput');
+    if (input) {
+        input.value = (input.value ? input.value + ' ' : '') + '@' + name + ' ';
+        input.focus();
+    }
+}
+
+function scrollToBottom() {
+    const area = document.getElementById('chatMessagesScrollArea');
+    if (area) {
+        area.scrollTop = area.scrollHeight;
+    }
+}
+
+function parseTwemoji(el = document.body) {
+    if (typeof twemoji !== 'undefined') {
+        twemoji.parse(el, { folder: 'svg', ext: '.svg' });
+    }
+}
+
+// 🟢 Chat Input Emoji Picker Logic (WhatsApp Style)
 function renderChatEmojis(list) {
     const container = document.getElementById('emojiGridContainer');
     if (!container) return;
 
     if (!list || list.length === 0) {
-        container.innerHTML = `<div class="col-span-8 py-6 text-center text-xs text-slate-400 font-semibold">No matching emojis found</div>`;
+        container.innerHTML = `<div class="col-span-7 sm:col-span-8 py-6 text-center text-xs text-slate-400 font-semibold">No emojis found</div>`;
         return;
     }
 
@@ -1036,13 +1133,13 @@ function switchChatEmojiCategory(catKey) {
 
     // Update active tab styles
     document.querySelectorAll('.chat-cat-tab').forEach(tab => {
-        tab.classList.remove('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+        tab.classList.remove('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
         tab.classList.add('text-slate-600');
     });
     const activeTab = event?.currentTarget || document.querySelector(`.chat-cat-tab[onclick*="'${catKey}'"]`);
     if (activeTab) {
         activeTab.classList.remove('text-slate-600');
-        activeTab.classList.add('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+        activeTab.classList.add('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
     }
 
     const filtered = (catKey === 'all') 
@@ -1122,9 +1219,9 @@ function toggleLinkInput(show = null) {
 function handleChatFileSelect(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
-        // 50MB client-side validation
+        // 50MB client-side limit
         if (file.size > 52428800) {
-            alert('File size exceeds the 50MB limit. Please select a smaller file.');
+            alert('File size exceeds 50MB limit. Please select a smaller file.');
             input.value = '';
             clearSelectedAttachment();
             return;
@@ -1157,7 +1254,7 @@ function closeImageLightbox() {
     document.getElementById('lightboxImage').src = '';
 }
 
-// 🟢 Send Message (WhatsApp Universal Support)
+// 🟢 Send Message (WhatsApp Universal Flow)
 async function sendChatMessage(event) {
     event.preventDefault();
     const input = document.getElementById('chatMessageInput');
@@ -1170,7 +1267,6 @@ async function sendChatMessage(event) {
 
     if (!content && !hasMedia && !linkUrl) return;
 
-    // Loading state during file upload
     const origBtnHtml = sendBtn ? sendBtn.innerHTML : '';
     if (sendBtn) {
         sendBtn.disabled = true;
@@ -1179,7 +1275,6 @@ async function sendChatMessage(event) {
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
             </svg>
-            <span>Sending...</span>
         `;
     }
 
@@ -1214,7 +1309,7 @@ async function sendChatMessage(event) {
         }
     } catch (err) {
         console.error('Failed to send message:', err);
-        alert('An error occurred while uploading. Please check your network connection and try again.');
+        alert('An error occurred. Please check your network and try again.');
     } finally {
         if (sendBtn) {
             sendBtn.disabled = false;
@@ -1278,11 +1373,8 @@ function updateDeletedMessageBubble(id, isMe) {
 
     const innerCol = el.querySelector('.flex-col');
     if (innerCol) {
-        const metaRow = innerCol.querySelector('.flex.items-center');
-        const metaHtml = metaRow ? metaRow.outerHTML : '';
         innerCol.innerHTML = `
-            ${metaHtml}
-            <div class="px-3.5 py-1.5 rounded-2xl ${isMe ? 'rounded-tr-xs' : 'rounded-tl-xs'} bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+            <div class="px-3 py-1.5 rounded-xl ${isMe ? 'rounded-tr-none' : 'rounded-tl-none'} bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                 <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>${isMe ? 'You unsent this message' : 'This message was deleted'}</span>
             </div>
@@ -1315,13 +1407,13 @@ function switchReactionCategory(catKey) {
 
     // Update active tab styles
     document.querySelectorAll('.reaction-cat-tab').forEach(tab => {
-        tab.classList.remove('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+        tab.classList.remove('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
         tab.classList.add('text-slate-600');
     });
     const activeTab = event?.currentTarget || document.querySelector(`.reaction-cat-tab[onclick*="'${catKey}'"]`);
     if (activeTab) {
         activeTab.classList.remove('text-slate-600');
-        activeTab.classList.add('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+        activeTab.classList.add('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
     }
 
     renderReactionModalEmojis(catKey, query);
@@ -1378,7 +1470,7 @@ function buildReactionsHtml(reactions, isMe, messageId) {
         const names = grouped[emoji];
         const iReacted = reactions.some(r => r.emoji === emoji && r.user_id === currentUserId);
         const activeCls = iReacted
-            ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-300 text-indigo-700 font-black ring-1 ring-indigo-300/50 shadow-2xs'
+            ? 'bg-[#d9fdd3] border-[#008069] text-[#008069] font-black ring-1 ring-[#008069]/30 shadow-2xs'
             : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs';
 
         return `
@@ -1534,7 +1626,6 @@ window.addEventListener('focus', () => {
 });
 
 async function pollNewMessages() {
-    // Skip network polling when tab is minimized or in the background
     if (document.hidden) return;
 
     try {
@@ -1544,7 +1635,6 @@ async function pollNewMessages() {
         const data = await res.json();
 
         if (res.ok && data.success) {
-            // Render new incoming messages
             if (data.messages && data.messages.length > 0) {
                 data.messages.forEach(msg => {
                     if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
@@ -1556,7 +1646,6 @@ async function pollNewMessages() {
                 scrollToBottom();
             }
 
-            // Update reactions & status on existing messages in real-time
             if (data.updated_messages && data.updated_messages.length > 0) {
                 data.updated_messages.forEach(msg => {
                     updateMessageReactionsDom(msg.id, msg.reactions, msg.is_me);
@@ -1571,14 +1660,14 @@ async function pollNewMessages() {
     }
 }
 
-// 🟢 Render Message HTML (Compact, Snug WhatsApp/Instagram-style Bubble)
+// 🟢 Render Message HTML (Authentic WhatsApp Bubble)
 function renderMessageBubble(msg) {
     const container = document.getElementById('chatMessagesList');
     if (!container) return;
 
     const isMe = msg.user_id === currentUserId;
     const item = document.createElement('div');
-    item.className = `${isMe ? 'flex justify-end' : 'flex items-start gap-2'} message-item animate-in fade-in duration-100 group relative`;
+    item.className = `${isMe ? 'flex justify-end' : 'flex items-start gap-1.5'} message-item animate-in fade-in duration-100 group relative`;
     item.setAttribute('data-message-id', msg.id);
     item.setAttribute('data-text', (msg.content || '').toLowerCase());
 
@@ -1586,20 +1675,20 @@ function renderMessageBubble(msg) {
     if (msg.media_url && !msg.is_deleted) {
         if (msg.media_type === 'image') {
             mediaHtml = `
-                <div class="mb-1.5 rounded-xl overflow-hidden bg-black/5">
-                    <img src="${msg.media_url}" onclick="openImageLightbox('${msg.media_url}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                <div class="mb-1 rounded-lg overflow-hidden bg-black/5">
+                    <img src="${msg.media_url}" onclick="openImageLightbox('${msg.media_url}')" class="max-h-64 rounded-lg object-cover cursor-pointer hover:opacity-95 transition">
                 </div>`;
         } else if (msg.media_type === 'video') {
             mediaHtml = `
-                <div class="mb-1.5 rounded-xl overflow-hidden bg-black">
-                    <video controls class="max-h-60 rounded-xl">
+                <div class="mb-1 rounded-lg overflow-hidden bg-black">
+                    <video controls class="max-h-64 rounded-lg bg-black w-full">
                         <source src="${msg.media_url}">
                     </video>
                 </div>`;
         } else if (msg.media_type === 'audio') {
             mediaHtml = `
-                <div class="mb-1.5 rounded-xl p-2 ${isMe ? 'bg-indigo-800/60' : 'bg-slate-100'}">
-                    <audio controls class="w-full max-w-[260px] h-9">
+                <div class="mb-1 rounded-lg p-1.5 ${isMe ? 'bg-[#b6eeb0]/50' : 'bg-slate-100'}">
+                    <audio controls class="w-full max-w-[240px] sm:max-w-[280px] h-8">
                         <source src="${msg.media_url}">
                     </audio>
                 </div>`;
@@ -1608,17 +1697,17 @@ function renderMessageBubble(msg) {
             const ext = (msg.media_extension || 'FILE').toUpperCase();
             const size = msg.media_size_human || '';
             mediaHtml = `
-                <div class="mb-1.5 p-2.5 rounded-xl ${isMe ? 'bg-indigo-800/70 text-white' : 'bg-slate-50 border border-slate-200 text-slate-800'} flex items-center justify-between gap-3 max-w-xs">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-9 h-9 rounded-lg ${isMe ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'} flex flex-col items-center justify-center shrink-0">
-                            <span class="text-[9px] font-black tracking-tight leading-none">${ext}</span>
+                <div class="mb-1 p-2 rounded-lg ${isMe ? 'bg-[#c8f5c0]' : 'bg-slate-50 border border-slate-200'} text-[#111b21] flex items-center justify-between gap-2.5 max-w-xs">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-8 h-8 rounded-lg ${isMe ? 'bg-white/70 text-[#008069]' : 'bg-[#008069]/10 text-[#008069]'} font-black text-[9px] flex items-center justify-center shrink-0">
+                            ${ext}
                         </div>
                         <div class="min-w-0">
                             <p class="text-xs font-bold truncate">${fileName}</p>
-                            ${size ? `<span class="text-[10px] ${isMe ? 'text-indigo-200' : 'text-slate-400'}">${size}</span>` : ''}
+                            ${size ? `<span class="text-[10px] text-[#667781]">${size}</span>` : ''}
                         </div>
                     </div>
-                    <a href="${msg.media_url}" download="${fileName}" class="p-1.5 rounded-lg ${isMe ? 'hover:bg-white/20 text-white' : 'hover:bg-slate-200 text-indigo-600'} transition shrink-0" title="Download file">
+                    <a href="${msg.media_url}" download="${fileName}" class="p-1.5 rounded-lg hover:bg-black/10 text-[#008069] transition shrink-0" title="Download">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </a>
                 </div>`;
@@ -1628,8 +1717,8 @@ function renderMessageBubble(msg) {
     let linkHtml = '';
     if (msg.link_url && !msg.is_deleted) {
         linkHtml = `
-            <div class="mt-1 p-1.5 rounded-xl ${isMe ? 'bg-indigo-800/60' : 'bg-slate-50 border border-slate-100'}">
-                <a href="${msg.link_url}" target="_blank" class="text-xs ${isMe ? 'text-indigo-100 hover:text-white' : 'text-indigo-600 hover:underline'} font-semibold flex items-center gap-1 truncate">
+            <div class="mt-1 p-1.5 rounded-lg ${isMe ? 'bg-[#c8f5c0]/70' : 'bg-slate-50 border border-slate-150'}">
+                <a href="${msg.link_url}" target="_blank" class="text-xs text-[#008069] hover:underline font-semibold flex items-center gap-1 truncate">
                     <span class="truncate">${msg.link_url}</span>
                 </a>
             </div>`;
@@ -1639,12 +1728,12 @@ function renderMessageBubble(msg) {
     if (isMe && !msg.is_deleted) {
         if (msg.is_seen) {
             checkmarks = `
-                <button type="button" onclick="openMessageInfoModal(${msg.id})" class="hover:opacity-80 cursor-pointer text-sky-300 ml-0.5" title="Seen by ${msg.seen_count} members">
+                <button type="button" onclick="openMessageInfoModal(${msg.id})" class="hover:opacity-80 cursor-pointer text-[#53bdeb] ml-0.5" title="Seen by ${msg.seen_count} members">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
                 </button>`;
         } else {
             checkmarks = `
-                <svg class="w-3.5 h-3.5 text-indigo-300 ml-0.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>`;
+                <svg class="w-3.5 h-3.5 text-[#8696a0] ml-0.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>`;
         }
     }
 
@@ -1660,33 +1749,32 @@ function renderMessageBubble(msg) {
 
     if (isMe) {
         item.innerHTML = `
-            <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
+            <div class="flex flex-col items-end max-w-[88%] sm:max-w-[72%]">
                 ${msg.is_deleted ? `
-                    <div class="px-3.5 py-1.5 rounded-2xl rounded-tr-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                    <div class="px-3 py-1.5 rounded-xl rounded-tr-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                         <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                         <span>You unsent this message</span>
                     </div>
                 ` : `
-                    <div class="relative group/bubble w-fit rounded-2xl rounded-tr-xs px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-xs">
+                    <div class="relative group/bubble w-fit rounded-xl rounded-tr-none px-3 py-1.5 bg-[#d9fdd3] text-[#111b21] shadow-2xs border border-[#c1f3b8]">
                         ${mediaHtml}
-                        ${msg.content ? `<div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text">${msg.content}</div>` : ''}
+                        ${msg.content ? `<div class="text-[13px] sm:text-[14px] leading-snug break-words whitespace-pre-line select-text font-normal">${msg.content}</div>` : ''}
                         ${linkHtml}
-                        <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
+                        <div class="flex items-center justify-end gap-1 mt-0.5 text-[10px] text-[#667781] select-none">
                             <span>${msg.time}</span>
-                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-white transition p-0.5 text-indigo-200 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
-                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-slate-900 transition p-0.5 text-[#667781] opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                             </button>
                             ${checkmarks}
                         </div>
-                        <!-- WhatsApp Instant Floating Reaction Bar (Anchored Right) -->
                         <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 right-0 sm:right-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
-                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
-                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">👍</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">❤️</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😂</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😮</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😢')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😢</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">🙏</button>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More">+</button>
                             ${unsendBtn}
                         </div>
                     </div>
@@ -1698,40 +1786,39 @@ function renderMessageBubble(msg) {
         const initial = (msg.user_name || 'U').charAt(0).toUpperCase();
         item.innerHTML = `
             <div class="shrink-0 pt-0.5">
-                <div class="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+                <div class="w-7 h-7 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                     ${initial}
                 </div>
             </div>
-            <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
+            <div class="flex flex-col items-start max-w-[88%] sm:max-w-[72%]">
                 ${msg.is_deleted ? `
-                    <div class="px-3.5 py-1.5 rounded-2xl rounded-tl-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                    <div class="px-3 py-1.5 rounded-xl rounded-tl-none bg-[#e9edef] text-slate-500 text-xs italic border border-slate-200/60 flex items-center gap-1.5 select-none shadow-2xs">
                         <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                         <span>This message was deleted</span>
                     </div>
                 ` : `
-                    <div class="relative group/bubble w-fit rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/90 shadow-2xs">
-                        <div class="text-[11px] font-bold leading-tight mb-1 text-indigo-600 flex items-center gap-1">
+                    <div class="relative group/bubble w-fit rounded-xl rounded-tl-none px-3 py-1.5 bg-white text-[#111b21] shadow-2xs border border-slate-200/70">
+                        <div class="text-[11px] font-bold leading-tight mb-0.5 text-[#008069] flex items-center gap-1">
                             <span>${msg.user_name}</span>
-                            ${msg.is_tl ? '<span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-600">TL</span>' : ''}
+                            ${msg.is_tl ? '<span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">TL</span>' : ''}
                         </div>
                         ${mediaHtml}
-                        ${msg.content ? `<div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text text-slate-800">${msg.content}</div>` : ''}
+                        ${msg.content ? `<div class="text-[13px] sm:text-[14px] leading-snug break-words whitespace-pre-line select-text text-[#111b21]">${msg.content}</div>` : ''}
                         ${linkHtml}
-                        <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
+                        <div class="flex items-center justify-end gap-1 mt-0.5 text-[10px] text-[#667781] select-none">
                             <span>${msg.time}</span>
-                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-indigo-600 transition p-0.5 text-slate-400 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
-                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-slate-900 transition p-0.5 text-[#667781] opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                             </button>
                         </div>
-                        <!-- WhatsApp Instant Floating Reaction Bar (Anchored Left) -->
                         <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-7 left-0 sm:left-1 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-30 text-slate-700 select-none animate-in zoom-in-90 duration-100">
-                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
-                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">👍</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">❤️</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😂</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😮</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😢')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">😢</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-125 active:scale-95 transition-transform text-sm sm:text-base p-0.5 cursor-pointer leading-none">🙏</button>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More">+</button>
                             ${deleteBtn}
                         </div>
                     </div>
