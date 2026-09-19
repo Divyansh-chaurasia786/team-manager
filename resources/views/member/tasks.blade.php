@@ -34,32 +34,35 @@
         </div>
     </div>
 
-    <!-- Filter Pills & Search Bar (Mobile Optimized Horizontal Strip) -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <!-- Filter Tabs (Smooth Horizontal Scroll) -->
-        <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 sm:pb-0" id="deliverableTabs">
-            <button type="button" onclick="setDeliverableFilter('all')" data-filter="all" class="filter-tab-btn active px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-xs shrink-0 cursor-pointer">
+    <!-- Filter Pills & Search Bar (Fits 100% of Mobile Screens without Overflow) -->
+    <div class="space-y-2 bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <!-- 4-Column Segmented Control: All, Action Needed, In Review, Completed -->
+        <div class="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-xl w-full text-center" id="deliverableTabs">
+            <button type="button" onclick="setDeliverableFilter('all')" data-filter="all" class="filter-tab-btn active py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-slate-900 text-white shadow-2xs cursor-pointer truncate">
                 <span>All</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-700 text-slate-200">{{ $tasks->count() }}</span>
+                <span class="px-1 py-0.2 rounded-full text-[9px] sm:text-[10px] bg-slate-700 text-slate-200">{{ $tasks->count() }}</span>
             </button>
-            <button type="button" onclick="setDeliverableFilter('active')" data-filter="active" class="filter-tab-btn px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">
-                <span>Action Needed</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-extrabold">{{ $pendingCount }}</span>
+            <button type="button" onclick="setDeliverableFilter('active')" data-filter="active" class="filter-tab-btn py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-transparent hover:bg-slate-200 text-slate-700 cursor-pointer truncate">
+                <span class="sm:hidden">Action</span>
+                <span class="hidden sm:inline">Action Needed</span>
+                <span class="px-1 py-0.2 rounded-full text-[9px] sm:text-[10px] bg-amber-100 text-amber-800 font-extrabold">{{ $pendingCount }}</span>
             </button>
-            <button type="button" onclick="setDeliverableFilter('submitted')" data-filter="submitted" class="filter-tab-btn px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">
-                <span>In Review</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-800 font-extrabold">{{ $submittedCount }}</span>
+            <button type="button" onclick="setDeliverableFilter('submitted')" data-filter="submitted" class="filter-tab-btn py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-transparent hover:bg-slate-200 text-slate-700 cursor-pointer truncate">
+                <span class="sm:hidden">Review</span>
+                <span class="hidden sm:inline">In Review</span>
+                <span class="px-1 py-0.2 rounded-full text-[9px] sm:text-[10px] bg-purple-100 text-purple-800 font-extrabold">{{ $submittedCount }}</span>
             </button>
-            <button type="button" onclick="setDeliverableFilter('completed')" data-filter="completed" class="filter-tab-btn px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer">
-                <span>Completed</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">{{ $completedCount }}</span>
+            <button type="button" onclick="setDeliverableFilter('completed')" data-filter="completed" class="filter-tab-btn py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-transparent hover:bg-slate-200 text-slate-700 cursor-pointer truncate">
+                <span class="sm:hidden">Done</span>
+                <span class="hidden sm:inline">Completed</span>
+                <span class="px-1 py-0.2 rounded-full text-[9px] sm:text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">{{ $completedCount }}</span>
             </button>
         </div>
 
         <!-- Search Input -->
-        <div class="relative w-full sm:w-60">
-            <input type="text" id="deliverablesSearch" oninput="filterDeliverablesCards()" placeholder="Search tasks..." class="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:outline-none transition">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+        <div class="relative w-full">
+            <input type="text" id="deliverablesSearch" oninput="filterDeliverablesCards()" placeholder="Search tasks..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:outline-none transition">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
         </div>
     </div>
 
@@ -428,9 +431,9 @@ function setDeliverableFilter(category) {
     currentFilter = category;
     document.querySelectorAll('.filter-tab-btn').forEach(btn => {
         if (btn.getAttribute('data-filter') === category) {
-            btn.className = 'filter-tab-btn active px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-xs shrink-0 cursor-pointer';
+            btn.className = 'filter-tab-btn active py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-slate-900 text-white shadow-2xs cursor-pointer truncate';
         } else {
-            btn.className = 'filter-tab-btn px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 cursor-pointer';
+            btn.className = 'filter-tab-btn py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-transparent hover:bg-slate-200 text-slate-700 cursor-pointer truncate';
         }
     });
     filterDeliverablesCards();
