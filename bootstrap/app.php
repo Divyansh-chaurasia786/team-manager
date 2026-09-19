@@ -21,5 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Session refreshed. Please retry.'], 419);
+            }
+            return redirect()->back()->with('warning', 'Your page session was refreshed. Please try again.');
+        });
     })->create();

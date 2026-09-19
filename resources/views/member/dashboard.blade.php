@@ -2,7 +2,7 @@
 @section('title', 'Staff Dashboard')
 @section('content')
 
-<div class="space-y-6">
+<div class="space-y-6 pb-28 lg:pb-16">
 
     <!-- 🌟 EXECUTIVE COMMAND HERO (Exact EcoFone HRMS Design) -->
     <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 border border-indigo-500/20 shadow-xl">

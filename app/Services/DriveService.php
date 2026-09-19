@@ -52,8 +52,11 @@ class DriveService
                     Log::warning('Drive token auto-refresh failed: ' . $e->getMessage());
                 }
             }
-        } elseif (file_exists(base_path('credentials.json'))) {
-            $client->setAuthConfig(base_path('credentials.json'));
+        } else {
+            $sa = \App\Http\Controllers\GoogleAuthController::getServiceAccountData();
+            if ($sa) {
+                $client->setAuthConfig($sa);
+            }
         }
 
         $this->drive = new Drive($client);

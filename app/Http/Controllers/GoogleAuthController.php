@@ -17,6 +17,34 @@ class GoogleAuthController extends Controller
         return storage_path('app/google_drive_token.json');
     }
 
+    public static function getServiceAccountData(): ?array
+    {
+        $envJson = env('GOOGLE_SERVICE_ACCOUNT_JSON');
+        if (!empty($envJson)) {
+            $data = json_decode($envJson, true);
+            if (is_array($data) && !empty($data['client_email'])) {
+                return $data;
+            }
+            $decoded = base64_decode($envJson, true);
+            if ($decoded) {
+                $data = json_decode($decoded, true);
+                if (is_array($data) && !empty($data['client_email'])) {
+                    return $data;
+                }
+            }
+        }
+
+        $credPath = base_path('credentials.json');
+        if (file_exists($credPath)) {
+            $data = json_decode(file_get_contents($credPath), true);
+            if (is_array($data) && ($data['type'] ?? '') === 'service_account') {
+                return $data;
+            }
+        }
+
+        return null;
+    }
+
     public static function isConnected(): bool
     {
         $path = self::getTokenPath();
@@ -45,6 +73,16 @@ class GoogleAuthController extends Controller
                     'type'  => 'OAuth Account',
                 ];
             }
+        }
+
+        $sa = self::getServiceAccountData();
+        if ($sa) {
+            return [
+                'email' => $sa['client_email'],
+                'name'  => 'EcoFone Drive Bot (' . ($sa['project_id'] ?? 'Google Cloud') . ')',
+                'type'  => 'Service Account',
+                'is_service_account' => true,
+            ];
         }
 
         return null;

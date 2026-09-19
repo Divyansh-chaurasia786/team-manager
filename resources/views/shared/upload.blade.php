@@ -2,7 +2,7 @@
 @section('title', 'Google Drive Cloud')
 @section('content')
 
-<div class="space-y-6">
+<div class="space-y-6 pb-28 lg:pb-16" x-data="{ showDriveSetupHelp: false }">
 
     <!-- Header Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -81,10 +81,12 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-black text-slate-900">Connect Your Google Drive (1-Click)</h3>
-                    <p class="text-xs text-slate-500 mt-0.5 max-w-xl leading-relaxed">
-                        Sign in with your Google account to automatically create and sync all folders and files directly in your Drive with zero manual setup.
-                    </p>
-                </div>
+                @if(empty(config('services.google.client_id')) && empty(env('GOOGLE_SERVICE_ACCOUNT_JSON')))
+                    <div class="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200/80 flex items-center gap-1.5 font-medium">
+                        <i data-lucide="info" class="w-4 h-4 text-amber-600 shrink-0"></i>
+                        <span><strong>Cloud Note:</strong> On Render, set <code class="bg-white px-1 rounded font-mono text-[10px]">GOOGLE_SERVICE_ACCOUNT_JSON</code> or <code class="bg-white px-1 rounded font-mono text-[10px]">GOOGLE_CLIENT_ID</code> in Environment Variables.</span>
+                    </div>
+                @endif
             </div>
 
             <a href="{{ route('google.connect') }}" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-black transition shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer">
