@@ -158,6 +158,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/google/connect', [\App\Http\Controllers\GoogleAuthController::class, 'connect'])->name('google.connect');
     Route::get('/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
     Route::post('/google/disconnect', [\App\Http\Controllers\GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
+    Route::post('/google/configure', [\App\Http\Controllers\GoogleAuthController::class, 'configureCredentials'])->name('google.configure');
 
     // Force Password Change (First login security)
     Route::get('/password/force-change', [AuthController::class, 'showForceChangePassword'])->name('password.force_change');

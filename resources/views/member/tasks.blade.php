@@ -75,30 +75,23 @@
                             <span class="font-bold text-slate-700">{{ $task->deadline ? $task->deadline->format('d M Y, h:i A') : 'None' }}</span>
                         </div>
 
-                        <!-- Active Employee Countdown or Stopped Indicator -->
+                        <!-- 1. Active Employee Countdown (Only when in progress) -->
                         @if($task->status === 'pending' || $task->status === 'in-progress')
-                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-indigo-50/90 border border-indigo-200 text-indigo-800 font-bold employee-timer-container" data-task-id="{{ $task->id }}" data-deadline="{{ $task->deadline?->toISOString() }}">
+                            <div class="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-xl bg-indigo-50/90 border border-indigo-200 text-indigo-800 font-bold employee-timer-container" data-task-id="{{ $task->id }}" data-deadline="{{ $task->deadline?->toISOString() }}">
                                 <span class="flex items-center gap-1.5">
                                     <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                                     <span>Time Left:</span>
                                 </span>
                                 <span class="font-mono text-xs font-black employee-countdown-val">{{ $task->due_label }}</span>
                             </div>
-                        @else
-                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
-                                <span class="flex items-center gap-1">
-                                    <span>⏹️ Employee Timer:</span>
-                                </span>
-                                <span class="text-slate-800 font-bold">Stopped at Submission</span>
-                            </div>
                         @endif
 
-                        <!-- Submission Timestamp with Date & Time -->
+                        <!-- 2. Delivered Timestamp (When submitted or completed) -->
                         @if($task->submitted_at)
-                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-semibold">
+                            <div class="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-semibold">
                                 <span class="flex items-center gap-1.5 font-bold text-indigo-700">
-                                    <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
-                                    <span>Submitted to TL:</span>
+                                    <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                    <span>Delivered:</span>
                                 </span>
                                 <span class="font-bold font-mono text-[11px] text-indigo-950">{{ $task->submitted_at->format('d M Y, h:i A') }}</span>
                             </div>
@@ -271,28 +264,24 @@
                                         </div>
                                     @endif
 
-                                    <!-- Employee Timer (Active Countdown or Stopped) -->
-                                    @if($task->status === 'pending' || $task->status === 'in-progress')
-                                        <div class="employee-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-deadline="{{ $task->deadline?->toISOString() }}">
+                                    <!-- 1. Active Employee Countdown (Only when in progress) -->
+                                    @if(in_array($task->status, ['pending', 'in-progress']))
+                                        <div class="employee-timer-container inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-deadline="{{ $task->deadline?->toISOString() }}">
                                             <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
                                             <span>Time Left:</span>
                                             <span class="font-mono font-black employee-countdown-val">{{ $task->due_label }}</span>
                                         </div>
-                                    @else
-                                        <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold">
-                                            <span>⏹️ Employee Timer Stopped</span>
-                                        </div>
                                     @endif
 
-                                    <!-- Submission Timestamp with Date & Time -->
+                                    <!-- 2. Delivered Timestamp (When submitted or completed) -->
                                     @if($task->submitted_at)
-                                        <div class="text-[11px] text-indigo-900 font-semibold flex items-center gap-1.5">
-                                            <i data-lucide="upload" class="w-3 h-3 text-indigo-600 shrink-0"></i>
-                                            <span>Submitted: <strong class="font-mono">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
+                                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold">
+                                            <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                                            <span>Delivered: <strong class="font-mono text-indigo-950 font-bold">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
                                         </div>
                                     @endif
 
-                                    <!-- TL Review Timer / Timestamp -->
+                                    <!-- 3. TL Review Pending Timer (When awaiting review) -->
                                     @if($task->status === 'submitted')
                                         @php
                                             $dtSubAt = $task->submitted_at ?? $task->updated_at;
@@ -302,19 +291,20 @@
                                             $dtS = $dtElapsedSecs % 60;
                                             $dtServerElapsed = sprintf('%02dh %02dm %02ds', $dtH, $dtM, $dtS);
                                         @endphp
-                                        <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-800 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-submitted-at="{{ ($task->submitted_at ?? $task->updated_at ?? now())->toISOString() }}">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
-                                            <span>Awaiting TL Review:</span>
-                                            <span class="font-mono font-black text-purple-900 tl-review-timer-val">{{ $dtServerElapsed }}</span>
+                                        <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 text-[11px] font-bold" data-task-id="{{ $task->id }}" data-submitted-at="{{ ($task->submitted_at ?? $task->updated_at ?? now())->toISOString() }}">
+                                            <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
+                                            <span>TL Review Pending:</span>
+                                            <span class="font-mono font-black text-purple-950 tl-review-timer-val">{{ $dtServerElapsed }}</span>
                                         </div>
                                     @elseif($task->status === 'completed')
-                                        <div class="text-[11px] text-emerald-900 font-semibold flex items-center gap-1.5">
-                                            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-600 shrink-0"></i>
-                                            <span>Reviewed by TL: <strong class="font-mono">{{ $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : ($task->updated_at ? $task->updated_at->format('d M Y, h:i A') : 'Approved') }}</strong></span>
+                                        <!-- 4. Reviewed Timestamp (When completed) -->
+                                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] font-semibold">
+                                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                                            <span>Reviewed: <strong class="font-mono text-emerald-950 font-bold">{{ $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : ($task->updated_at ? $task->updated_at->format('d M Y, h:i A') : 'Approved') }}</strong></span>
+                                            @if($task->review_duration)
+                                                <span class="text-[10px] text-emerald-600 font-bold">({{ $task->review_duration }})</span>
+                                            @endif
                                         </div>
-                                        @if($task->review_duration)
-                                            <div class="text-[10px] text-emerald-700 pl-4.5 font-medium">Turnaround: {{ $task->review_duration }}</div>
-                                        @endif
                                     @endif
                                 </div>
                             </td>
@@ -555,21 +545,17 @@ async function submitDeliverableAjax(event) {
             const mobileLifecycle = document.querySelector(`.task-lifecycle-mobile-${taskId}`);
             if (mobileLifecycle) {
                 mobileLifecycle.innerHTML = `
-                    <div class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
-                        <span>⏹️ Employee Timer:</span>
-                        <span class="text-slate-800 font-bold">Stopped at Submission</span>
-                    </div>
-                    <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-semibold">
+                    <div class="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-semibold">
                         <span class="flex items-center gap-1.5 font-bold text-indigo-700">
-                            <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
-                            <span>Submitted to TL:</span>
+                            <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            <span>Delivered:</span>
                         </span>
                         <span class="font-bold font-mono text-[11px] text-indigo-950">${submissionFormatted}</span>
                     </div>
-                    <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold tl-review-timer-container" data-task-id="${taskId}" data-submitted-at="${submittedIso}">
+                    <div class="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold tl-review-timer-container" data-task-id="${taskId}" data-submitted-at="${submittedIso}">
                         <span class="flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
-                            <span>Awaiting TL Review:</span>
+                            <span>TL Review Pending:</span>
                         </span>
                         <span class="font-mono text-xs font-black text-purple-900 tl-review-timer-val">00h 00m 01s</span>
                     </div>
@@ -580,16 +566,13 @@ async function submitDeliverableAjax(event) {
             const desktopDeadlineContainer = document.querySelector(`.task-deadline-desktop-${taskId}`);
             if (desktopDeadlineContainer) {
                 desktopDeadlineContainer.innerHTML = `
-                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold">
-                        <span>⏹️ Employee Timer Stopped</span>
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold">
+                        <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                        <span>Delivered: <strong class="font-mono text-indigo-950 font-bold">${submissionFormatted}</strong></span>
                     </div>
-                    <div class="text-[11px] text-indigo-900 font-semibold flex items-center gap-1.5">
-                        <i data-lucide="upload" class="w-3 h-3 text-indigo-600 shrink-0"></i>
-                        <span>Submitted: <strong class="font-mono">${submissionFormatted}</strong></span>
-                    </div>
-                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-800 text-[10px] font-bold" data-task-id="${taskId}" data-submitted-at="${submittedIso}">
-                        <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
-                        <span>Awaiting TL Review:</span>
+                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 text-[11px] font-bold" data-task-id="${taskId}" data-submitted-at="${submittedIso}">
+                        <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
+                        <span>TL Review Pending:</span>
                         <span class="font-mono font-black text-purple-900 tl-review-timer-val">00h 00m 01s</span>
                     </div>
                 `;

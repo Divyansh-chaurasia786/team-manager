@@ -82,12 +82,12 @@
                     <a href="{{ route('thoughts.index', ['group' => 'team']) }}" 
                        class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition {{ $groupType === 'team' ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-white/60' }}">
                         <i data-lucide="lock" class="w-3.5 h-3.5 {{ $groupType === 'team' ? 'text-indigo-600' : 'text-slate-400' }}"></i>
-                        <span class="truncate">Private 🔒</span>
+                        <span class="truncate">Private</span>
                     </a>
                 @else
                     <div class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-slate-200/50 cursor-not-allowed" title="Private team chat">
                         <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                        <span class="truncate">Private 🔒</span>
+                        <span class="truncate">Private</span>
                     </div>
                 @endif
 
@@ -191,16 +191,8 @@
             <!-- Scrollable Messages Feed -->
             <div id="chatMessagesScrollArea" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 scroll-smooth">
                 
-                <!-- Discreet Privacy Pill (Clean, No Mention of HR/CEO) -->
-                <div class="flex justify-center my-1">
-                    <span class="px-3 py-1 rounded-full bg-white border border-slate-200/80 text-slate-500 text-[10px] font-bold flex items-center gap-1.5 shadow-2xs">
-                        <i data-lucide="lock" class="w-3 h-3 text-slate-400"></i>
-                        <span>{{ $groupType === 'team' ? 'Private' : 'Company Coordination Channel' }}</span>
-                    </span>
-                </div>
-
                 <!-- Messages List -->
-                <div id="chatMessagesList" class="space-y-2.5">
+                <div id="chatMessagesList" class="space-y-3">
                     @php 
                         $lastDate = null; 
                         $userColors = ['#4f46e5', '#0284c7', '#059669', '#d97706', '#7c3aed', '#db2777'];
@@ -214,6 +206,10 @@
                             $senderColor = $userColors[$colorIndex];
                             $seenBy = $thought->seen_by ?: [];
                             $reactions = $thought->reactions ?: [];
+                            $groupedReactions = [];
+                            foreach($reactions as $r) {
+                                $groupedReactions[$r['emoji']][] = $r['user_name'];
+                            }
                         @endphp
 
                         @if($lastDate !== $msgDate)
@@ -225,127 +221,158 @@
                             @php $lastDate = $msgDate; @endphp
                         @endif
 
-                        <!-- Message Item (Compact, Snug Bubble) -->
-                        <div class="flex {{ $isMe ? 'justify-end' : 'justify-start' }} message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
-                            
-                            <!-- Quick Emoji Reaction Bar on Hover -->
-                            @unless($thought->is_deleted)
-                                <div class="hidden group-hover:flex absolute -top-3.5 {{ $isMe ? 'right-2' : 'left-2' }} bg-white rounded-full shadow-md border border-slate-200 px-1.5 py-0.5 items-center gap-1 z-20 animate-in zoom-in-95 duration-75">
-                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
-                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
-                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
-                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😮</button>
-                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">🙏</button>
-                                </div>
-                            @endunless
-
-                            <!-- Snug Message Bubble (Tightly wraps content, never a giant wide box) -->
-                            <div class="relative w-fit max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2 shadow-2xs {{ $thought->is_deleted ? 'bg-slate-100 text-slate-500 italic border border-slate-200 text-xs' : ($isMe ? 'bg-indigo-600 text-white rounded-tr-xs' : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs') }}">
-                                
-                                @if($thought->is_deleted)
-                                    <div class="flex items-center gap-1.5 py-0.5 text-xs">
-                                        <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
-                                        <span>{{ $isMe ? 'You unsent this message' : 'This message was deleted' }}</span>
-                                    </div>
-                                @else
-                                    <!-- Sender Name (For teammates) -->
-                                    @if(!$isMe)
-                                        <div class="text-[11px] font-bold leading-tight mb-1" style="color: {{ $senderColor }};">
-                                            {{ $thought->user?->name ?? 'Member' }}
-                                            @if($thought->user?->isTL())
-                                                <span class="text-[9px] font-extrabold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded ml-1 border border-indigo-100">TL</span>
-                                            @endif
-                                        </div>
-                                    @endif
-
-                                    <!-- Media Preview -->
-                                    @if($thought->media_path || $thought->drive_url)
-                                        @php
-                                            $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url;
-                                        @endphp
-                                        <div class="my-1.5 rounded-xl overflow-hidden bg-black/5">
-                                            @if($thought->media_type === 'image')
-                                                <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
-                                            @elseif($thought->media_type === 'video')
-                                                <video controls class="max-h-60 rounded-xl bg-black">
-                                                    <source src="{{ $mediaSrc }}">
-                                                </video>
-                                            @endif
-                                            @if(auth()->user()->isTL() && !$thought->hasDriveSync() && $thought->media_path)
-                                                <form method="POST" action="{{ route('thoughts.drive.upload', $thought) }}" class="m-1">
-                                                    @csrf
-                                                    <button type="submit" class="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded shadow-2xs cursor-pointer">
-                                                        Sync to Drive
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        </div>
-                                    @endif
-
-                                    <!-- Message Text (Hugs tightly, no wide blank padding) -->
-                                    @if(!empty($thought->content))
-                                        <div class="message-text text-[13px] sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
-                                            {{ $thought->content }}
-                                        </div>
-                                    @endif
-
-                                    <!-- Attached URL -->
-                                    @if(!empty($thought->link_url))
-                                        <div class="mt-1 p-2 rounded-xl {{ $isMe ? 'bg-indigo-700/50' : 'bg-slate-50 border border-slate-100' }}">
-                                            <a href="{{ $thought->link_url }}" target="_blank" class="text-xs {{ $isMe ? 'text-indigo-100 hover:text-white' : 'text-indigo-600 hover:underline' }} font-semibold flex items-center gap-1.5 truncate">
-                                                <i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i>
-                                                <span class="truncate">{{ $thought->link_url }}</span>
-                                            </a>
-                                        </div>
-                                    @endif
-
-                                    <!-- Reaction Chips -->
-                                    @if(count($reactions) > 0)
-                                        <div class="flex flex-wrap gap-1 mt-1.5">
-                                            @php
-                                                $groupedReactions = [];
-                                                foreach($reactions as $r) {
-                                                    $groupedReactions[$r['emoji']][] = $r['user_name'];
-                                                }
-                                            @endphp
-                                            @foreach($groupedReactions as $emoji => $names)
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full {{ $isMe ? 'bg-indigo-700/80 text-white' : 'bg-slate-50 text-slate-700 border border-slate-200' }} text-[11px] shadow-2xs cursor-pointer" title="{{ implode(', ', $names) }}">
-                                                    <span>{{ $emoji }}</span>
-                                                    <span class="font-bold">{{ count($names) }}</span>
-                                                </button>
-                                            @endforeach
-                                        </div>
-                                    @endif
-
-                                    <!-- Timestamp & Status Dock -->
-                                    <div class="flex items-center justify-end gap-1 mt-1 {{ $isMe ? 'text-indigo-200' : 'text-slate-400' }} text-[10px] select-none leading-none">
+                        @if($isMe)
+                            <!-- Outgoing Message (Right aligned, snug bubble) -->
+                            <div class="flex justify-end message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
+                                <div class="flex flex-col items-end min-w-0 max-w-[85%] sm:max-w-[70%]">
+                                    <div class="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-slate-400 font-medium select-none">
                                         <span>{{ $thought->created_at->format('h:i A') }}</span>
-                                        @if($isMe)
-                                            @if(count($seenBy) > 0)
-                                                <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer ml-0.5" title="Seen by {{ count($seenBy) }} members">
-                                                    <svg class="w-3.5 h-3.5 text-sky-300" viewBox="0 0 16 15" fill="none">
-                                                        <path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/>
-                                                    </svg>
-                                                </button>
-                                            @else
-                                                <svg class="w-3.5 h-3.5 text-indigo-300 ml-0.5" viewBox="0 0 16 15" fill="none">
-                                                    <path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/>
-                                                </svg>
-                                            @endif
-                                        @endif
-
-                                        @if($thought->isUnsendableBy(auth()->user()))
-                                            <button type="button" onclick="unsendMessage({{ $thought->id }})" class="hover:text-rose-400 transition ml-1 font-bold cursor-pointer" title="Unsend (24h)">✕</button>
-                                        @endif
-
-                                        @if(auth()->user()->isTL() && !$isMe)
-                                            <button type="button" onclick="deleteMessage({{ $thought->id }})" class="hover:text-rose-500 transition ml-1 font-bold cursor-pointer" title="Delete">✕</button>
+                                        @if(count($seenBy) > 0)
+                                            <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer text-indigo-600" title="Seen by {{ count($seenBy) }} members">
+                                                <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
+                                            </button>
+                                        @else
+                                            <svg class="w-3.5 h-3.5 text-slate-300" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
                                         @endif
                                     </div>
-                                @endif
 
+                                    @if($thought->is_deleted)
+                                        <div class="px-3.5 py-1.5 rounded-2xl rounded-tr-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                                            <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
+                                            <span>You unsent this message</span>
+                                        </div>
+                                    @else
+                                        <div class="relative group/bubble inline-block rounded-2xl rounded-tr-xs px-3.5 py-2 bg-indigo-600 text-white shadow-xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                                            @if($thought->media_path || $thought->drive_url)
+                                                @php $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; @endphp
+                                                <div class="mb-1.5 rounded-xl overflow-hidden bg-black/10">
+                                                    @if($thought->media_type === 'image')
+                                                        <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                    @elseif($thought->media_type === 'video')
+                                                        <video controls class="max-h-60 rounded-xl bg-black">
+                                                            <source src="{{ $mediaSrc }}">
+                                                        </video>
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            @if(!empty($thought->content))
+                                                {{ $thought->content }}
+                                            @endif
+
+                                            @if(!empty($thought->link_url))
+                                                <div class="mt-1 p-2 rounded-xl bg-indigo-700/50">
+                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-100 hover:text-white font-semibold flex items-center gap-1.5 truncate">
+                                                        <i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i>
+                                                        <span class="truncate">{{ $thought->link_url }}</span>
+                                                    </a>
+                                                </div>
+                                            @endif
+
+                                            <!-- Hover Actions Bar -->
+                                            <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 left-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                                                @if($thought->isUnsendableBy(auth()->user()))
+                                                    <button type="button" onclick="unsendMessage({{ $thought->id }})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Unsend">✕</button>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        @if(count($reactions) > 0)
+                                            <div class="flex flex-wrap gap-1 mt-1 justify-end">
+                                                @foreach($groupedReactions as $emoji => $names)
+                                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] cursor-pointer" title="{{ implode(', ', $names) }}">
+                                                        <span>{{ $emoji }}</span>
+                                                        <span class="font-bold text-[10px]">{{ count($names) }}</span>
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <!-- Incoming Teammate Message (Left aligned with avatar, snug bubble) -->
+                            <div class="flex items-start gap-2.5 message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
+                                <div class="shrink-0 pt-0.5">
+                                    @if($thought->user?->avatar_url)
+                                        <img src="{{ $thought->user->avatar_url }}" alt="{{ $thought->user->name }}" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200">
+                                    @else
+                                        <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-2xs" style="background-color: {{ $senderColor }};">
+                                            {{ strtoupper(substr($thought->user?->name ?? 'U', 0, 1)) }}
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="flex flex-col items-start min-w-0 max-w-[85%] sm:max-w-[70%]">
+                                    <div class="flex items-center gap-1.5 mb-1 px-1 text-xs">
+                                        <span class="font-bold text-slate-800 truncate">{{ $thought->user?->name ?? 'Member' }}</span>
+                                        @if($thought->user?->isTL())
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-600">TL</span>
+                                        @endif
+                                        <span class="text-[10px] text-slate-400 font-medium">{{ $thought->created_at->format('h:i A') }}</span>
+                                    </div>
+
+                                    @if($thought->is_deleted)
+                                        <div class="px-3.5 py-1.5 rounded-2xl rounded-tl-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                                            <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
+                                            <span>This message was deleted</span>
+                                        </div>
+                                    @else
+                                        <div class="relative group/bubble inline-block rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/80 shadow-2xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                                            @if($thought->media_path || $thought->drive_url)
+                                                @php $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; @endphp
+                                                <div class="mb-1.5 rounded-xl overflow-hidden bg-black/5">
+                                                    @if($thought->media_type === 'image')
+                                                        <img src="{{ $mediaSrc }}" alt="Media" onclick="openImageLightbox('{{ $mediaSrc }}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
+                                                    @elseif($thought->media_type === 'video')
+                                                        <video controls class="max-h-60 rounded-xl bg-black">
+                                                            <source src="{{ $mediaSrc }}">
+                                                        </video>
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            @if(!empty($thought->content))
+                                                {{ $thought->content }}
+                                            @endif
+
+                                            @if(!empty($thought->link_url))
+                                                <div class="mt-1 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-600 hover:underline font-semibold flex items-center gap-1.5 truncate">
+                                                        <i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i>
+                                                        <span class="truncate">{{ $thought->link_url }}</span>
+                                                    </a>
+                                                </div>
+                                            @endif
+
+                                            <!-- Hover Actions Bar -->
+                                            <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 right-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                                                @if(auth()->user()->isTL())
+                                                    <button type="button" onclick="deleteMessage({{ $thought->id }})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Delete">✕</button>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        @if(count($reactions) > 0)
+                                            <div class="flex flex-wrap gap-1 mt-1">
+                                                @foreach($groupedReactions as $emoji => $names)
+                                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] cursor-pointer" title="{{ implode(', ', $names) }}">
+                                                        <span>{{ $emoji }}</span>
+                                                        <span class="font-bold text-[10px]">{{ count($names) }}</span>
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     @endforeach
                 </div>
 
@@ -771,11 +798,13 @@ function updateDeletedMessageBubble(id, isMe) {
     const el = document.querySelector(`[data-message-id="${id}"]`);
     if (!el) return;
 
-    const innerBubble = el.querySelector('.rounded-2xl');
-    if (innerBubble) {
-        innerBubble.className = 'relative w-fit max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 py-1.5 shadow-2xs bg-slate-100 text-slate-500 italic border border-slate-200 text-xs';
-        innerBubble.innerHTML = `
-            <div class="flex items-center gap-1.5 py-0.5 text-xs">
+    const innerCol = el.querySelector('.flex-col');
+    if (innerCol) {
+        const metaRow = innerCol.querySelector('.flex.items-center');
+        const metaHtml = metaRow ? metaRow.outerHTML : '';
+        innerCol.innerHTML = `
+            ${metaHtml}
+            <div class="px-3.5 py-1.5 rounded-2xl ${isMe ? 'rounded-tr-xs' : 'rounded-tl-xs'} bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
                 <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>${isMe ? 'You unsent this message' : 'This message was deleted'}</span>
             </div>
@@ -940,7 +969,7 @@ function renderMessageBubble(msg) {
 
     const isMe = msg.user_id === currentUserId;
     const item = document.createElement('div');
-    item.className = `flex ${isMe ? 'justify-end' : 'justify-start'} message-item animate-in fade-in duration-100 group relative`;
+    item.className = `${isMe ? 'flex justify-end' : 'flex items-start gap-2.5'} message-item animate-in fade-in duration-100 group relative`;
     item.setAttribute('data-message-id', msg.id);
     item.setAttribute('data-text', (msg.content || '').toLowerCase());
 
@@ -948,12 +977,12 @@ function renderMessageBubble(msg) {
     if (msg.media_url && !msg.is_deleted) {
         if (msg.media_type === 'image') {
             mediaHtml = `
-                <div class="my-1.5 rounded-xl overflow-hidden bg-black/5">
+                <div class="mb-1.5 rounded-xl overflow-hidden bg-black/5">
                     <img src="${msg.media_url}" onclick="openImageLightbox('${msg.media_url}')" class="max-h-60 rounded-xl object-cover cursor-pointer hover:opacity-95 transition">
                 </div>`;
         } else if (msg.media_type === 'video') {
             mediaHtml = `
-                <div class="my-1.5 rounded-xl overflow-hidden bg-black">
+                <div class="mb-1.5 rounded-xl overflow-hidden bg-black">
                     <video controls class="max-h-60 rounded-xl">
                         <source src="${msg.media_url}">
                     </video>
@@ -975,61 +1004,82 @@ function renderMessageBubble(msg) {
     if (isMe && !msg.is_deleted) {
         if (msg.is_seen) {
             checkmarks = `
-                <button type="button" onclick="openMessageInfoModal(${msg.id})" class="hover:opacity-80 cursor-pointer ml-0.5" title="Seen by ${msg.seen_count} members">
-                    <svg class="w-3.5 h-3.5 text-sky-300" viewBox="0 0 16 15" fill="none">
-                        <path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/>
-                    </svg>
+                <button type="button" onclick="openMessageInfoModal(${msg.id})" class="hover:opacity-80 cursor-pointer text-indigo-600 ml-0.5" title="Seen by ${msg.seen_count} members">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
                 </button>`;
         } else {
             checkmarks = `
-                <svg class="w-3.5 h-3.5 text-indigo-300 ml-0.5" viewBox="0 0 16 15" fill="none">
-                    <path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/>
-                </svg>`;
+                <svg class="w-3.5 h-3.5 text-slate-300 ml-0.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>`;
         }
     }
 
-    const senderHeader = (!isMe && !msg.is_deleted) ? `
-        <div class="text-[11px] font-bold leading-tight mb-1 text-indigo-600">
-            ${msg.user_name}
-        </div>` : '';
-
     const unsendBtn = (msg.can_unsend && !msg.is_deleted) ? `
-        <button type="button" onclick="unsendMessage(${msg.id})" class="hover:text-rose-400 transition ml-1 font-bold cursor-pointer" title="Unsend">✕</button>` : '';
+        <button type="button" onclick="unsendMessage(${msg.id})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Unsend">✕</button>` : '';
 
     const deleteBtn = (isUserTL && !isMe && !msg.is_deleted) ? `
-        <button type="button" onclick="deleteMessage(${msg.id})" class="hover:text-rose-500 transition ml-1 font-bold cursor-pointer" title="Delete">✕</button>` : '';
+        <button type="button" onclick="deleteMessage(${msg.id})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Delete">✕</button>` : '';
 
-    const reactionsBar = !msg.is_deleted ? `
-        <div class="hidden group-hover:flex absolute -top-3.5 ${isMe ? 'right-2' : 'left-2'} bg-white rounded-full shadow-md border border-slate-200 px-1.5 py-0.5 items-center gap-1 z-20 animate-in zoom-in-95 duration-75">
-            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
-            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
-            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
-            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😮</button>
-            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">🙏</button>
-        </div>` : '';
-
-    item.innerHTML = `
-        ${reactionsBar}
-        <div class="relative w-fit max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2 shadow-2xs ${msg.is_deleted ? 'bg-slate-100 text-slate-500 italic border border-slate-200 text-xs' : (isMe ? 'bg-indigo-600 text-white rounded-tr-xs' : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs')}">
-            ${msg.is_deleted ? `
-                <div class="flex items-center gap-1.5 py-0.5 text-xs">
-                    <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
-                    <span>${isMe ? 'You unsent this message' : 'This message was deleted'}</span>
-                </div>
-            ` : `
-                ${senderHeader}
-                ${mediaHtml}
-                ${msg.content ? `<div class="message-text text-[13px] sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">${msg.content}</div>` : ''}
-                ${linkHtml}
-                <div class="flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-indigo-200' : 'text-slate-400'} text-[10px] select-none leading-none">
+    if (isMe) {
+        item.innerHTML = `
+            <div class="flex flex-col items-end min-w-0 max-w-[85%] sm:max-w-[70%]">
+                <div class="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-slate-400 font-medium select-none">
                     <span>${msg.time}</span>
                     ${checkmarks}
-                    ${unsendBtn}
-                    ${deleteBtn}
                 </div>
-            `}
-        </div>
-    `;
+                ${msg.is_deleted ? `
+                    <div class="px-3.5 py-1.5 rounded-2xl rounded-tr-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                        <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>You unsent this message</span>
+                    </div>
+                ` : `
+                    <div class="relative group/bubble inline-block rounded-2xl rounded-tr-xs px-3.5 py-2 bg-indigo-600 text-white shadow-xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                        ${mediaHtml}
+                        ${msg.content ? msg.content : ''}
+                        ${linkHtml}
+                        <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 left-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
+                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                            ${unsendBtn}
+                        </div>
+                    </div>
+                `}
+            </div>
+        `;
+    } else {
+        const initial = (msg.user_name || 'U').charAt(0).toUpperCase();
+        item.innerHTML = `
+            <div class="shrink-0 pt-0.5">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+                    ${initial}
+                </div>
+            </div>
+            <div class="flex flex-col items-start min-w-0 max-w-[85%] sm:max-w-[70%]">
+                <div class="flex items-center gap-1.5 mb-1 px-1 text-xs">
+                    <span class="font-bold text-slate-800 truncate">${msg.user_name}</span>
+                    <span class="text-[10px] text-slate-400 font-medium">${msg.time}</span>
+                </div>
+                ${msg.is_deleted ? `
+                    <div class="px-3.5 py-1.5 rounded-2xl rounded-tl-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
+                        <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>This message was deleted</span>
+                    </div>
+                ` : `
+                    <div class="relative group/bubble inline-block rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/80 shadow-2xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                        ${mediaHtml}
+                        ${msg.content ? msg.content : ''}
+                        ${linkHtml}
+                        <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 right-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
+                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                            ${deleteBtn}
+                        </div>
+                    </div>
+                `}
+            </div>
+        `;
+    }
 
     container.appendChild(item);
     parseTwemoji(item);

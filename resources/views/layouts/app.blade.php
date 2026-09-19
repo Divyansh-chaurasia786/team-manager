@@ -628,9 +628,9 @@
 
         @if(session('error'))
             <div class="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-800 text-xs font-bold flex items-center justify-between shadow-xs">
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
-                    <span class="truncate">{{ session('error') }}</span>
+                    <span class="break-words leading-relaxed">{{ session('error') }}</span>
                 </div>
                 <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-800 p-1 shrink-0">
                     <i data-lucide="x" class="w-4 h-4"></i>

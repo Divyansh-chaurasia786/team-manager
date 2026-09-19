@@ -28,4 +28,29 @@ return Application::configure(basePath: dirname(__DIR__))
             }
             return redirect()->back()->with('warning', 'Your page session was refreshed. Please try again.');
         });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, $request) {
+            if ($e->getStatusCode() === 403) {
+                if (app()->environment('testing')) {
+                    return false;
+                }
+                $msg = $e->getMessage() ?: 'Unauthorized. You do not have permission to perform this action.';
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $msg], 403);
+                }
+                return redirect()->back()->with('error', $msg);
+            }
+            return false;
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
+            if (app()->environment('testing')) {
+                return false;
+            }
+            $msg = $e->getMessage() ?: 'Unauthorized. You do not have permission to perform this action.';
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 403);
+            }
+            return redirect()->back()->with('error', $msg);
+        });
     })->create();

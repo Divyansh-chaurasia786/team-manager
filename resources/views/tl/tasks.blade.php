@@ -224,23 +224,19 @@
                                                     </span>
                                                 @endif
 
-                                                <!-- Employee Timer (Countdown when active, or Stopped upon submission) -->
+                                                <!-- 1. Employee Active Countdown (Only when in progress) -->
                                                 @if($task->status === 'pending' || $task->status === 'in-progress')
-                                                    <div class="employee-timer-container inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200" data-deadline="{{ $task->deadline?->toISOString() }}">
+                                                    <div class="employee-timer-container inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200" data-deadline="{{ $task->deadline?->toISOString() }}">
                                                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
                                                         <span>Time Left: <span class="font-mono font-black employee-countdown-val">{{ $task->due_label }}</span></span>
                                                     </div>
-                                                @else
-                                                    <div class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                                        <span>⏹️ Timer Stopped</span>
-                                                    </div>
                                                 @endif
 
-                                                <!-- Submission Timestamp with Date & Time -->
+                                                <!-- 2. Delivered Timestamp (When submitted or completed) -->
                                                 @if($task->submitted_at)
-                                                    <div class="flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-200/60">
-                                                        <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
-                                                        <span>Submitted: <strong class="font-mono text-indigo-950">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
+                                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold">
+                                                        <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                                                        <span>Delivered: <strong class="font-mono text-indigo-950 font-bold">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
                                                     </div>
                                                 @endif
 
@@ -696,7 +692,7 @@ function openDetailsModal(taskId) {
     if (subTimestampEl && empTimerStatusEl) {
         if (task.submitted_at) {
             subTimestampEl.innerText = new Date(task.submitted_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-            empTimerStatusEl.innerText = '⏹️ Employee timer stopped at submission';
+            empTimerStatusEl.innerText = 'Delivered & Submitted for TL Review';
         } else {
             subTimestampEl.innerText = 'Not submitted yet';
             empTimerStatusEl.innerText = task.status === 'completed' ? 'Marked complete' : '⏱️ Active work in progress';
