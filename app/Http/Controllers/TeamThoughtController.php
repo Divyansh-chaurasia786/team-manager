@@ -130,11 +130,22 @@ class TeamThoughtController extends Controller
             $query->where('group_type', 'company');
         }
 
+        $updatedFormatted = [];
         if ($afterId > 0) {
-            $thoughts = $query->where('id', '>', $afterId)
+            $thoughts = (clone $query)->where('id', '>', $afterId)
                 ->orderBy('id', 'asc')
                 ->take(50)
                 ->get();
+
+            $updatedThoughts = (clone $query)->where('id', '<=', $afterId)
+                ->where('updated_at', '>=', now()->subSeconds(30))
+                ->latest('updated_at')
+                ->take(20)
+                ->get();
+
+            $updatedFormatted = $updatedThoughts->map(function ($t) use ($user) {
+                return $this->formatThought($t, $user);
+            });
         } else {
             $thoughts = $query->latest('id')
                 ->take(60)
@@ -150,9 +161,10 @@ class TeamThoughtController extends Controller
         });
 
         return response()->json([
-            'success'   => true,
-            'messages'  => $formatted,
-            'latest_id' => $thoughts->max('id') ?: $afterId,
+            'success'          => true,
+            'messages'         => $formatted,
+            'updated_messages' => $updatedFormatted,
+            'latest_id'        => $thoughts->max('id') ?: $afterId,
         ]);
     }
 
@@ -312,9 +324,14 @@ class TeamThoughtController extends Controller
      */
     public function react(Request $request, TeamThought $thought)
     {
-        $request->validate(['emoji' => 'required|string|max:16']);
+        $request->validate(['emoji' => 'required|string|max:32']);
         $user = Auth::user();
-        $emoji = $request->input('emoji');
+
+        if ($thought->group_type === 'team' && ($user->isHR() || $user->isCEO())) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized to react in this group.'], 403);
+        }
+
+        $emoji = trim($request->input('emoji'));
 
         $reactions = $thought->reactions ?: [];
         $foundIndex = null;
@@ -349,6 +366,7 @@ class TeamThoughtController extends Controller
         return response()->json([
             'success'   => true,
             'reactions' => $reactions,
+            'thought'   => $this->formatThought($thought->fresh(), $user),
         ]);
     }
 

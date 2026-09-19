@@ -258,6 +258,9 @@
                                             <!-- Timestamp & Read Status Dock -->
                                             <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
                                                 <span>{{ $thought->created_at->format('h:i A') }}</span>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-white transition p-0.5 text-indigo-200 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                                                </button>
                                                 @if(count($seenBy) > 0)
                                                     <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer text-sky-300" title="Seen by {{ count($seenBy) }} members">
                                                         <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
@@ -267,27 +270,34 @@
                                                 @endif
                                             </div>
 
-                                            <!-- Hover Actions Bar -->
-                                            <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 left-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                                            <!-- WhatsApp Instant Floating Reaction Bar -->
+                                            <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 left-1 sm:left-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
                                                 @if($thought->isUnsendableBy(auth()->user()))
+                                                    <span class="w-px h-3 bg-slate-200 mx-0.5"></span>
                                                     <button type="button" onclick="unsendMessage({{ $thought->id }})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Unsend">✕</button>
                                                 @endif
                                             </div>
                                         </div>
 
-                                        @if(count($reactions) > 0)
-                                            <div class="flex flex-wrap gap-1 mt-1 justify-end">
-                                                @foreach($groupedReactions as $emoji => $names)
-                                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] cursor-pointer" title="{{ implode(', ', $names) }}">
-                                                        <span>{{ $emoji }}</span>
-                                                        <span class="font-bold text-[10px]">{{ count($names) }}</span>
-                                                    </button>
-                                                @endforeach
-                                            </div>
-                                        @endif
+                                        <!-- Attached Reactions Dock -->
+                                        <div class="reactions-dock flex flex-wrap gap-1 mt-1 justify-end" data-reactions-container="{{ $thought->id }}">
+                                            @foreach($groupedReactions as $emoji => $names)
+                                                @php $iReacted = in_array(auth()->user()->name, $names); @endphp
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" 
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none {{ $iReacted ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-300 text-indigo-700 font-black ring-1 ring-indigo-300/50 shadow-2xs' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs' }}" 
+                                                        title="{{ implode(', ', $names) }}">
+                                                    <span class="leading-none text-sm">{{ $emoji }}</span>
+                                                    <span class="text-[10px] font-bold">{{ count($names) }}</span>
+                                                </button>
+                                            @endforeach
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -349,29 +359,39 @@
                                             <!-- Timestamp Dock -->
                                             <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
                                                 <span>{{ $thought->created_at->format('h:i A') }}</span>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="hover:text-indigo-600 transition p-0.5 text-slate-400 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                                                </button>
                                             </div>
 
-                                            <!-- Hover Actions Bar -->
-                                            <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 right-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
-                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                                            <!-- WhatsApp Instant Floating Reaction Bar -->
+                                            <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 right-1 sm:right-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
+                                                <button type="button" onclick="openReactionPickerModal({{ $thought->id }})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
                                                 @if(auth()->user()->isTL())
+                                                    <span class="w-px h-3 bg-slate-200 mx-0.5"></span>
                                                     <button type="button" onclick="deleteMessage({{ $thought->id }})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Delete">✕</button>
                                                 @endif
                                             </div>
                                         </div>
 
-                                        @if(count($reactions) > 0)
-                                            <div class="flex flex-wrap gap-1 mt-1">
-                                                @foreach($groupedReactions as $emoji => $names)
-                                                    <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] cursor-pointer" title="{{ implode(', ', $names) }}">
-                                                        <span>{{ $emoji }}</span>
-                                                        <span class="font-bold text-[10px]">{{ count($names) }}</span>
-                                                    </button>
-                                                @endforeach
-                                            </div>
-                                        @endif
+                                        <!-- Attached Reactions Dock -->
+                                        <div class="reactions-dock flex flex-wrap gap-1 mt-1 justify-start" data-reactions-container="{{ $thought->id }}">
+                                            @foreach($groupedReactions as $emoji => $names)
+                                                @php $iReacted = in_array(auth()->user()->name, $names); @endphp
+                                                <button type="button" onclick="reactToMessage({{ $thought->id }}, '{{ $emoji }}')" 
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none {{ $iReacted ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-300 text-indigo-700 font-black ring-1 ring-indigo-300/50 shadow-2xs' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs' }}" 
+                                                        title="{{ implode(', ', $names) }}">
+                                                    <span class="leading-none text-sm">{{ $emoji }}</span>
+                                                    <span class="text-[10px] font-bold">{{ count($names) }}</span>
+                                                </button>
+                                            @endforeach
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -411,22 +431,36 @@
                             <i data-lucide="smile" class="w-5 h-5"></i>
                         </button>
 
-                        <!-- Real 3D Glossy Emoji Picker Drawer -->
-                        <div id="emojiPickerTray" class="hidden absolute bottom-12 left-0 w-72 sm:w-84 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-40 overflow-hidden animate-in zoom-in-95 duration-100">
-                            <!-- Emoji Header with Category Tabs -->
-                            <div class="p-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-1">
-                                <div class="flex items-center gap-1 text-xs">
-                                    <button type="button" onclick="switchEmojiCategory('indian')" class="px-2 py-1 hover:bg-slate-200 rounded-lg font-bold text-xs transition">🇮🇳 Desi</button>
-                                    <button type="button" onclick="switchEmojiCategory('smileys')" class="px-2 py-1 hover:bg-slate-200 rounded-lg font-bold text-xs transition">😀 Faces</button>
-                                    <button type="button" onclick="switchEmojiCategory('gestures')" class="px-2 py-1 hover:bg-slate-200 rounded-lg font-bold text-xs transition">👍 Hands</button>
-                                    <button type="button" onclick="switchEmojiCategory('hearts')" class="px-2 py-1 hover:bg-slate-200 rounded-lg font-bold text-xs transition">❤️ Hearts</button>
-                                    <button type="button" onclick="switchEmojiCategory('celebration')" class="px-2 py-1 hover:bg-slate-200 rounded-lg font-bold text-xs transition">🚀 Work</button>
+                        <!-- Real WhatsApp / Instagram Style Emoji Drawer -->
+                        <div id="emojiPickerTray" class="hidden absolute bottom-12 left-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-40 overflow-hidden animate-in zoom-in-95 duration-100">
+                            <!-- Search & Close Header -->
+                            <div class="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                                <div class="relative flex items-center flex-1">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3"></i>
+                                    <input 
+                                        type="text" 
+                                        id="chatEmojiSearchInput" 
+                                        placeholder="Search emojis (e.g. smile, love, clap, fire)..." 
+                                        class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800"
+                                        oninput="filterChatEmojis(this.value)"
+                                    >
                                 </div>
-                                <button type="button" onclick="toggleEmojiPicker(false)" class="text-slate-400 hover:text-slate-600 p-1 text-xs font-bold">✕</button>
+                                <button type="button" onclick="toggleEmojiPicker(false)" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200 transition text-xs font-bold" title="Close">✕</button>
+                            </div>
+
+                            <!-- WhatsApp Style Category Tabs -->
+                            <div class="px-2 py-1.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-1 overflow-x-auto text-[11px] font-bold select-none scrollbar-none">
+                                <button type="button" onclick="switchChatEmojiCategory('all')" class="chat-cat-tab px-2.5 py-1 rounded-lg bg-white text-indigo-600 shadow-2xs border border-slate-200 shrink-0">✨ All</button>
+                                <button type="button" onclick="switchChatEmojiCategory('smileys')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
+                                <button type="button" onclick="switchChatEmojiCategory('gestures')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
+                                <button type="button" onclick="switchChatEmojiCategory('hearts')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
+                                <button type="button" onclick="switchChatEmojiCategory('desi')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🇮🇳 Desi</button>
+                                <button type="button" onclick="switchChatEmojiCategory('work')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🚀 Work</button>
+                                <button type="button" onclick="switchChatEmojiCategory('animals')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🍕 Food/Pets</button>
                             </div>
 
                             <!-- Emoji Grid -->
-                            <div id="emojiGridContainer" class="p-2.5 overflow-y-auto max-h-56 grid grid-cols-7 gap-1.5 text-xl select-none"></div>
+                            <div id="emojiGridContainer" class="p-2.5 overflow-y-auto max-h-60 grid grid-cols-8 gap-1.5 text-xl select-none min-h-[180px]"></div>
                         </div>
                     </div>
 
@@ -539,6 +573,50 @@
     </div>
 </div>
 
+<!-- WhatsApp Style Custom Reaction Picker Modal (+ button) -->
+<div id="messageReactionPickerModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-3 animate-in fade-in duration-100" onclick="closeReactionPickerModal()">
+    <div class="bg-white rounded-2xl max-w-sm sm:max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black">+</span>
+                <h3 class="text-xs sm:text-sm font-black text-slate-800">Add Reaction</h3>
+            </div>
+            <button type="button" onclick="closeReactionPickerModal()" class="w-7 h-7 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition text-sm font-bold cursor-pointer">✕</button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="p-2.5 bg-white border-b border-slate-100">
+            <div class="relative flex items-center">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3"></i>
+                <input 
+                    type="text" 
+                    id="reactionModalSearchInput" 
+                    placeholder="Search any emoji (e.g. fire, clap, win, cake)..." 
+                    class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 transition" 
+                    oninput="filterReactionModalEmojis(this.value)"
+                >
+            </div>
+        </div>
+
+        <!-- Category Selector -->
+        <div class="px-2 py-1.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-1 overflow-x-auto text-[11px] font-bold select-none scrollbar-none">
+            <button type="button" onclick="switchReactionCategory('all')" class="reaction-cat-tab px-2.5 py-1 rounded-lg bg-white text-indigo-600 shadow-2xs border border-slate-200 shrink-0">✨ All</button>
+            <button type="button" onclick="switchReactionCategory('smileys')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
+            <button type="button" onclick="switchReactionCategory('gestures')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
+            <button type="button" onclick="switchReactionCategory('hearts')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
+            <button type="button" onclick="switchReactionCategory('desi')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🇮🇳 Desi</button>
+            <button type="button" onclick="switchReactionCategory('work')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🚀 Work</button>
+            <button type="button" onclick="switchReactionCategory('animals')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🍕 Food/Pets</button>
+        </div>
+
+        <!-- Emoji Grid -->
+        <div id="reactionModalGrid" class="p-3 overflow-y-auto flex-1 grid grid-cols-7 sm:grid-cols-8 gap-2 text-2xl select-none min-h-[220px]">
+            <!-- Populated via JavaScript -->
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -549,21 +627,264 @@ const isUserTL = {{ auth()->user()->isTL() ? 'true' : 'false' }};
 const activeGroupType = '{{ $groupType }}';
 let pollingInterval = null;
 
-const emojiCategories = {
-    indian: ['🇮🇳', '🙏', '🪔', '🕉️', '🪷', '🏏', '🍛', '☕', '🛺', '🐅', '🐘', '💰', '🎇', '🎆', '🎉', '🤝', '👏', '💐', '🌺', '🥭', '🦚', '✨'],
-    smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '🥹', '☺️', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😋', '😎', '🤩', '🥳', '🥺', '😢', '😭', '🤯', '😱', '🤗', '🤔', '🤫', '😴'],
-    gestures: ['👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🫰', '🤟', '🤘', '👌', '🤌', '🤏', '👈', '👉', '👆', '👇', '✋', '👋', '👏', '🙌', '🫶', '🙏', '💪', '🤝'],
-    hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '💕', '💞', '💓', '💗', '💖', '✨', '🌟', '💥', '🔥', '💯', '✅', '❌', '⚠️', '🎯'],
-    celebration: ['🚀', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '💡', '📢', '🔔', '📌', '📎', '🔒', '💼', '📊', '💻', '📱', '☕', '🎂']
-};
+let activeReactionMessageId = null;
+let currentChatEmojiCat = 'all';
+let currentReactionModalCat = 'all';
+
+const emojiCatalog = [
+    // Popular Smileys
+    { emoji: '😀', name: 'grinning face smile happy', cat: 'smileys' },
+    { emoji: '😃', name: 'smiling face big eyes happy joyful', cat: 'smileys' },
+    { emoji: '😄', name: 'smiling face smiling eyes joy glad', cat: 'smileys' },
+    { emoji: '😁', name: 'beaming face grin excited cheerful', cat: 'smileys' },
+    { emoji: '😆', name: 'grinning squinting face laugh haha hilarious', cat: 'smileys' },
+    { emoji: '😅', name: 'grinning face sweat relief phew nervous', cat: 'smileys' },
+    { emoji: '😂', name: 'face with tears of joy lol haha crying laughing dead', cat: 'smileys' },
+    { emoji: '🤣', name: 'rolling on the floor laughing rofl dying', cat: 'smileys' },
+    { emoji: '🥲', name: 'smiling face with tear proud grateful bittersweet', cat: 'smileys' },
+    { emoji: '🥹', name: 'face holding back tears emotional cute please overwhelmed', cat: 'smileys' },
+    { emoji: '☺️', name: 'smiling face warm blush modest relaxed', cat: 'smileys' },
+    { emoji: '😊', name: 'smiling face blush pleased content', cat: 'smileys' },
+    { emoji: '😇', name: 'smiling face halo angel innocent holy', cat: 'smileys' },
+    { emoji: '🙂', name: 'slightly smiling face ok fine calm', cat: 'smileys' },
+    { emoji: '😉', name: 'winking face wink flirt secret cheeky', cat: 'smileys' },
+    { emoji: '😌', name: 'relieved face calm peaceful zen satisfied', cat: 'smileys' },
+    { emoji: '😍', name: 'heart eyes love crush romantic enamored adoration', cat: 'smileys' },
+    { emoji: '🥰', name: 'smiling face hearts adore love affection cute sweet', cat: 'smileys' },
+    { emoji: '😘', name: 'blowing kiss kiss love mwah romance sweetheart', cat: 'smileys' },
+    { emoji: '😋', name: 'savoring food delicious yum tasty tongue delicious hungry', cat: 'smileys' },
+    { emoji: '😛', name: 'face tongue playful goofy silly joke', cat: 'smileys' },
+    { emoji: '😜', name: 'winking face tongue crazy wild fun party', cat: 'smileys' },
+    { emoji: '🤪', name: 'zany face goofy weird silly wacky wild', cat: 'smileys' },
+    { emoji: '😝', name: 'squinting face tongue playful goofy teasing', cat: 'smileys' },
+    { emoji: '🤑', name: 'money-mouth face rich cash dollar profit wealth', cat: 'smileys' },
+    { emoji: '🤗', name: 'open hands hug warmth embrace welcome cheer', cat: 'smileys' },
+    { emoji: '🤭', name: 'hand over mouth giggle oops teehee secret chuckle', cat: 'smileys' },
+    { emoji: '🤫', name: 'shushing face quiet silence secret shh hush mute', cat: 'smileys' },
+    { emoji: '🤔', name: 'thinking face hmm ponder wonder curious evaluate consider', cat: 'smileys' },
+    { emoji: '🤐', name: 'zipper mouth silent secret zip confidential sealed', cat: 'smileys' },
+    { emoji: '🤨', name: 'raised eyebrow skeptic doubt suspicious really hmm', cat: 'smileys' },
+    { emoji: '😐', name: 'neutral face straight poker whatever ok', cat: 'smileys' },
+    { emoji: '😑', name: 'expressionless face blank unamused deadpan done', cat: 'smileys' },
+    { emoji: '😶', name: 'face without mouth speechless mute quiet blank', cat: 'smileys' },
+    { emoji: '😏', name: 'smirking face smug flirt slick clever sneaky', cat: 'smileys' },
+    { emoji: '😒', name: 'unamused face annoyed bored irritated unimpressed', cat: 'smileys' },
+    { emoji: '🙄', name: 'rolling eyes eye roll duh whatever eye-roll', cat: 'smileys' },
+    { emoji: '😬', name: 'grimacing face awkward yikes oops nervous cringe', cat: 'smileys' },
+    { emoji: '🤥', name: 'lying face pinocchio lie cap fake dishonest long nose', cat: 'smileys' },
+    { emoji: '😔', name: 'pensive face sad sorrow regret depressed mourn', cat: 'smileys' },
+    { emoji: '😪', name: 'sleepy face tired snooze exhausted', cat: 'smileys' },
+    { emoji: '🤤', name: 'drooling face hungry craving delicious appetizing want', cat: 'smileys' },
+    { emoji: '😴', name: 'sleeping face zzz goodnight tired rest sleep', cat: 'smileys' },
+    { emoji: '😷', name: 'medical mask sick quarantine mask doctor flu hospital', cat: 'smileys' },
+    { emoji: '🤒', name: 'thermometer fever sick ill unwell temperature disease', cat: 'smileys' },
+    { emoji: '🤕', name: 'head bandage hurt injury ouch wound accident recovery', cat: 'smileys' },
+    { emoji: '🤢', name: 'nauseated face disgusted sick gross ew barf green', cat: 'smileys' },
+    { emoji: '🤮', name: 'face vomiting puke puking gross spew sick', cat: 'smileys' },
+    { emoji: '🤧', name: 'sneezing face sneeze allergy tissue cold sick flu', cat: 'smileys' },
+    { emoji: '🥵', name: 'hot face sweat summer heat spicy fever warm', cat: 'smileys' },
+    { emoji: '🥶', name: 'cold face freezing winter ice frozen blue frost', cat: 'smileys' },
+    { emoji: '🥴', name: 'woozy face tipsy drunk dizzy weird groggy intoxicated', cat: 'smileys' },
+    { emoji: '😵', name: 'crossed out eyes dead knocked out dizzy shock stunned', cat: 'smileys' },
+    { emoji: '🤯', name: 'exploding head mind blown shock wow impossible insane eureka', cat: 'smileys' },
+    { emoji: '🤠', name: 'cowboy hat face yeehaw western sheriff texas cool', cat: 'smileys' },
+    { emoji: '🥳', name: 'partying face party celebration birthday congrats hooray festivity', cat: 'smileys' },
+    { emoji: '😎', name: 'sunglasses cool confident slick boss swag awesome', cat: 'smileys' },
+    { emoji: '🤓', name: 'nerd face glasses geek smart genius tech programmer', cat: 'smileys' },
+    { emoji: '🧐', name: 'monocle detective inspect analyze classy curious examine', cat: 'smileys' },
+    { emoji: '😕', name: 'confused face puzzled doubt lost what huh', cat: 'smileys' },
+    { emoji: '😟', name: 'worried face anxious nervous stressed concerned fear', cat: 'smileys' },
+    { emoji: '😮', name: 'open mouth surprised shocked gasp wow amazed what', cat: 'smileys' },
+    { emoji: '😯', name: 'hushed face stunned quiet surprised bewildered', cat: 'smileys' },
+    { emoji: '😲', name: 'astonished face amazed shocked disbelief overwhelmed', cat: 'smileys' },
+    { emoji: '😳', name: 'flushed face blushed embarrassed wide eyes shock shy', cat: 'smileys' },
+    { emoji: '🥺', name: 'pleading face begging puppy eyes cute please mercy cry', cat: 'smileys' },
+    { emoji: '😦', name: 'frowning face open mouth dismay surprise dismayed', cat: 'smileys' },
+    { emoji: '😨', name: 'fearful face scared panic fear dread horror terrified', cat: 'smileys' },
+    { emoji: '😰', name: 'anxious face sweat nervous pressure stress tension', cat: 'smileys' },
+    { emoji: '😥', name: 'sad relieved face phew close call whew relief', cat: 'smileys' },
+    { emoji: '😢', name: 'crying face tear sad emotional upset sorrow weep', cat: 'smileys' },
+    { emoji: '😭', name: 'loudly crying face bawling heartbroken devastated sob scream', cat: 'smileys' },
+    { emoji: '😱', name: 'screaming fear scream shock horrified terror home alone scream', cat: 'smileys' },
+    { emoji: '😤', name: 'steam nose proud determined victory win angry focus', cat: 'smileys' },
+    { emoji: '😡', name: 'enraged face angry mad furious pissed red wrath', cat: 'smileys' },
+    { emoji: '😠', name: 'angry face mad grumpy irritated cross annoyed', cat: 'smileys' },
+    { emoji: '🤬', name: 'symbols mouth cursing swearing bleep angry rage profane', cat: 'smileys' },
+    { emoji: '😈', name: 'smiling face horns devil naughty mischief evil evil smile', cat: 'smileys' },
+    { emoji: '💀', name: 'skull dead dying laugh funny skeleton rip bones', cat: 'smileys' },
+    { emoji: '☠️', name: 'skull crossbones danger poison pirate lethal warning hazard', cat: 'smileys' },
+    { emoji: '💩', name: 'pile of poo poop funny crap turd', cat: 'smileys' },
+    { emoji: '👻', name: 'ghost spooky halloween spirit phantom boo', cat: 'smileys' },
+    { emoji: '🤖', name: 'robot bot AI tech automation automation artificial intelligence mechanical', cat: 'smileys' },
+
+    // Gestures & Hands
+    { emoji: '👍', name: 'thumbs up ok like agree approve good yes correct nice done', cat: 'gestures' },
+    { emoji: '👎', name: 'thumbs down dislike bad disapprove reject no fail wrong', cat: 'gestures' },
+    { emoji: '👊', name: 'oncoming fist fist bump power punch attack bro hit', cat: 'gestures' },
+    { emoji: '✊', name: 'raised fist solidarity power protest strength resist', cat: 'gestures' },
+    { emoji: '🤛', name: 'left-facing fist bump fistbump bro handshake respect', cat: 'gestures' },
+    { emoji: '🤜', name: 'right-facing fist bump fistbump bro partner respect', cat: 'gestures' },
+    { emoji: '🤞', name: 'crossed fingers hope wish good luck fortune pray', cat: 'gestures' },
+    { emoji: '✌️', name: 'victory hand peace two v sign chill win', cat: 'gestures' },
+    { emoji: '🫰', name: 'finger heart k-pop love money snap korean cute', cat: 'gestures' },
+    { emoji: '🤟', name: 'love-you gesture rock love metal ily sign language', cat: 'gestures' },
+    { emoji: '🤘', name: 'sign of the horns rock metal concert music party awesome', cat: 'gestures' },
+    { emoji: '👌', name: 'ok hand perfect okay excellent zero fine spot on', cat: 'gestures' },
+    { emoji: '🤌', name: 'pinched fingers italian what do you want chef kiss why mama mia', cat: 'gestures' },
+    { emoji: '🤏', name: 'pinching hand little small tiny bit slight fraction', cat: 'gestures' },
+    { emoji: '👈', name: 'pointing left direction look check there left', cat: 'gestures' },
+    { emoji: '👉', name: 'pointing right direction look check there right see', cat: 'gestures' },
+    { emoji: '👆', name: 'pointing up above look agree top this', cat: 'gestures' },
+    { emoji: '👇', name: 'pointing down below read bottom inspect down', cat: 'gestures' },
+    { emoji: '☝️', name: 'index pointing up first one important note idea attention', cat: 'gestures' },
+    { emoji: '✋', name: 'raised hand stop high five palm halt wait hold on', cat: 'gestures' },
+    { emoji: '🤚', name: 'raised back of hand stop wait backhand halt', cat: 'gestures' },
+    { emoji: '🖐️', name: 'hand with fingers splayed five high five open palm reach', cat: 'gestures' },
+    { emoji: '👋', name: 'waving hand wave hello hi goodbye bye greeting ciao', cat: 'gestures' },
+    { emoji: '🤙', name: 'call me hand phone shaka hang loose surf cool aloha', cat: 'gestures' },
+    { emoji: '🫵', name: 'index pointing viewer you targeting attention chosen', cat: 'gestures' },
+    { emoji: '👏', name: 'clapping hands applause bravo congrats good job praise salute', cat: 'gestures' },
+    { emoji: '🙌', name: 'raising hands praise celebration hooray hallelujah hype success', cat: 'gestures' },
+    { emoji: '🫶', name: 'heart hands love care affection cute heart together', cat: 'gestures' },
+    { emoji: '👐', name: 'open hands openness hug jazz hands welcome honesty', cat: 'gestures' },
+    { emoji: '🤲', name: 'palms up together prayer dua bless offer hold', cat: 'gestures' },
+    { emoji: '🤝', name: 'handshake deal agreement partnership shake hello agreed contract meetup', cat: 'gestures' },
+    { emoji: '🙏', name: 'folded hands pray please namaste thanks thank you hope respect grateful bowing', cat: 'gestures' },
+    { emoji: '✍️', name: 'writing hand note signing write author signature compose', cat: 'gestures' },
+    { emoji: '💅', name: 'nail polish sassy fab flawless careless manicure salon', cat: 'gestures' },
+    { emoji: '🤳', name: 'selfie camera photo pose picture phone snapshot', cat: 'gestures' },
+    { emoji: '💪', name: 'flexed biceps strong muscle strength gym workout flex fitness power', cat: 'gestures' },
+    { emoji: '🧠', name: 'brain smart think intelligence mind genius mental intellect intellect', cat: 'gestures' },
+    { emoji: '👀', name: 'eyes look watching see peek suspicious observe witness glance spy', cat: 'gestures' },
+
+    // Hearts & Affection
+    { emoji: '❤️', name: 'red heart love passion romantic affection favourite sweetheart', cat: 'hearts' },
+    { emoji: '🩷', name: 'pink heart sweet cute love affection gentle', cat: 'hearts' },
+    { emoji: '🧡', name: 'orange heart warmth care friendship orange sunset', cat: 'hearts' },
+    { emoji: '💛', name: 'yellow heart friendship joy sunny gold happy', cat: 'hearts' },
+    { emoji: '💚', name: 'green heart nature eco envy health green vitality', cat: 'hearts' },
+    { emoji: '💙', name: 'blue heart loyalty trust peace blue ocean cool', cat: 'hearts' },
+    { emoji: '🩵', name: 'light blue heart calm gentle fresh sky pastel', cat: 'hearts' },
+    { emoji: '💜', name: 'purple heart royalty magic luxury purple amethyst', cat: 'hearts' },
+    { emoji: '🖤', name: 'black heart dark sorrow grief gothic edge', cat: 'hearts' },
+    { emoji: '🩶', name: 'grey heart neutral silver minimal modern stone', cat: 'hearts' },
+    { emoji: '🤍', name: 'white heart pure peace angel clean crystal sincere', cat: 'hearts' },
+    { emoji: '🤎', name: 'brown heart earth chocolate cozy warm autumn', cat: 'hearts' },
+    { emoji: '💔', name: 'broken heart heartbreak break up sad pain hurt dump grief', cat: 'hearts' },
+    { emoji: '❤️‍🔥', name: 'heart on fire burning passion flame desire intense lit love', cat: 'hearts' },
+    { emoji: '❤️‍🩹', name: 'mending heart healing recovery better bandage repair cure', cat: 'hearts' },
+    { emoji: '❣️', name: 'heart exclamation emphasis excited love exclamation mark', cat: 'hearts' },
+    { emoji: '💕', name: 'two hearts love floating affection romantic sweet', cat: 'hearts' },
+    { emoji: '💞', name: 'revolving hearts revolving dizzy in love romance swirl', cat: 'hearts' },
+    { emoji: '💓', name: 'beating heart pulse heartbeat nervous excited flutter', cat: 'hearts' },
+    { emoji: '💗', name: 'growing heart expanding blush warm love bigger', cat: 'hearts' },
+    { emoji: '💖', name: 'sparkling heart shiny love sparkle glam magical glitter', cat: 'hearts' },
+    { emoji: '💘', name: 'heart arrow cupid love shot valentine romance', cat: 'hearts' },
+    { emoji: '💝', name: 'heart ribbon gift present valentine surprise wrap package', cat: 'hearts' },
+    { emoji: '✨', name: 'sparkles magic shiny clean star sparkle awesome special glitter shine', cat: 'hearts' },
+    { emoji: '🌟', name: 'glowing star shine bright champion outstanding stellar prime', cat: 'hearts' },
+    { emoji: '⭐', name: 'star rating favorite gold review ranking brilliance', cat: 'hearts' },
+    { emoji: '💥', name: 'collision boom bang explosion impact wow blast smash', cat: 'hearts' },
+    { emoji: '🔥', name: 'fire lit hot flame burn trending viral popular dope fierce', cat: 'hearts' },
+    { emoji: '💯', name: 'hundred points 100 perfect score keep it real factual full grade', cat: 'hearts' },
+
+    // Desi, India & Culture
+    { emoji: '🇮🇳', name: 'flag India bharat indian tricolor tiranga proud nation', cat: 'desi' },
+    { emoji: '🪔', name: 'diya lamp diwali light deepam festival puja flame sacred', cat: 'desi' },
+    { emoji: '🕉️', name: 'om omkara hindu sacred symbol spiritual shanti peace mantra', cat: 'desi' },
+    { emoji: '🪷', name: 'lotus flower national flower sacred bloom petal flora water lily', cat: 'desi' },
+    { emoji: '🏏', name: 'cricket bat ball match ipl sport batsman trophy boundary', cat: 'desi' },
+    { emoji: '🍛', name: 'curry rice food desi spicy dal biryani bowl dinner lunch', cat: 'desi' },
+    { emoji: '☕', name: 'hot beverage chai tea coffee morning refreshment masala chai cup', cat: 'desi' },
+    { emoji: '🛺', name: 'auto rickshaw tuk tuk tempo travel transport ride drive', cat: 'desi' },
+    { emoji: '🐅', name: 'tiger royal bengal tiger wild majestic predator striped', cat: 'desi' },
+    { emoji: '🐘', name: 'elephant ganesh wisdom huge wild trunk animal', cat: 'desi' },
+    { emoji: '🦚', name: 'peacock national bird beautiful colorful feathers dance royal', cat: 'desi' },
+    { emoji: '🥭', name: 'mango aam king of fruits sweet tropical alphonso dessert yellow', cat: 'desi' },
+    { emoji: '💰', name: 'money bag cash rupee wealth rich profit bonus fund finance', cat: 'desi' },
+    { emoji: '🎇', name: 'sparkler diwali festival celebration cracker night fun', cat: 'desi' },
+    { emoji: '🎆', name: 'fireworks celebration diwali new year party sky spectacular night', cat: 'desi' },
+    { emoji: '💐', name: 'bouquet flowers congratulation greetings welcome celebration floral', cat: 'desi' },
+    { emoji: '🌺', name: 'hibiscus flower puja nature bloom red flower garden', cat: 'desi' },
+    { emoji: '🚩', name: 'triangular flag bhagwa win milestone banner victory flag saffron', cat: 'desi' },
+
+    // Work, Tech & Activities
+    { emoji: '🚀', name: 'rocket launch deploy startup fast speed boost scale fly space blast', cat: 'work' },
+    { emoji: '🎉', name: 'party popper tada congrats celebrate success win holiday yay', cat: 'work' },
+    { emoji: '🎊', name: 'confetti ball celebration party festivity success', cat: 'work' },
+    { emoji: '🎈', name: 'balloon birthday party celebration float festive', cat: 'work' },
+    { emoji: '🎁', name: 'wrapped gift present surprise bonus reward package birthday', cat: 'work' },
+    { emoji: '🏆', name: 'trophy champion winner award first place prize champion gold', cat: 'work' },
+    { emoji: '🥇', name: '1st place medal gold winner champion top number one', cat: 'work' },
+    { emoji: '🥈', name: '2nd place medal silver runner up second rank', cat: 'work' },
+    { emoji: '🥉', name: '3rd place medal bronze third', cat: 'work' },
+    { emoji: '🎯', name: 'bullseye direct hit target goal focus aim kpi accurate precision', cat: 'work' },
+    { emoji: '💡', name: 'light bulb idea inspiration solution think innovation smart genius invent', cat: 'work' },
+    { emoji: '📢', name: 'loudspeaker announcement megaphone notice broadcast shout alert news', cat: 'work' },
+    { emoji: '🔔', name: 'bell notification reminder chime ring alert update notice', cat: 'work' },
+    { emoji: '📌', name: 'pushpin pin pinned important remember save bookmark highlight', cat: 'work' },
+    { emoji: '📍', name: 'round pushpin location map spot here place destination', cat: 'work' },
+    { emoji: '📎', name: 'paperclip attach attachment file link connect document clip', cat: 'work' },
+    { emoji: '💼', name: 'briefcase work job office business portfolio suit professional', cat: 'work' },
+    { emoji: '📊', name: 'bar chart analytics stats metrics growth report trends dashboard presentation', cat: 'work' },
+    { emoji: '📈', name: 'chart increasing upward trend profit growth success stocks bull', cat: 'work' },
+    { emoji: '📉', name: 'chart decreasing downward trend drop loss fall bear', cat: 'work' },
+    { emoji: '💻', name: 'laptop computer tech code software dev work macbook pc developer', cat: 'work' },
+    { emoji: '🖥️', name: 'desktop computer monitor display pc workspace station screen', cat: 'work' },
+    { emoji: '📱', name: 'mobile phone smartphone iphone android device call cellular screen', cat: 'work' },
+    { emoji: '⌨️', name: 'keyboard typing code tech hardware input keys', cat: 'work' },
+    { emoji: '⚙️', name: 'gear settings system config machinery engine build options', cat: 'work' },
+    { emoji: '🔧', name: 'wrench repair fix tools maintenance mechanic configure assemble', cat: 'work' },
+    { emoji: '🛠️', name: 'hammer and wrench build construction debug developer tools toolkit', cat: 'work' },
+    { emoji: '🔒', name: 'locked padlock security safe protect private password encrypted auth', cat: 'work' },
+    { emoji: '🔓', name: 'unlocked padlock open access freedom public decipher key', cat: 'work' },
+    { emoji: '🔑', name: 'key access login secret solution unlock api credential', cat: 'work' },
+    { emoji: '📦', name: 'package box delivery shipping parcel deploy release bundle product', cat: 'work' },
+    { emoji: '📅', name: 'calendar date schedule appointment deadline meeting event month', cat: 'work' },
+    { emoji: '⏰', name: 'alarm clock time timer alert countdown hurry wakeup clock schedule', cat: 'work' },
+    { emoji: '⏳', name: 'hourglass not done waiting loading pending time remaining timer process', cat: 'work' },
+    { emoji: '✅', name: 'check mark button verified done complete approved pass yes confirmed success', cat: 'work' },
+    { emoji: '❌', name: 'cross mark cancel error reject fail wrong no ban decline delete', cat: 'work' },
+    { emoji: '⚠️', name: 'warning danger caution attention alert issue notice hazard', cat: 'work' },
+    { emoji: '🚫', name: 'prohibited forbidden stop ban no entry restricted stop', cat: 'work' },
+
+    // Animals & Food
+    { emoji: '🐶', name: 'dog puppy pet cute canine loyal bark animal', cat: 'animals' },
+    { emoji: '🐱', name: 'cat kitty pet cute feline meow whiskers animal', cat: 'animals' },
+    { emoji: '🦁', name: 'lion king predator brave strength roar safari animal', cat: 'animals' },
+    { emoji: '🐼', name: 'panda bear cute chill lazy bamboo zoo animal', cat: 'animals' },
+    { emoji: '🦊', name: 'fox clever sly smart animal red wildlife', cat: 'animals' },
+    { emoji: '🐰', name: 'rabbit bunny fast cute carrot leap easter animal', cat: 'animals' },
+    { emoji: '🐻', name: 'bear grizzly honey forest strong animal wild', cat: 'animals' },
+    { emoji: '🐨', name: 'koala cute sleepy australia eucalyptus wildlife', cat: 'animals' },
+    { emoji: '🐵', name: 'monkey playful mischievous chimp jungle animal cheeky', cat: 'animals' },
+    { emoji: '🦅', name: 'eagle freedom sharp high predator fly bird wildlife sky', cat: 'animals' },
+    { emoji: '🦉', name: 'owl wise night wisdom bird nocturnal eyes smart', cat: 'animals' },
+    { emoji: '🦋', name: 'butterfly beauty change gentle colorful insect wings spring', cat: 'animals' },
+    { emoji: '🐝', name: 'honeybee bee busy work hard honey pollen sting insect', cat: 'animals' },
+    { emoji: '🍕', name: 'pizza slice cheese food delicious party dinner snack italian', cat: 'animals' },
+    { emoji: '🍔', name: 'hamburger burger fast food patty bite lunch diner sandwich', cat: 'animals' },
+    { emoji: '🍟', name: 'french fries potato chips snack crispy fast food salty', cat: 'animals' },
+    { emoji: '🥪', name: 'sandwich lunch snack bread meal breakfast sandwich', cat: 'animals' },
+    { emoji: '🌮', name: 'taco mexican food crispy spicy fiesta snack dinner', cat: 'animals' },
+    { emoji: '🍣', name: 'sushi japanese fish rice gourmet raw roll wasabi', cat: 'animals' },
+    { emoji: '🍩', name: 'doughnut donut sweet dessert glazed snack pastry sugar bake', cat: 'animals' },
+    { emoji: '🍦', name: 'soft ice cream dessert cold sweet summer treat dairy cone', cat: 'animals' },
+    { emoji: '🎂', name: 'birthday cake sweet celebration party party dessert candle festive', cat: 'animals' },
+    { emoji: '🍫', name: 'chocolate bar sweet snack dark milk cocoa candy dessert', cat: 'animals' },
+    { emoji: '🍿', name: 'popcorn movie snack cinema entertainment butter theater', cat: 'animals' },
+    { emoji: '🍻', name: 'clinking beer mugs drink party cheers celebrate alcohol bar pub', cat: 'animals' },
+    { emoji: '🥂', name: 'clinking glasses champagne toast cheers celebration wine anniversary', cat: 'animals' },
+    { emoji: '🥤', name: 'cup straw drink soda juice beverage cold refreshment sip', cat: 'animals' }
+];
 
 document.addEventListener("DOMContentLoaded", function() {
     scrollToBottom();
     startLivePolling();
-    switchEmojiCategory('indian');
+    switchChatEmojiCategory('all');
     parseTwemoji();
 
-    // Attach event delegation for Emoji Picker buttons (Prevents broken inline quote issues)
+    // Event delegation for Chat Input Emoji Picker buttons
     const emojiContainer = document.getElementById('emojiGridContainer');
     if (emojiContainer) {
         emojiContainer.addEventListener('click', function(e) {
@@ -573,6 +894,38 @@ document.addEventListener("DOMContentLoaded", function() {
             insertEmoji(emojiChar);
         });
     }
+
+    // Event delegation for WhatsApp Custom Reaction Modal picker (+ button)
+    const reactionGrid = document.getElementById('reactionModalGrid');
+    if (reactionGrid) {
+        reactionGrid.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-emoji]');
+            if (!btn) return;
+            const emojiChar = btn.getAttribute('data-emoji');
+            selectCustomReaction(emojiChar);
+        });
+    }
+
+    // Global click listener to close emoji picker when clicking outside
+    document.addEventListener('click', function(e) {
+        const tray = document.getElementById('emojiPickerTray');
+        const trigger = e.target.closest('[onclick*="toggleEmojiPicker"]');
+        if (tray && !tray.classList.contains('hidden')) {
+            if (!tray.contains(e.target) && !trigger) {
+                tray.classList.add('hidden');
+            }
+        }
+    });
+
+    // Escape key to dismiss modals and emoji picker
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            toggleEmojiPicker(false);
+            closeReactionPickerModal();
+            closeMessageInfoModal();
+            closeImageLightbox();
+        }
+    });
 
     const searchInput = document.getElementById('searchChatInput');
     if (searchInput) {
@@ -591,66 +944,84 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-function parseTwemoji(element = null) {
-    if (window.twemoji) {
-        twemoji.parse(element || document.getElementById('chatMessagesList') || document.body, {
-            folder: 'svg',
-            ext: '.svg'
-        });
+// 🟢 Chat Input Emoji Picker Logic (WhatsApp/Instagram Style)
+function renderChatEmojis(list) {
+    const container = document.getElementById('emojiGridContainer');
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+        container.innerHTML = `<div class="col-span-8 py-6 text-center text-xs text-slate-400 font-semibold">No matching emojis found</div>`;
+        return;
     }
+
+    container.innerHTML = list.map(item => `
+        <button type="button" data-emoji="${item.emoji}" class="p-1 hover:bg-slate-100 rounded-xl transition-all hover:scale-130 active:scale-95 cursor-pointer flex items-center justify-center leading-none text-xl select-none" title="${item.name}">
+            ${item.emoji}
+        </button>
+    `).join('');
+    parseTwemoji(container);
 }
 
-function scrollToBottom() {
-    const area = document.getElementById('chatMessagesScrollArea');
-    if (area) {
-        area.scrollTop = area.scrollHeight;
+function switchChatEmojiCategory(catKey) {
+    currentChatEmojiCat = catKey;
+    const searchInput = document.getElementById('chatEmojiSearchInput');
+    if (searchInput) searchInput.value = '';
+
+    // Update active tab styles
+    document.querySelectorAll('.chat-cat-tab').forEach(tab => {
+        tab.classList.remove('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+        tab.classList.add('text-slate-600');
+    });
+    const activeTab = event?.currentTarget || document.querySelector(`.chat-cat-tab[onclick*="'${catKey}'"]`);
+    if (activeTab) {
+        activeTab.classList.remove('text-slate-600');
+        activeTab.classList.add('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
     }
+
+    const filtered = (catKey === 'all') 
+        ? emojiCatalog 
+        : emojiCatalog.filter(e => e.cat === catKey);
+
+    renderChatEmojis(filtered);
 }
 
-function toggleMobileSidebar(forceState = null) {
-    const sidebar = document.getElementById('chatSidebar');
-    if (!sidebar) return;
-    if (forceState !== null) {
-        if (forceState) sidebar.classList.remove('hidden');
-        else sidebar.classList.add('hidden');
-    } else {
-        sidebar.classList.toggle('hidden');
+function filterChatEmojis(query) {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) {
+        switchChatEmojiCategory(currentChatEmojiCat);
+        return;
     }
-    if (window.lucide) lucide.createIcons();
-}
 
-function mentionMember(name) {
-    const input = document.getElementById('chatMessageInput');
-    if (input) {
-        input.value = `@${name} ` + input.value;
-        input.focus();
-    }
-    if (window.innerWidth < 768) {
-        toggleMobileSidebar(false);
-    }
+    const matched = emojiCatalog.filter(e => {
+        const inCat = (currentChatEmojiCat === 'all' || e.cat === currentChatEmojiCat);
+        const inName = e.name.toLowerCase().includes(q) || e.emoji.includes(q);
+        return inCat && inName;
+    });
+
+    renderChatEmojis(matched);
 }
 
 function toggleEmojiPicker(force = null) {
     const tray = document.getElementById('emojiPickerTray');
     if (!tray) return;
     if (force !== null) {
-        if (force) tray.classList.remove('hidden');
-        else tray.classList.add('hidden');
+        if (force) {
+            tray.classList.remove('hidden');
+            switchChatEmojiCategory(currentChatEmojiCat);
+            const search = document.getElementById('chatEmojiSearchInput');
+            if (search) search.focus();
+        } else {
+            tray.classList.add('hidden');
+        }
     } else {
+        const isClosed = tray.classList.contains('hidden');
         tray.classList.toggle('hidden');
+        if (isClosed) {
+            switchChatEmojiCategory(currentChatEmojiCat);
+            const search = document.getElementById('chatEmojiSearchInput');
+            if (search) search.focus();
+        }
     }
-}
-
-function switchEmojiCategory(catKey) {
-    const container = document.getElementById('emojiGridContainer');
-    if (!container) return;
-    const list = emojiCategories[catKey] || emojiCategories.indian;
-    container.innerHTML = list.map(e => `
-        <button type="button" data-emoji="${e}" class="p-1 hover:bg-slate-100 rounded-lg transition hover:scale-125 cursor-pointer flex items-center justify-center">
-            ${e}
-        </button>
-    `).join('');
-    parseTwemoji(container);
 }
 
 function insertEmoji(emoji) {
@@ -816,7 +1187,116 @@ function updateDeletedMessageBubble(id, isMe) {
     }
 }
 
-// 🟢 React to Message
+// 🟢 WhatsApp Message Reaction Modal (+ button) Logic
+function openReactionPickerModal(thoughtId) {
+    activeReactionMessageId = thoughtId;
+    const modal = document.getElementById('messageReactionPickerModal');
+    const search = document.getElementById('reactionModalSearchInput');
+    if (search) search.value = '';
+    switchReactionCategory('all');
+    if (modal) modal.classList.remove('hidden');
+    if (search) search.focus();
+}
+
+function closeReactionPickerModal() {
+    const modal = document.getElementById('messageReactionPickerModal');
+    if (modal) modal.classList.add('hidden');
+    activeReactionMessageId = null;
+}
+
+function switchReactionCategory(catKey) {
+    currentReactionModalCat = catKey;
+    const search = document.getElementById('reactionModalSearchInput');
+    const query = search ? search.value.trim() : '';
+
+    // Update active tab styles
+    document.querySelectorAll('.reaction-cat-tab').forEach(tab => {
+        tab.classList.remove('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+        tab.classList.add('text-slate-600');
+    });
+    const activeTab = event?.currentTarget || document.querySelector(`.reaction-cat-tab[onclick*="'${catKey}'"]`);
+    if (activeTab) {
+        activeTab.classList.remove('text-slate-600');
+        activeTab.classList.add('bg-white', 'text-indigo-600', 'shadow-2xs', 'border', 'border-slate-200');
+    }
+
+    renderReactionModalEmojis(catKey, query);
+}
+
+function filterReactionModalEmojis(query) {
+    renderReactionModalEmojis(currentReactionModalCat, query);
+}
+
+function renderReactionModalEmojis(catKey, query = '') {
+    const container = document.getElementById('reactionModalGrid');
+    if (!container) return;
+
+    const q = (query || '').toLowerCase().trim();
+    const list = emojiCatalog.filter(e => {
+        const inCat = (catKey === 'all' || e.cat === catKey);
+        const inName = !q || e.name.toLowerCase().includes(q) || e.emoji.includes(q);
+        return inCat && inName;
+    });
+
+    if (list.length === 0) {
+        container.innerHTML = `<div class="col-span-7 sm:col-span-8 py-8 text-center text-xs text-slate-400 font-semibold">No emojis found</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(item => `
+        <button type="button" data-emoji="${item.emoji}" class="p-1.5 hover:bg-slate-100 rounded-xl transition-all hover:scale-135 active:scale-90 cursor-pointer flex items-center justify-center leading-none text-2xl select-none" title="${item.name}">
+            ${item.emoji}
+        </button>
+    `).join('');
+    parseTwemoji(container);
+}
+
+async function selectCustomReaction(emoji) {
+    if (!activeReactionMessageId) return;
+    const msgId = activeReactionMessageId;
+    closeReactionPickerModal();
+    await reactToMessage(msgId, emoji);
+}
+
+// 🟢 Build WhatsApp-Style Reaction Badges HTML
+function buildReactionsHtml(reactions, isMe, messageId) {
+    if (!reactions || reactions.length === 0) {
+        return `<div class="reactions-dock flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}" data-reactions-container="${messageId}"></div>`;
+    }
+
+    const grouped = {};
+    reactions.forEach(r => {
+        if (!grouped[r.emoji]) grouped[r.emoji] = [];
+        grouped[r.emoji].push(r.user_name || 'Member');
+    });
+
+    const badges = Object.keys(grouped).map(emoji => {
+        const names = grouped[emoji];
+        const iReacted = reactions.some(r => r.emoji === emoji && r.user_id === currentUserId);
+        const activeCls = iReacted
+            ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-300 text-indigo-700 font-black ring-1 ring-indigo-300/50 shadow-2xs'
+            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs';
+
+        return `
+            <button type="button" onclick="reactToMessage(${messageId}, '${emoji}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer transition select-none ${activeCls}" title="${names.join(', ')}">
+                <span class="leading-none text-sm">${emoji}</span>
+                <span class="text-[10px] font-bold">${names.length}</span>
+            </button>
+        `;
+    }).join('');
+
+    return `<div class="reactions-dock flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}" data-reactions-container="${messageId}">${badges}</div>`;
+}
+
+function updateMessageReactionsDom(messageId, reactions, isMe) {
+    const container = document.querySelector(`[data-reactions-container="${messageId}"]`);
+    if (container) {
+        container.outerHTML = buildReactionsHtml(reactions, isMe, messageId);
+        parseTwemoji();
+    }
+}
+
+// 🟢 React to Message (Instant WhatsApp-style with Authoritative Sync)
 async function reactToMessage(thoughtId, emoji) {
     try {
         const res = await fetch(`/thoughts/${thoughtId}/react`, {
@@ -830,8 +1310,9 @@ async function reactToMessage(thoughtId, emoji) {
             body: JSON.stringify({ emoji })
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-            pollNewMessages();
+        if (res.ok && data.success && data.reactions) {
+            const isMe = data.thought ? data.thought.is_me : true;
+            updateMessageReactionsDom(thoughtId, data.reactions, isMe);
         }
     } catch (err) {
         console.error('React error:', err);
@@ -955,15 +1436,28 @@ async function pollNewMessages() {
         });
         const data = await res.json();
 
-        if (res.ok && data.success && data.messages && data.messages.length > 0) {
-            data.messages.forEach(msg => {
-                if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
-                    renderMessageBubble(msg);
-                }
-            });
+        if (res.ok && data.success) {
+            // Render new incoming messages
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
+                        renderMessageBubble(msg);
+                    }
+                });
 
-            latestMessageId = data.latest_id;
-            scrollToBottom();
+                latestMessageId = data.latest_id;
+                scrollToBottom();
+            }
+
+            // Update reactions & status on existing messages in real-time
+            if (data.updated_messages && data.updated_messages.length > 0) {
+                data.updated_messages.forEach(msg => {
+                    updateMessageReactionsDom(msg.id, msg.reactions, msg.is_me);
+                    if (msg.is_deleted) {
+                        updateDeletedMessageBubble(msg.id, msg.is_me);
+                    }
+                });
+            }
         }
     } catch (err) {
         console.warn('Live sync notice:', err);
@@ -1022,10 +1516,14 @@ function renderMessageBubble(msg) {
     }
 
     const unsendBtn = (msg.can_unsend && !msg.is_deleted) ? `
+        <span class="w-px h-3 bg-slate-200 mx-0.5"></span>
         <button type="button" onclick="unsendMessage(${msg.id})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Unsend">✕</button>` : '';
 
     const deleteBtn = (isUserTL && !isMe && !msg.is_deleted) ? `
+        <span class="w-px h-3 bg-slate-200 mx-0.5"></span>
         <button type="button" onclick="deleteMessage(${msg.id})" class="text-rose-500 hover:text-rose-700 font-bold text-[10px] px-1 cursor-pointer" title="Delete">✕</button>` : '';
+
+    const reactionsHtml = buildReactionsHtml(msg.reactions || [], isMe, msg.id);
 
     if (isMe) {
         item.innerHTML = `
@@ -1042,15 +1540,24 @@ function renderMessageBubble(msg) {
                         ${linkHtml}
                         <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
                             <span>${msg.time}</span>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-white transition p-0.5 text-indigo-200 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                            </button>
                             ${checkmarks}
                         </div>
-                        <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 left-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
-                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                        <!-- WhatsApp Instant Floating Reaction Bar -->
+                        <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 left-1 sm:left-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
                             ${unsendBtn}
                         </div>
                     </div>
+                    ${reactionsHtml}
                 `}
             </div>
         `;
@@ -1079,14 +1586,23 @@ function renderMessageBubble(msg) {
                         ${linkHtml}
                         <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
                             <span>${msg.time}</span>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="hover:text-indigo-600 transition p-0.5 text-slate-400 opacity-70 hover:opacity-100 cursor-pointer" title="Add reaction">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                            </button>
                         </div>
-                        <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 right-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
-                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
-                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">😂</button>
+                        <!-- WhatsApp Instant Floating Reaction Bar -->
+                        <div class="hidden group-hover/bubble:flex items-center gap-0.5 sm:gap-1 absolute -top-5 right-1 sm:right-2 bg-white/95 backdrop-blur-xs border border-slate-200 shadow-lg rounded-full px-2 py-0.5 z-20 text-slate-700 select-none animate-in zoom-in-90 duration-100">
+                            <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thumbs Up">👍</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Heart">❤️</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😂')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Joy">😂</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😮')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Surprised">😮</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '😢')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Sad">😢</button>
+                            <button type="button" onclick="reactToMessage(${msg.id}, '🙏')" class="hover:scale-130 active:scale-95 transition-transform duration-150 text-sm sm:text-base p-0.5 cursor-pointer leading-none" title="Thanks">🙏</button>
+                            <button type="button" onclick="openReactionPickerModal(${msg.id})" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition cursor-pointer text-xs font-black ml-0.5" title="More reactions">+</button>
                             ${deleteBtn}
                         </div>
                     </div>
+                    ${reactionsHtml}
                 `}
             </div>
         `;
