@@ -8,13 +8,29 @@ use Google\Service\Drive;
 use Google\Service\Oauth2;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class GoogleAuthController extends Controller
 {
     public static function getTokenPath(): string
     {
-        return storage_path('app/google_drive_token.json');
+        $path = storage_path('app/google_drive_token.json');
+        if (!file_exists($path) && Cache::has('google_drive_token')) {
+            try {
+                $dir = dirname($path);
+                if (!file_exists($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+                $cached = Cache::get('google_drive_token');
+                if ($cached) {
+                    file_put_contents($path, json_encode($cached, JSON_PRETTY_PRINT));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed restoring google_drive_token from cache: ' . $e->getMessage());
+            }
+        }
+        return $path;
     }
 
     public static function getServiceAccountData(): ?array
@@ -34,11 +50,16 @@ class GoogleAuthController extends Controller
             }
         }
 
-        $credPath = base_path('credentials.json');
-        if (file_exists($credPath)) {
-            $data = json_decode(file_get_contents($credPath), true);
-            if (is_array($data) && ($data['type'] ?? '') === 'service_account') {
-                return $data;
+        $paths = [
+            storage_path('app/credentials.json'),
+            base_path('credentials.json'),
+        ];
+        foreach ($paths as $credPath) {
+            if (file_exists($credPath)) {
+                $data = json_decode(file_get_contents($credPath), true);
+                if (is_array($data) && ($data['type'] ?? '') === 'service_account') {
+                    return $data;
+                }
             }
         }
 
@@ -53,6 +74,14 @@ class GoogleAuthController extends Controller
             if (!empty($tokenData['access_token']) || !empty($tokenData['refresh_token'])) {
                 return true;
             }
+        }
+
+        if (Cache::has('google_drive_token')) {
+            return true;
+        }
+
+        if (self::getServiceAccountData() !== null) {
+            return true;
         }
 
         return false;
@@ -95,6 +124,9 @@ class GoogleAuthController extends Controller
         $clientId = config('services.google.client_id');
         $clientSecret = config('services.google.client_secret');
         $redirectUri = config('services.google.redirect_uri');
+        if (empty($redirectUri)) {
+            $redirectUri = url('/google/callback');
+        }
 
         // Check if client credentials are in an oauth_credentials.json file or in .env
         $oauthJson = base_path('oauth_credentials.json');
@@ -187,6 +219,7 @@ class GoogleAuthController extends Controller
             }
 
             file_put_contents(self::getTokenPath(), json_encode($tokenPayload, JSON_PRETTY_PRINT));
+            Cache::forever('google_drive_token', $tokenPayload);
 
             // Log activity
             ActivityLog::log(
@@ -216,6 +249,7 @@ class GoogleAuthController extends Controller
         if (file_exists($path)) {
             @unlink($path);
         }
+        Cache::forget('google_drive_token');
 
         ActivityLog::log(
             action: 'google_drive_disconnected',

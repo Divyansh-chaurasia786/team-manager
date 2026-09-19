@@ -10,16 +10,29 @@ use Illuminate\Support\Facades\Log;
 
 class UploadController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $tl = $user->isTL() ? $user : $user->creator ?? $user;
 
-        $recentFiles = DriveFile::with('uploader')
+        $query = DriveFile::with('uploader')
             ->whereHas('uploader', function($q) use ($tl) {
                 $q->where('id', $tl->id)->orWhere('created_by', $tl->id);
-            })
-            ->latest()->take(25)->get();
+            });
+
+        if ($request->filled('type') && in_array($request->type, ['photo', 'video', 'document'])) {
+            $query->where('file_type', $request->type);
+        }
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function($q) use ($term) {
+                $q->where('original_name', 'like', "%{$term}%")
+                  ->orWhere('upload_date', 'like', "%{$term}%");
+            });
+        }
+
+        $recentFiles = $query->latest()->take(50)->get();
 
         return view('shared.upload', compact('recentFiles'));
     }
@@ -88,8 +101,7 @@ class UploadController extends Controller
             entityId: $file->id
         );
 
-        // If credentials exist, attempt to stream or direct redirect
-        if (file_exists(base_path('credentials.json'))) {
+        if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
             try {
                 $driveService = new DriveService();
                 $downloadUrl = $driveService->getDirectDownloadUrl($file->drive_file_id);
@@ -113,7 +125,7 @@ class UploadController extends Controller
         $fileName = $file->original_name;
         $folder = $file->upload_date;
 
-        if (file_exists(base_path('credentials.json'))) {
+        if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
             try {
                 $driveService = new DriveService();
                 $driveService->deleteFile($file->drive_file_id);
