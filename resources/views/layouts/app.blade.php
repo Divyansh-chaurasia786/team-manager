@@ -599,7 +599,7 @@
     </header>
 
     <!-- MAIN PAGE CONTAINER -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <main class="{{ request()->routeIs('thoughts.*') ? 'flex-grow w-full flex flex-col p-0 overflow-hidden' : 'flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8' }}">
         <!-- Toast Alerts -->
         @if(session('success'))
             <div class="mb-4 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-xs">
@@ -739,18 +739,20 @@
     @endauth
 
     <!-- ENTERPRISE FOOTER -->
-    <footer class="mt-auto border-t border-slate-200 bg-white py-5 text-center text-xs text-slate-400">
-        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-700">EcoFone App</span>
-                <span>&bull;</span>
-                <span>Automated Workforce & Cloud Operations</span>
+    @unless(request()->routeIs('thoughts.*'))
+        <footer class="mt-auto border-t border-slate-200 bg-white py-5 text-center text-xs text-slate-400">
+            <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-700">EcoFone App</span>
+                    <span>&bull;</span>
+                    <span>Automated Workforce & Cloud Operations</span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                    &copy; {{ date('Y') }} EcoFone Technologies &bull; Luxury within reach
+                </div>
             </div>
-            <div class="text-[11px] text-slate-400">
-                &copy; {{ date('Y') }} EcoFone Technologies &bull; Luxury within reach
-            </div>
-        </div>
-    </footer>
+        </footer>
+    @endunless
 
     <!-- Initialize Lucide Icons -->
     <script>
