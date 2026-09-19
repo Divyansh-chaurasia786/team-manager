@@ -99,4 +99,56 @@ class User extends Authenticatable
 
     /** True for TL or CEO — those who can manage tasks/shoots at the operational level */
     public function isOperationsLead(): bool { return in_array($this->role, ['tl', 'ceo']); }
+
+    public function leaveQuotas() { return $this->hasMany(LeaveQuota::class); }
+    public function leaveApplications() { return $this->hasMany(LeaveApplication::class); }
+
+    /**
+     * Get a comprehensive leave breakdown for this user, including negative balances.
+     */
+    public function getLeaveSummary(?int $year = null): array
+    {
+        $year = $year ?: (int) date('Y');
+        $quota = LeaveQuota::getOrCreateForUser($this->id, $year);
+
+        $approvedLeaves = LeaveApplication::where('user_id', $this->id)
+            ->where('status', 'approved')
+            ->whereYear('start_date', $year)
+            ->get();
+
+        $casualUsed = $approvedLeaves->filter(fn($l) => $l->effective_leave_type === 'casual')->sum('total_days');
+        $sickUsed = $approvedLeaves->filter(fn($l) => $l->effective_leave_type === 'sick')->sum('total_days');
+        $emergencyUsed = $approvedLeaves->filter(fn($l) => $l->effective_leave_type === 'emergency')->sum('total_days');
+        $privilegeUsed = $approvedLeaves->filter(fn($l) => $l->effective_leave_type === 'privilege')->sum('total_days');
+        $totalUsed = $approvedLeaves->sum('total_days');
+
+        $totalQuota = $quota->total_quota;
+        $totalRemaining = $totalQuota - $totalUsed;
+
+        $ceoGrantedCount = $approvedLeaves->where('is_ceo_granted', true)->count();
+
+        return [
+            'quota'               => $quota,
+            'casual_quota'        => $quota->casual_quota,
+            'sick_quota'          => $quota->sick_quota,
+            'emergency_quota'     => $quota->emergency_quota,
+            'privilege_quota'     => $quota->privilege_quota,
+            'total_quota'         => $totalQuota,
+
+            'casual_used'         => $casualUsed,
+            'sick_used'           => $sickUsed,
+            'emergency_used'      => $emergencyUsed,
+            'privilege_used'      => $privilegeUsed,
+            'total_used'          => $totalUsed,
+
+            'casual_remaining'    => $quota->casual_quota - $casualUsed,
+            'sick_remaining'      => $quota->sick_quota - $sickUsed,
+            'emergency_remaining' => $quota->emergency_quota - $emergencyUsed,
+            'privilege_remaining' => $quota->privilege_quota - $privilegeUsed,
+            'total_remaining'     => $totalRemaining,
+
+            'is_negative'         => $totalRemaining < 0,
+            'ceo_granted_count'   => $ceoGrantedCount,
+        ];
+    }
 }

@@ -97,8 +97,6 @@ Route::middleware(['auth', 'role:tl'])->prefix('tl')->name('tl.')->group(functio
     Route::post('/members/{user}/reset-otp', [MemberController::class, 'resetOtp'])->name('members.reset_otp');
     Route::delete('/members/{user}', [MemberController::class, 'destroy'])->name('members.destroy');
     Route::post('/attendance/bulk-present', [AttendanceController::class, 'bulkMarkPresent'])->name('attendance.bulk');
-    Route::post('/leaves/{leave}/approve', [LeaveController::class, 'approve'])->name('leaves.approve');
-    Route::post('/leaves/{leave}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
 });
 
 // CEO-only routes
@@ -145,6 +143,8 @@ Route::middleware('auth')->group(function () {
     // Leaves Management
     Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
     Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
+    Route::post('/leaves/toggle', [LeaveController::class, 'toggle'])->name('leaves.toggle');
+    Route::post('/leaves/quotas', [LeaveController::class, 'updateQuota'])->name('leaves.quotas.update');
     Route::post('/leaves/{leave}/approve', [LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('/leaves/{leave}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
 

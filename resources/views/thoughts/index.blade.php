@@ -28,11 +28,7 @@
             <p class="text-xs text-slate-500 mt-0.5">Real-time team messaging, project announcements, and media coordination</p>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" onclick="pollNewMessages(true)" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer" title="Refresh messages">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
-                <span class="hidden sm:inline">Sync</span>
-            </button>
+        <div class="flex items-center gap-2">
             <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>{{ count($teamUsers) }} Members</span>
@@ -181,10 +177,11 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-1">
-                    <button type="button" onclick="pollNewMessages(true)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer" title="Refresh messages">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                    </button>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Live Sync</span>
+                    </span>
                 </div>
             </div>
 
@@ -222,27 +219,16 @@
                         @endif
 
                         @if($isMe)
-                            <!-- Outgoing Message (Right aligned, snug bubble) -->
+                            <!-- Outgoing Message (Self) -->
                             <div class="flex justify-end message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
-                                <div class="flex flex-col items-end min-w-0 max-w-[85%] sm:max-w-[70%]">
-                                    <div class="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-slate-400 font-medium select-none">
-                                        <span>{{ $thought->created_at->format('h:i A') }}</span>
-                                        @if(count($seenBy) > 0)
-                                            <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer text-indigo-600" title="Seen by {{ count($seenBy) }} members">
-                                                <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
-                                            </button>
-                                        @else
-                                            <svg class="w-3.5 h-3.5 text-slate-300" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
-                                        @endif
-                                    </div>
-
+                                <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
                                     @if($thought->is_deleted)
                                         <div class="px-3.5 py-1.5 rounded-2xl rounded-tr-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                                             <span>You unsent this message</span>
                                         </div>
                                     @else
-                                        <div class="relative group/bubble inline-block rounded-2xl rounded-tr-xs px-3.5 py-2 bg-indigo-600 text-white shadow-xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                                        <div class="relative group/bubble w-fit rounded-2xl rounded-tr-xs px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-xs">
                                             @if($thought->media_path || $thought->drive_url)
                                                 @php $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; @endphp
                                                 <div class="mb-1.5 rounded-xl overflow-hidden bg-black/10">
@@ -257,17 +243,29 @@
                                             @endif
 
                                             @if(!empty($thought->content))
-                                                {{ $thought->content }}
+                                                <div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text">{{ trim($thought->content) }}</div>
                                             @endif
 
                                             @if(!empty($thought->link_url))
-                                                <div class="mt-1 p-2 rounded-xl bg-indigo-700/50">
-                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-100 hover:text-white font-semibold flex items-center gap-1.5 truncate">
-                                                        <i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i>
+                                                <div class="mt-1 p-1.5 rounded-xl bg-indigo-800/60">
+                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-100 hover:text-white font-semibold flex items-center gap-1 truncate">
+                                                        <i data-lucide="link" class="w-3 h-3 shrink-0"></i>
                                                         <span class="truncate">{{ $thought->link_url }}</span>
                                                     </a>
                                                 </div>
                                             @endif
+
+                                            <!-- Timestamp & Read Status Dock -->
+                                            <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
+                                                <span>{{ $thought->created_at->format('h:i A') }}</span>
+                                                @if(count($seenBy) > 0)
+                                                    <button type="button" onclick="openMessageInfoModal({{ $thought->id }})" class="hover:opacity-80 cursor-pointer text-sky-300" title="Seen by {{ count($seenBy) }} members">
+                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
+                                                    </button>
+                                                @else
+                                                    <svg class="w-3.5 h-3.5 text-indigo-300" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
+                                                @endif
+                                            </div>
 
                                             <!-- Hover Actions Bar -->
                                             <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 left-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
@@ -294,34 +292,34 @@
                                 </div>
                             </div>
                         @else
-                            <!-- Incoming Teammate Message (Left aligned with avatar, snug bubble) -->
-                            <div class="flex items-start gap-2.5 message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
+                            <!-- Incoming Teammate Message (Left aligned with avatar) -->
+                            <div class="flex items-start gap-2 message-item group relative" data-message-id="{{ $thought->id }}" data-text="{{ strtolower($thought->content ?? '') }}">
                                 <div class="shrink-0 pt-0.5">
                                     @if($thought->user?->avatar_url)
-                                        <img src="{{ $thought->user->avatar_url }}" alt="{{ $thought->user->name }}" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200">
+                                        <img src="{{ $thought->user->avatar_url }}" alt="{{ $thought->user->name }}" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200">
                                     @else
-                                        <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-2xs" style="background-color: {{ $senderColor }};">
+                                        <div class="w-7 h-7 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-2xs" style="background-color: {{ $senderColor }};">
                                             {{ strtoupper(substr($thought->user?->name ?? 'U', 0, 1)) }}
                                         </div>
                                     @endif
                                 </div>
 
-                                <div class="flex flex-col items-start min-w-0 max-w-[85%] sm:max-w-[70%]">
-                                    <div class="flex items-center gap-1.5 mb-1 px-1 text-xs">
-                                        <span class="font-bold text-slate-800 truncate">{{ $thought->user?->name ?? 'Member' }}</span>
-                                        @if($thought->user?->isTL())
-                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-600">TL</span>
-                                        @endif
-                                        <span class="text-[10px] text-slate-400 font-medium">{{ $thought->created_at->format('h:i A') }}</span>
-                                    </div>
-
+                                <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
                                     @if($thought->is_deleted)
                                         <div class="px-3.5 py-1.5 rounded-2xl rounded-tl-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
                                             <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                                             <span>This message was deleted</span>
                                         </div>
                                     @else
-                                        <div class="relative group/bubble inline-block rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/80 shadow-2xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                                        <div class="relative group/bubble w-fit rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/90 shadow-2xs">
+                                            <!-- Sender Name in Bubble -->
+                                            <div class="text-[11px] font-bold leading-tight mb-1 flex items-center gap-1" style="color: {{ $senderColor }};">
+                                                <span>{{ $thought->user?->name ?? 'Member' }}</span>
+                                                @if($thought->user?->isTL())
+                                                    <span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-600">TL</span>
+                                                @endif
+                                            </div>
+
                                             @if($thought->media_path || $thought->drive_url)
                                                 @php $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; @endphp
                                                 <div class="mb-1.5 rounded-xl overflow-hidden bg-black/5">
@@ -336,17 +334,22 @@
                                             @endif
 
                                             @if(!empty($thought->content))
-                                                {{ $thought->content }}
+                                                <div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text text-slate-800">{{ trim($thought->content) }}</div>
                                             @endif
 
                                             @if(!empty($thought->link_url))
-                                                <div class="mt-1 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-600 hover:underline font-semibold flex items-center gap-1.5 truncate">
-                                                        <i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i>
+                                                <div class="mt-1 p-1.5 rounded-xl bg-slate-50 border border-slate-100">
+                                                    <a href="{{ $thought->link_url }}" target="_blank" class="text-xs text-indigo-600 hover:underline font-semibold flex items-center gap-1 truncate">
+                                                        <i data-lucide="link" class="w-3 h-3 shrink-0"></i>
                                                         <span class="truncate">{{ $thought->link_url }}</span>
                                                     </a>
                                                 </div>
                                             @endif
+
+                                            <!-- Timestamp Dock -->
+                                            <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
+                                                <span>{{ $thought->created_at->format('h:i A') }}</span>
+                                            </div>
 
                                             <!-- Hover Actions Bar -->
                                             <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 right-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
@@ -927,18 +930,25 @@ function closeManageMembersModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-// 🟢 Background Live Polling
+// 🟢 Real-time Automatic Live Synchronization
 function startLivePolling() {
     if (pollingInterval) clearInterval(pollingInterval);
     pollingInterval = setInterval(() => {
         pollNewMessages();
-    }, 3500);
+    }, 2500);
 }
 
-async function pollNewMessages(manual = false) {
-    const refreshIcon = document.getElementById('refreshIcon');
-    if (manual && refreshIcon) refreshIcon.classList.add('animate-spin');
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        pollNewMessages();
+    }
+});
 
+window.addEventListener('focus', () => {
+    pollNewMessages();
+});
+
+async function pollNewMessages() {
     try {
         const res = await fetch(`{{ route('thoughts.messages') }}?group=${activeGroupType}&after_id=${latestMessageId}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -956,20 +966,18 @@ async function pollNewMessages(manual = false) {
             scrollToBottom();
         }
     } catch (err) {
-        console.warn('Poll notice:', err);
-    } finally {
-        if (manual && refreshIcon) refreshIcon.classList.remove('animate-spin');
+        console.warn('Live sync notice:', err);
     }
 }
 
-// 🟢 Render Message HTML (Compact, Snug Bubble)
+// 🟢 Render Message HTML (Compact, Snug WhatsApp/Instagram-style Bubble)
 function renderMessageBubble(msg) {
     const container = document.getElementById('chatMessagesList');
     if (!container) return;
 
     const isMe = msg.user_id === currentUserId;
     const item = document.createElement('div');
-    item.className = `${isMe ? 'flex justify-end' : 'flex items-start gap-2.5'} message-item animate-in fade-in duration-100 group relative`;
+    item.className = `${isMe ? 'flex justify-end' : 'flex items-start gap-2'} message-item animate-in fade-in duration-100 group relative`;
     item.setAttribute('data-message-id', msg.id);
     item.setAttribute('data-text', (msg.content || '').toLowerCase());
 
@@ -993,8 +1001,8 @@ function renderMessageBubble(msg) {
     let linkHtml = '';
     if (msg.link_url && !msg.is_deleted) {
         linkHtml = `
-            <div class="mt-1 p-2 rounded-xl ${isMe ? 'bg-indigo-700/50' : 'bg-slate-50 border border-slate-100'}">
-                <a href="${msg.link_url}" target="_blank" class="text-xs ${isMe ? 'text-indigo-100 hover:text-white' : 'text-indigo-600 hover:underline'} font-semibold flex items-center gap-1.5 truncate">
+            <div class="mt-1 p-1.5 rounded-xl ${isMe ? 'bg-indigo-800/60' : 'bg-slate-50 border border-slate-100'}">
+                <a href="${msg.link_url}" target="_blank" class="text-xs ${isMe ? 'text-indigo-100 hover:text-white' : 'text-indigo-600 hover:underline'} font-semibold flex items-center gap-1 truncate">
                     <span class="truncate">${msg.link_url}</span>
                 </a>
             </div>`;
@@ -1004,12 +1012,12 @@ function renderMessageBubble(msg) {
     if (isMe && !msg.is_deleted) {
         if (msg.is_seen) {
             checkmarks = `
-                <button type="button" onclick="openMessageInfoModal(${msg.id})" class="hover:opacity-80 cursor-pointer text-indigo-600 ml-0.5" title="Seen by ${msg.seen_count} members">
+                <button type="button" onclick="openMessageInfoModal(${msg.id})" class="hover:opacity-80 cursor-pointer text-sky-300 ml-0.5" title="Seen by ${msg.seen_count} members">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>
                 </button>`;
         } else {
             checkmarks = `
-                <svg class="w-3.5 h-3.5 text-slate-300 ml-0.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>`;
+                <svg class="w-3.5 h-3.5 text-indigo-300 ml-0.5" viewBox="0 0 16 15" fill="none"><path d="M15.01 3.316l-7.79 7.79-3.21-3.21.71-.71 2.5 2.5 7.08-7.08.71.71zm-4.79 7.79l-.71.71-3.21-3.21.71-.71 2.5 2.5.71-.7zM1.79 7.896l2.5 2.5-.71.71-2.5-2.5.71-.71z" fill="currentColor"/></svg>`;
         }
     }
 
@@ -1021,21 +1029,21 @@ function renderMessageBubble(msg) {
 
     if (isMe) {
         item.innerHTML = `
-            <div class="flex flex-col items-end min-w-0 max-w-[85%] sm:max-w-[70%]">
-                <div class="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-slate-400 font-medium select-none">
-                    <span>${msg.time}</span>
-                    ${checkmarks}
-                </div>
+            <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
                 ${msg.is_deleted ? `
                     <div class="px-3.5 py-1.5 rounded-2xl rounded-tr-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
                         <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                         <span>You unsent this message</span>
                     </div>
                 ` : `
-                    <div class="relative group/bubble inline-block rounded-2xl rounded-tr-xs px-3.5 py-2 bg-indigo-600 text-white shadow-xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                    <div class="relative group/bubble w-fit rounded-2xl rounded-tr-xs px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-xs">
                         ${mediaHtml}
-                        ${msg.content ? msg.content : ''}
+                        ${msg.content ? `<div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text">${msg.content}</div>` : ''}
                         ${linkHtml}
+                        <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-indigo-200 select-none">
+                            <span>${msg.time}</span>
+                            ${checkmarks}
+                        </div>
                         <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 left-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
                             <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
                             <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
@@ -1050,25 +1058,28 @@ function renderMessageBubble(msg) {
         const initial = (msg.user_name || 'U').charAt(0).toUpperCase();
         item.innerHTML = `
             <div class="shrink-0 pt-0.5">
-                <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+                <div class="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                     ${initial}
                 </div>
             </div>
-            <div class="flex flex-col items-start min-w-0 max-w-[85%] sm:max-w-[70%]">
-                <div class="flex items-center gap-1.5 mb-1 px-1 text-xs">
-                    <span class="font-bold text-slate-800 truncate">${msg.user_name}</span>
-                    <span class="text-[10px] text-slate-400 font-medium">${msg.time}</span>
-                </div>
+            <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
                 ${msg.is_deleted ? `
                     <div class="px-3.5 py-1.5 rounded-2xl rounded-tl-xs bg-slate-100 text-slate-500 text-xs italic border border-slate-200/80 flex items-center gap-1.5">
                         <i data-lucide="ban" class="w-3.5 h-3.5 text-slate-400"></i>
                         <span>This message was deleted</span>
                     </div>
                 ` : `
-                    <div class="relative group/bubble inline-block rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/80 shadow-2xs text-xs sm:text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+                    <div class="relative group/bubble w-fit rounded-2xl rounded-tl-xs px-3.5 py-2 bg-white text-slate-800 border border-slate-200/90 shadow-2xs">
+                        <div class="text-[11px] font-bold leading-tight mb-1 text-indigo-600 flex items-center gap-1">
+                            <span>${msg.user_name}</span>
+                            ${msg.is_tl ? '<span class="px-1 py-0.2 rounded text-[8px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-600">TL</span>' : ''}
+                        </div>
                         ${mediaHtml}
-                        ${msg.content ? msg.content : ''}
+                        ${msg.content ? `<div class="text-[13px] sm:text-sm leading-snug break-words whitespace-pre-line select-text text-slate-800">${msg.content}</div>` : ''}
                         ${linkHtml}
+                        <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400 select-none">
+                            <span>${msg.time}</span>
+                        </div>
                         <div class="hidden group-hover/bubble:flex items-center gap-1 absolute -top-3 right-0 bg-white border border-slate-200 shadow-md rounded-full px-1.5 py-0.5 z-10 text-slate-700">
                             <button type="button" onclick="reactToMessage(${msg.id}, '👍')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">👍</button>
                             <button type="button" onclick="reactToMessage(${msg.id}, '❤️')" class="hover:scale-125 transition text-xs p-0.5 cursor-pointer">❤️</button>
