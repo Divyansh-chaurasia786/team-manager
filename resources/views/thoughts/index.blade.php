@@ -644,13 +644,13 @@
 
                             <!-- WhatsApp Style Category Tabs -->
                             <div class="px-2 py-1.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-1 overflow-x-auto text-[11px] font-bold select-none scrollbar-none">
-                                <button type="button" onclick="switchChatEmojiCategory('all')" class="chat-cat-tab px-2.5 py-1 rounded-lg bg-white text-[#008069] shadow-2xs border border-slate-200 shrink-0">✨ All</button>
-                                <button type="button" onclick="switchChatEmojiCategory('smileys')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
-                                <button type="button" onclick="switchChatEmojiCategory('gestures')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
-                                <button type="button" onclick="switchChatEmojiCategory('hearts')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
-                                <button type="button" onclick="switchChatEmojiCategory('desi')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🇮🇳 Desi</button>
-                                <button type="button" onclick="switchChatEmojiCategory('work')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🚀 Work</button>
-                                <button type="button" onclick="switchChatEmojiCategory('animals')" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🍕 Food/Pets</button>
+                                <button type="button" onclick="switchChatEmojiCategory('all', this)" class="chat-cat-tab px-2.5 py-1 rounded-lg bg-white text-[#008069] shadow-2xs border border-slate-200 shrink-0">✨ All</button>
+                                <button type="button" onclick="switchChatEmojiCategory('smileys', this)" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
+                                <button type="button" onclick="switchChatEmojiCategory('gestures', this)" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
+                                <button type="button" onclick="switchChatEmojiCategory('hearts', this)" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
+                                <button type="button" onclick="switchChatEmojiCategory('desi', this)" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🇮🇳 Desi</button>
+                                <button type="button" onclick="switchChatEmojiCategory('work', this)" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🚀 Work</button>
+                                <button type="button" onclick="switchChatEmojiCategory('animals', this)" class="chat-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🍕 Food/Pets</button>
                             </div>
 
                             <!-- Emoji Grid -->
@@ -793,13 +793,13 @@
 
         <!-- Category Selector -->
         <div class="px-2 py-1.5 bg-slate-50/70 border-b border-slate-100 flex items-center gap-1 overflow-x-auto text-[11px] font-bold select-none scrollbar-none">
-            <button type="button" onclick="switchReactionCategory('all')" class="reaction-cat-tab px-2.5 py-1 rounded-lg bg-white text-[#008069] shadow-2xs border border-slate-200 shrink-0">✨ All</button>
-            <button type="button" onclick="switchReactionCategory('smileys')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
-            <button type="button" onclick="switchReactionCategory('gestures')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
-            <button type="button" onclick="switchReactionCategory('hearts')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
-            <button type="button" onclick="switchReactionCategory('desi')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🇮🇳 Desi</button>
-            <button type="button" onclick="switchReactionCategory('work')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🚀 Work</button>
-            <button type="button" onclick="switchReactionCategory('animals')" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🍕 Food/Pets</button>
+            <button type="button" onclick="switchReactionCategory('all', this)" class="reaction-cat-tab px-2.5 py-1 rounded-lg bg-white text-[#008069] shadow-2xs border border-slate-200 shrink-0">✨ All</button>
+            <button type="button" onclick="switchReactionCategory('smileys', this)" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">😀 Smileys</button>
+            <button type="button" onclick="switchReactionCategory('gestures', this)" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">👍 Hands</button>
+            <button type="button" onclick="switchReactionCategory('hearts', this)" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">❤️ Hearts</button>
+            <button type="button" onclick="switchReactionCategory('desi', this)" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🇮🇳 Desi</button>
+            <button type="button" onclick="switchReactionCategory('work', this)" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🚀 Work</button>
+            <button type="button" onclick="switchReactionCategory('animals', this)" class="reaction-cat-tab px-2 py-1 rounded-lg text-slate-600 hover:bg-white shrink-0">🍕 Food/Pets</button>
         </div>
 
         <!-- Emoji Grid -->
@@ -1074,28 +1074,6 @@ document.addEventListener("DOMContentLoaded", function() {
     switchChatEmojiCategory('all');
     parseTwemoji();
 
-    // Event delegation for Chat Input Emoji Picker buttons
-    const emojiContainer = document.getElementById('emojiGridContainer');
-    if (emojiContainer) {
-        emojiContainer.addEventListener('click', function(e) {
-            const btn = e.target.closest('[data-emoji]');
-            if (!btn) return;
-            const emojiChar = btn.getAttribute('data-emoji');
-            insertEmoji(emojiChar);
-        });
-    }
-
-    // Event delegation for WhatsApp Custom Reaction Modal picker (+ button)
-    const reactionGrid = document.getElementById('reactionModalGrid');
-    if (reactionGrid) {
-        reactionGrid.addEventListener('click', function(e) {
-            const btn = e.target.closest('[data-emoji]');
-            if (!btn) return;
-            const emojiChar = btn.getAttribute('data-emoji');
-            selectCustomReaction(emojiChar);
-        });
-    }
-
     // Global click listener to close emoji picker when clicking outside
     document.addEventListener('click', function(e) {
         const tray = document.getElementById('emojiPickerTray');
@@ -1208,14 +1186,14 @@ function renderChatEmojis(list) {
     }
 
     container.innerHTML = list.map(item => `
-        <button type="button" data-emoji="${item.emoji}" class="p-1 hover:bg-slate-100 rounded-xl transition-all hover:scale-130 active:scale-95 cursor-pointer flex items-center justify-center leading-none text-xl select-none" title="${item.name}">
+        <button type="button" data-emoji="${item.emoji}" onclick="insertEmoji(this.getAttribute('data-emoji'))" class="p-1 hover:bg-slate-100 rounded-xl transition-all hover:scale-130 active:scale-95 cursor-pointer flex items-center justify-center leading-none text-xl select-none" title="${item.name}">
             ${item.emoji}
         </button>
     `).join('');
     parseTwemoji(container);
 }
 
-function switchChatEmojiCategory(catKey) {
+function switchChatEmojiCategory(catKey, clickedBtn = null) {
     currentChatEmojiCat = catKey;
     const searchInput = document.getElementById('chatEmojiSearchInput');
     if (searchInput) searchInput.value = '';
@@ -1225,8 +1203,8 @@ function switchChatEmojiCategory(catKey) {
         tab.classList.remove('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
         tab.classList.add('text-slate-600');
     });
-    const activeTab = event?.currentTarget || document.querySelector(`.chat-cat-tab[onclick*="'${catKey}'"]`);
-    if (activeTab) {
+    const activeTab = clickedBtn || document.querySelector(`.chat-cat-tab[onclick*="'${catKey}'"]`);
+    if (activeTab && activeTab.classList) {
         activeTab.classList.remove('text-slate-600');
         activeTab.classList.add('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
     }
@@ -1278,15 +1256,20 @@ function toggleEmojiPicker(force = null) {
 }
 
 function insertEmoji(emoji) {
+    if (!emoji) return;
     const input = document.getElementById('chatMessageInput');
     if (!input) return;
     
-    const start = input.selectionStart || input.value.length;
-    const end = input.selectionEnd || input.value.length;
+    const start = (input.selectionStart !== null && input.selectionStart !== undefined) ? input.selectionStart : input.value.length;
+    const end = (input.selectionEnd !== null && input.selectionEnd !== undefined) ? input.selectionEnd : input.value.length;
     const val = input.value;
     input.value = val.substring(0, start) + emoji + val.substring(end);
-    input.selectionStart = input.selectionEnd = start + emoji.length;
+    const newPos = start + emoji.length;
+    try {
+        input.setSelectionRange(newPos, newPos);
+    } catch (e) {}
     input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function toggleLinkInput(show = null) {
@@ -1489,7 +1472,7 @@ function closeReactionPickerModal() {
     activeReactionMessageId = null;
 }
 
-function switchReactionCategory(catKey) {
+function switchReactionCategory(catKey, clickedBtn = null) {
     currentReactionModalCat = catKey;
     const search = document.getElementById('reactionModalSearchInput');
     const query = search ? search.value.trim() : '';
@@ -1499,8 +1482,8 @@ function switchReactionCategory(catKey) {
         tab.classList.remove('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
         tab.classList.add('text-slate-600');
     });
-    const activeTab = event?.currentTarget || document.querySelector(`.reaction-cat-tab[onclick*="'${catKey}'"]`);
-    if (activeTab) {
+    const activeTab = clickedBtn || document.querySelector(`.reaction-cat-tab[onclick*="'${catKey}'"]`);
+    if (activeTab && activeTab.classList) {
         activeTab.classList.remove('text-slate-600');
         activeTab.classList.add('bg-white', 'text-[#008069]', 'shadow-2xs', 'border', 'border-slate-200');
     }
@@ -1529,7 +1512,7 @@ function renderReactionModalEmojis(catKey, query = '') {
     }
 
     container.innerHTML = list.map(item => `
-        <button type="button" data-emoji="${item.emoji}" class="p-1.5 hover:bg-slate-100 rounded-xl transition-all hover:scale-135 active:scale-90 cursor-pointer flex items-center justify-center leading-none text-2xl select-none" title="${item.name}">
+        <button type="button" data-emoji="${item.emoji}" onclick="selectCustomReaction(this.getAttribute('data-emoji'))" class="p-1.5 hover:bg-slate-100 rounded-xl transition-all hover:scale-135 active:scale-90 cursor-pointer flex items-center justify-center leading-none text-2xl select-none" title="${item.name}">
             ${item.emoji}
         </button>
     `).join('');

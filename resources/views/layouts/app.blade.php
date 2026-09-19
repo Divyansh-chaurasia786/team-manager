@@ -60,6 +60,7 @@
             margin: 0 .08em 0 .08em !important;
             vertical-align: -0.2em !important;
             display: inline-block !important;
+            pointer-events: none !important;
         }
     </style>
     @stack('styles')
