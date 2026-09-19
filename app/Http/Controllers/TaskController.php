@@ -580,6 +580,7 @@ class TaskController extends Controller
             $task->update([
                 'overdue_reminder_sent_at' => now(),
                 'overdue_reminder_count'   => $task->overdue_reminder_count + 1,
+                'overdue_reminder_type'    => 'manual',
             ]);
 
             ActivityLog::log(
@@ -603,6 +604,7 @@ class TaskController extends Controller
                     'message' => "Overdue email reminder dispatched to {$employee->name} ({$employee->email})!",
                     'sent_at' => now()->format('d M, h:i A'),
                     'count'   => $task->overdue_reminder_count,
+                    'type'    => 'manual',
                 ]);
             }
 
@@ -624,6 +626,15 @@ class TaskController extends Controller
         $user = Auth::user();
         if (!$user) {
             return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        // Opportunistic automated overdue scan (throttled internally to 5 mins via Cache)
+        if ($user->isOperationsLead()) {
+            try {
+                \App\Services\OverdueReminderService::scanAndDispatchAutomaticReminders();
+            } catch (\Throwable $e) {
+                // Silently pass
+            }
         }
 
         // Base query for tasks matching user scope
@@ -666,26 +677,29 @@ class TaskController extends Controller
 
         $tasksData = $tasks->map(function ($t) {
             return [
-                'id'                     => $t->id,
-                'title'                  => $t->title,
-                'description'            => $t->description,
-                'status'                 => $t->status,
-                'is_overdue'             => $t->isOverdue(),
-                'is_reassigned'          => $t->isReassigned(),
-                'reassignment_count'     => $t->reassignment_count ?? 0,
-                'revision_notes'         => $t->revision_notes,
-                'deadline_iso'           => $t->deadline ? $t->deadline->toISOString() : null,
-                'deadline_formatted'     => $t->deadline ? $t->deadline->format('d M, h:i A') : 'None',
-                'submitted_at_iso'       => $t->submitted_at ? $t->submitted_at->toISOString() : null,
-                'submitted_at_formatted' => $t->submitted_at ? $t->submitted_at->format('d M, h:i A') : null,
-                'reviewed_at_iso'        => $t->reviewed_at ? $t->reviewed_at->toISOString() : null,
-                'reviewed_at_formatted'  => $t->reviewed_at ? $t->reviewed_at->format('d M, h:i A') : null,
-                'review_duration'        => $t->review_duration,
-                'due_label'              => $t->due_label,
-                'updates_count'          => $t->updates->count(),
-                'assignee_name'          => $t->assignedTo->name ?? '',
-                'assigner_name'          => $t->assignedBy->name ?? 'Team Lead',
-                'updated_at_timestamp'   => $t->updated_at?->timestamp,
+                'id'                       => $t->id,
+                'title'                    => $t->title,
+                'description'              => $t->description,
+                'status'                   => $t->status,
+                'is_overdue'               => $t->isOverdue(),
+                'overdue_reminder_sent_at' => $t->overdue_reminder_sent_at ? $t->overdue_reminder_sent_at->format('d M, h:i A') : null,
+                'overdue_reminder_count'   => $t->overdue_reminder_count ?? 0,
+                'overdue_reminder_type'    => $t->overdue_reminder_type,
+                'is_reassigned'            => $t->isReassigned(),
+                'reassignment_count'       => $t->reassignment_count ?? 0,
+                'revision_notes'           => $t->revision_notes,
+                'deadline_iso'             => $t->deadline ? $t->deadline->toISOString() : null,
+                'deadline_formatted'       => $t->deadline ? $t->deadline->format('d M, h:i A') : 'None',
+                'submitted_at_iso'         => $t->submitted_at ? $t->submitted_at->toISOString() : null,
+                'submitted_at_formatted'   => $t->submitted_at ? $t->submitted_at->format('d M, h:i A') : null,
+                'reviewed_at_iso'          => $t->reviewed_at ? $t->reviewed_at->toISOString() : null,
+                'reviewed_at_formatted'    => $t->reviewed_at ? $t->reviewed_at->format('d M, h:i A') : null,
+                'review_duration'          => $t->review_duration,
+                'due_label'                => $t->due_label,
+                'updates_count'            => $t->updates->count(),
+                'assignee_name'            => $t->assignedTo->name ?? '',
+                'assigner_name'            => $t->assignedBy->name ?? 'Team Lead',
+                'updated_at_timestamp'     => $t->updated_at?->timestamp,
             ];
         });
 

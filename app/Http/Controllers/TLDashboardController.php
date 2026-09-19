@@ -14,6 +14,14 @@ class TLDashboardController extends Controller
     public function index()
     {
         $tl = Auth::user();
+
+        // Opportunistic automated overdue scan (throttled to 5 minutes via OverdueReminderService)
+        try {
+            \App\Services\OverdueReminderService::scanAndDispatchAutomaticReminders();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Automatic overdue scan error: ' . $e->getMessage());
+        }
+
         $members = User::where('created_by', $tl->id)->get();
         $memberIds = $members->pluck('id');
 
@@ -39,16 +47,6 @@ class TLDashboardController extends Controller
             ->where('deadline', '<=', now()->addDays(2))
             ->orderBy('deadline', 'asc')
             ->get();
-
-        // Opportunistic automated overdue scan (throttled to once every 15 minutes)
-        \Illuminate\Support\Facades\Cache::remember('tl_overdue_scan_' . $tl->id, 900, function () {
-            try {
-                \Illuminate\Support\Facades\Artisan::call('tasks:send-overdue-reminders');
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Opportunistic overdue scan error: ' . $e->getMessage());
-            }
-            return now()->timestamp;
-        });
 
         // ⏰ 2-Day Scheduled Shoot Reminders (Shoots in the next 48 hours)
         $upcomingShootReminders = ContentShoot::with(['managingMember', 'cameraPerson', 'model', 'editor'])

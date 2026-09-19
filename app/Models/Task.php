@@ -27,6 +27,7 @@ class Task extends Model
         'reassignment_count',
         'overdue_reminder_sent_at',
         'overdue_reminder_count',
+        'overdue_reminder_type',
     ];
 
     protected $casts = [

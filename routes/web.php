@@ -92,6 +92,16 @@ Route::get('/db-health', function () {
     }
 });
 
+// Automated Cron / Webhook Endpoint for Overdue Task Reminders
+Route::get('/cron/send-overdue-reminders', function () {
+    $sent = \App\Services\OverdueReminderService::scanAndDispatchAutomaticReminders(force: true);
+    return response()->json([
+        'status'  => 'success',
+        'sent'    => $sent,
+        'message' => "Overdue task reminders processed: {$sent} email(s) dispatched.",
+        'time'    => now()->toIso8601String(),
+    ]);
+})->name('cron.overdue_reminders');
 
 // Auth routes (guest only)
 Route::middleware('guest')->group(function () {

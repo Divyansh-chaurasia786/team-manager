@@ -282,6 +282,28 @@
                                                         <i data-lucide="cloud" class="w-3 h-3 text-emerald-600"></i> Synced to Drive
                                                     </span>
                                                 @endif
+
+                                                @if($task->overdue_reminder_sent_at)
+                                                    @if($task->overdue_reminder_type === 'automatic')
+                                                        <span id="overdue-reminder-pill-{{ $task->id }}" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300" title="Automatic reminder sent to employee at {{ $task->overdue_reminder_sent_at->format('d M Y, h:i A') }}">
+                                                            <i data-lucide="bot" class="w-3 h-3 text-amber-700"></i>
+                                                            <span>Automatic Reminder Sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
+                                                            @if($task->overdue_reminder_count > 1)
+                                                                <span class="px-1 py-0.2 bg-amber-200/80 rounded text-[9px] font-black text-amber-950">({{ $task->overdue_reminder_count }}x)</span>
+                                                            @endif
+                                                        </span>
+                                                    @else
+                                                        <span id="overdue-reminder-pill-{{ $task->id }}" class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300" title="Manual reminder sent by TL at {{ $task->overdue_reminder_sent_at->format('d M Y, h:i A') }}">
+                                                            <i data-lucide="bell" class="w-3 h-3 text-blue-700"></i>
+                                                            <span>Reminder Sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
+                                                            @if($task->overdue_reminder_count > 1)
+                                                                <span class="px-1 py-0.2 bg-blue-200/80 rounded text-[9px] font-black text-blue-950">({{ $task->overdue_reminder_count }}x)</span>
+                                                            @endif
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span id="overdue-reminder-pill-{{ $task->id }}" class="hidden inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300"></span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -289,9 +311,9 @@
                                     <!-- Right: Clean Unified Single Button Group -->
                                     <div class="flex items-center gap-2 shrink-0 sm:self-center w-full sm:w-auto justify-end task-actions-row-{{ $task->id }}">
                                         @if($task->isOverdue())
-                                            <button type="button" onclick="sendOverdueAlertAjax(this, {{ $task->id }})" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Dispatch Formal Overdue Reminder Email to Assignee">
+                                            <button type="button" id="overdue-alert-btn-{{ $task->id }}" onclick="sendOverdueAlertAjax(this, {{ $task->id }})" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition shadow-2xs flex items-center gap-1.5 cursor-pointer" title="{{ $task->overdue_reminder_sent_at ? 'Resend Overdue Reminder Email to Assignee' : 'Dispatch Formal Overdue Reminder Email to Assignee' }}">
                                                 <i data-lucide="mail-warning" class="w-3.5 h-3.5"></i>
-                                                <span>Send Alert</span>
+                                                <span>{{ $task->overdue_reminder_sent_at ? 'Resend Alert' : 'Send Alert' }}</span>
                                             </button>
                                         @endif
 
@@ -618,6 +640,21 @@
                 </div>
             </div>
 
+            <!-- Overdue Reminder Status Banner (Shown when reminder email sent) -->
+            <div id="detailOverdueReminderContainer" class="hidden p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                        <span id="detailOverdueReminderIcon" class="text-sm">🤖</span>
+                        <span id="detailOverdueReminderTitle">Automatic Overdue Reminder Sent</span>
+                    </span>
+                    <div id="detailOverdueReminderTimestamp" class="text-xs font-bold text-amber-950 mt-1 font-mono"></div>
+                    <span id="detailOverdueReminderNote" class="text-[10px] text-amber-700 block mt-0.5">Dispatched to employee's registered email address.</span>
+                </div>
+                <div class="px-2.5 py-1 rounded-xl bg-amber-200/80 border border-amber-300 text-amber-950 text-xs font-black shrink-0" id="detailOverdueReminderBadge">
+                    Sent
+                </div>
+            </div>
+
             <!-- Task Instructions & Requirements -->
             <div class="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80">
                 <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1.5 flex items-center gap-1.5">
@@ -796,6 +833,22 @@ function openDetailsModal(taskId) {
         } else {
             revTimestampEl.innerText = 'Awaiting member submission';
             revDurationEl.innerText = '';
+        }
+    }
+
+    // Overdue Reminder Notification Box
+    const reminderBox = document.getElementById('detailOverdueReminderContainer');
+    if (reminderBox) {
+        if (task.overdue_reminder_sent_at) {
+            reminderBox.classList.remove('hidden');
+            const isAuto = task.overdue_reminder_type === 'automatic';
+            document.getElementById('detailOverdueReminderIcon').innerText = isAuto ? '🤖' : '🔔';
+            document.getElementById('detailOverdueReminderTitle').innerText = isAuto ? 'Automatic Overdue Reminder Sent' : 'Supervisor Overdue Alert Sent';
+            const sentFormatted = new Date(task.overdue_reminder_sent_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            document.getElementById('detailOverdueReminderTimestamp').innerText = 'Dispatched: ' + (sentFormatted !== 'Invalid Date' ? sentFormatted : task.overdue_reminder_sent_at);
+            document.getElementById('detailOverdueReminderBadge').innerText = (task.overdue_reminder_count > 1 ? `${task.overdue_reminder_count}x Dispatched` : 'Dispatched');
+        } else {
+            reminderBox.classList.add('hidden');
         }
     }
 
@@ -1248,8 +1301,30 @@ async function sendOverdueAlertAjax(btn, taskId) {
 
         if (response.ok && data.success) {
             showInstantToast(data.message || 'Overdue alert email dispatched successfully!');
-            btn.innerHTML = '✓ Alert Sent';
-            btn.className = 'px-3 py-2 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs border border-slate-200 cursor-default';
+            btn.innerHTML = '<i data-lucide="mail-warning" class="w-3.5 h-3.5"></i> <span>Resend Alert</span>';
+            btn.title = 'Resend Overdue Reminder Email to Assignee';
+            btn.disabled = false;
+            btn.className = 'px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition shadow-2xs flex items-center gap-1.5 cursor-pointer';
+
+            // Update UI pill tag
+            const pill = document.getElementById(`overdue-reminder-pill-${taskId}`);
+            if (pill) {
+                pill.className = 'inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300';
+                pill.title = `Manual reminder sent by TL at ${data.sent_at || 'just now'}`;
+                const countBadge = data.count > 1 ? `<span class="px-1 py-0.2 bg-blue-200/80 rounded text-[9px] font-black text-blue-950">(${data.count}x)</span>` : '';
+                pill.innerHTML = `<i data-lucide="bell" class="w-3 h-3 text-blue-700"></i><span>Reminder Sent: ${data.sent_at || 'Just now'}</span>` + countBadge;
+                pill.classList.remove('hidden');
+            }
+
+            // Update cached in-memory task
+            const cachedTask = typeof allTasksData !== 'undefined' ? allTasksData.find(t => t.id === taskId) : null;
+            if (cachedTask) {
+                cachedTask.overdue_reminder_sent_at = new Date().toISOString();
+                cachedTask.overdue_reminder_count = data.count || (cachedTask.overdue_reminder_count || 0) + 1;
+                cachedTask.overdue_reminder_type = data.type || 'manual';
+            }
+
+            if (window.lucide) lucide.createIcons();
         } else {
             showInstantToast(data.message || 'Failed to dispatch alert.', 'error');
             btn.disabled = false;
@@ -1260,6 +1335,7 @@ async function sendOverdueAlertAjax(btn, taskId) {
         btn.disabled = false;
         btn.innerHTML = origHtml;
     }
+}
 // ✏️ Edit Task Specifications (Permitted only before employee submission)
 function openEditTaskModal(taskData) {
     if (!taskData) return;
@@ -1588,6 +1664,38 @@ async function liveSyncTLTasks() {
                         `;
                     }
                     needsIconRefresh = true;
+                }
+            }
+
+            // Overdue reminder live badge update
+            if (t.overdue_reminder_sent_at) {
+                const pill = document.getElementById(`overdue-reminder-pill-${t.id}`);
+                if (pill) {
+                    const isAuto = t.overdue_reminder_type === 'automatic';
+                    pill.className = isAuto
+                        ? 'inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300'
+                        : 'inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300';
+                    pill.title = isAuto ? `Automatic reminder sent to employee at ${t.overdue_reminder_sent_at}` : `Reminder sent by TL at ${t.overdue_reminder_sent_at}`;
+                    const countTxt = (t.overdue_reminder_count > 1 ? `<span class="px-1 py-0.2 ${isAuto ? 'bg-amber-200/80 text-amber-950' : 'bg-blue-200/80 text-blue-950'} rounded text-[9px] font-black">(${t.overdue_reminder_count}x)</span>` : '');
+                    pill.innerHTML = `<i data-lucide="${isAuto ? 'bot' : 'bell'}" class="w-3 h-3 ${isAuto ? 'text-amber-700' : 'text-blue-700'}"></i><span>${isAuto ? 'Automatic Reminder Sent: ' : 'Reminder Sent: '}${t.overdue_reminder_sent_at}</span>` + countTxt;
+                    pill.classList.remove('hidden');
+                    needsIconRefresh = true;
+                }
+                const alertBtn = document.getElementById(`overdue-alert-btn-${t.id}`);
+                if (alertBtn && alertBtn.querySelector('span')) {
+                    alertBtn.querySelector('span').innerText = 'Resend Alert';
+                    alertBtn.title = 'Resend Overdue Reminder Email to Assignee';
+                }
+            }
+
+            // Sync with in-memory allTasksData for modal views
+            if (typeof allTasksData !== 'undefined') {
+                const cached = allTasksData.find(m => m.id === t.id);
+                if (cached) {
+                    cached.status = t.status;
+                    cached.overdue_reminder_sent_at = t.overdue_reminder_sent_at;
+                    cached.overdue_reminder_count = t.overdue_reminder_count;
+                    cached.overdue_reminder_type = t.overdue_reminder_type;
                 }
             }
 

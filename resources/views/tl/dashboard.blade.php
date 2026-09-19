@@ -136,6 +136,24 @@
                                     <i data-lucide="clock" class="w-3.5 h-3.5 {{ $rem['is_urgent'] ? 'text-amber-600' : 'text-slate-400' }}"></i>
                                     <span class="{{ $rem['is_urgent'] ? 'text-amber-800 font-bold' : '' }}">{{ $rem['label'] }}</span>
                                 </div>
+
+                                @if($task->overdue_reminder_sent_at)
+                                    @if($task->overdue_reminder_type === 'automatic')
+                                        <div class="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/80 text-[11px] font-bold text-amber-900">
+                                            <span>🤖 Automatic reminder sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
+                                            @if($task->overdue_reminder_count > 1)
+                                                <span class="px-1.5 py-0.2 bg-amber-200/80 rounded-full text-[10px] font-black text-amber-950">({{ $task->overdue_reminder_count }}x)</span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <div class="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200/80 text-[11px] font-bold text-blue-900">
+                                            <span>🔔 Reminder sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
+                                            @if($task->overdue_reminder_count > 1)
+                                                <span class="px-1.5 py-0.2 bg-blue-200/80 rounded-full text-[10px] font-black text-blue-950">({{ $task->overdue_reminder_count }}x)</span>
+                                            @endif
+                                        </div>
+                                    @endif
+                                @endif
                             </div>
                         </div>
 
@@ -633,9 +651,22 @@
                                 </td>
                                 <td class="py-3">
                                     @if($task->isOverdue())
-                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1 animate-pulse">
-                                            <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-600"></i> Overdue
-                                        </span>
+                                        <div class="flex flex-col items-start gap-1">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1 animate-pulse">
+                                                <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-600"></i> Overdue
+                                            </span>
+                                            @if($task->overdue_reminder_sent_at)
+                                                @if($task->overdue_reminder_type === 'automatic')
+                                                    <span class="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200" title="Automatic reminder sent at {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}">
+                                                        🤖 Auto-reminded
+                                                    </span>
+                                                @else
+                                                    <span class="text-[9px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200" title="Manual reminder sent at {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}">
+                                                        🔔 Alerted
+                                                    </span>
+                                                @endif
+                                            @endif
+                                        </div>
                                     @elseif($task->status === 'completed')
                                         <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Done</span>
                                     @elseif($task->status === 'submitted')

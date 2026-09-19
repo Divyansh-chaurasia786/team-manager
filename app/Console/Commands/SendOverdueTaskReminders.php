@@ -58,6 +58,7 @@ class SendOverdueTaskReminders extends Command
                 $task->update([
                     'overdue_reminder_sent_at' => now(),
                     'overdue_reminder_count'   => $task->overdue_reminder_count + 1,
+                    'overdue_reminder_type'    => 'automatic',
                 ]);
 
                 \App\Models\ActivityLog::log(
