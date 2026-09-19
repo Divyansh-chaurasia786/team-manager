@@ -342,5 +342,69 @@ class TaskSubmissionAndReassignmentTest extends TestCase
         $response->assertSee('Critical Overdue Deliverable');
         $response->assertSee('Overdue Tasks');
     }
+
+    public function test_tl_can_edit_task_specifications_before_submission(): void
+    {
+        $newDeadline = now()->addDays(5)->format('Y-m-d H:i:s');
+
+        $response = $this->actingAs($this->tl)
+            ->put(route('tasks.update', $this->task), [
+                'title' => 'Updated Landing Page Title',
+                'description' => 'Updated instructions for Figma design',
+                'assigned_to' => $this->member->id,
+                'deadline' => $newDeadline,
+            ]);
+
+        $response->assertRedirect();
+        $this->task->refresh();
+        $this->assertEquals('Updated Landing Page Title', $this->task->title);
+        $this->assertEquals('Updated instructions for Figma design', $this->task->description);
+    }
+
+    public function test_task_cannot_be_edited_once_submitted_by_employee(): void
+    {
+        // Mark task as submitted
+        $this->task->update([
+            'status' => 'submitted',
+            'submitted_at' => now(),
+            'submission_remarks' => 'Work finished',
+        ]);
+
+        $response = $this->actingAs($this->tl)
+            ->put(route('tasks.update', $this->task), [
+                'title' => 'Illegal Edit Attempt',
+                'description' => 'Trying to edit after submission',
+                'assigned_to' => $this->member->id,
+                'deadline' => now()->addDays(4),
+            ]);
+
+        $response->assertSessionHas('error');
+        $this->task->refresh();
+        $this->assertNotEquals('Illegal Edit Attempt', $this->task->title);
+        $this->assertEquals('Design Landing Page UI', $this->task->title);
+    }
+
+    public function test_task_cannot_be_edited_once_completed(): void
+    {
+        // Mark task as completed
+        $this->task->update([
+            'status' => 'completed',
+            'submitted_at' => now()->subHour(),
+            'reviewed_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->tl)
+            ->put(route('tasks.update', $this->task), [
+                'title' => 'Illegal Completed Edit Attempt',
+                'description' => 'Trying to edit after completed',
+                'assigned_to' => $this->member->id,
+                'deadline' => now()->addDays(4),
+            ]);
+
+        $response->assertSessionHas('error');
+        $this->task->refresh();
+        $this->assertEquals('Design Landing Page UI', $this->task->title);
+    }
 }
+
 

@@ -119,6 +119,95 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')->with('success', "Task successfully assigned to {$assignee->name}.");
     }
 
+    public function update(Request $request, Task $task)
+    {
+        $actor = Auth::user();
+
+        // 1. Authorization: Only the assigner TL or CEO can edit task specifications
+        if ($task->assigned_by !== $actor->id && !$actor->isCEO()) {
+            abort(403, 'Unauthorized: Only the supervisor who assigned this task can edit its specifications.');
+        }
+
+        // 2. Strict Submission Lock: Once task is submitted by employee, it CANNOT be edited by anyone!
+        if (in_array($task->status, ['submitted', 'completed']) || !is_null($task->submitted_at)) {
+            $msg = 'Task cannot be edited after submission by employee. Task specifications are locked once work is submitted.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
+        }
+
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'assigned_to' => 'required|exists:users,id',
+            'deadline'    => 'required|date',
+        ]);
+
+        $newAssignee = User::findOrFail($request->assigned_to);
+
+        // Security check: TL can only assign tasks to their own squad members
+        if ($actor->isTL() && $newAssignee->created_by !== $actor->id) {
+            abort(403, 'Unauthorized: Team Leads can only assign tasks to members in their own assigned team.');
+        }
+
+        // Attendance check if assignee changed
+        if ($task->assigned_to != $newAssignee->id) {
+            $today = now()->format('Y-m-d');
+            $todayAttendance = Attendance::where('user_id', $newAssignee->id)
+                ->whereDate('date', $today)
+                ->first();
+
+            if ($todayAttendance && in_array($todayAttendance->status, ['absent', 'on_leave'])) {
+                $msg = "Cannot reassign task: {$newAssignee->name} is marked " . ucfirst(str_replace('_', ' ', $todayAttendance->status)) . " today.";
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $msg], 422);
+                }
+                return back()->withInput()->with('error', $msg);
+            }
+        }
+
+        $oldTitle = $task->title;
+        $task->update([
+            'title'       => $request->title,
+            'description' => $request->description,
+            'assigned_to' => $request->assigned_to,
+            'deadline'    => $request->deadline,
+        ]);
+
+        ActivityLog::log(
+            action: 'task_updated',
+            description: sprintf('%s edited task "%s" (Assignee: %s, Deadline: %s)',
+                $actor->name,
+                $task->title,
+                $newAssignee->name,
+                $task->deadline->format('d M Y, h:i A')
+            ),
+            entityType: 'Task',
+            entityId: $task->id,
+            userId: $actor->id
+        );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Task specifications updated successfully!',
+                'task'    => [
+                    'id'            => $task->id,
+                    'title'         => $task->title,
+                    'description'   => $task->description,
+                    'assigned_to'   => $task->assigned_to,
+                    'assignee_name' => $newAssignee->name,
+                    'deadline'      => $task->deadline->format('d M Y, h:i A'),
+                    'deadline_iso'  => $task->deadline->toISOString(),
+                    'status'        => $task->status,
+                ],
+            ]);
+        }
+
+        return redirect()->route('tasks.index')->with('success', 'Task specifications updated successfully.');
+    }
+
     public function addUpdate(Request $request, Task $task)
     {
         $request->validate(['message' => 'required|string']);

@@ -126,6 +126,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tasks/sync', [TaskController::class, 'sync'])->name('tasks.sync');
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::put('/tasks/{task}/update', [TaskController::class, 'addUpdate'])->name('tasks.update.add');
     Route::put('/tasks/{task}/submit', [TaskController::class, 'submit'])->name('tasks.submit');
     Route::put('/tasks/{task}/reassign', [TaskController::class, 'reassign'])->name('tasks.reassign');

@@ -295,6 +295,19 @@
                                             </button>
                                         @endif
 
+                                        @if(!in_array($task->status, ['submitted', 'completed']) && is_null($task->submitted_at))
+                                            <button type="button" onclick="openEditTaskModal({{ json_encode([
+                                                'id' => $task->id,
+                                                'title' => $task->title,
+                                                'description' => $task->description ?? '',
+                                                'assigned_to' => $task->assigned_to,
+                                                'deadline' => $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : '',
+                                            ]) }})" class="task-edit-btn-{{ $task->id }} px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-slate-200 cursor-pointer" title="Edit Task Specifications (Before Employee Submission)">
+                                                <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-600"></i>
+                                                <span>Edit</span>
+                                            </button>
+                                        @endif
+
                                         <button type="button" onclick="openDetailsModal({{ json_encode($task->id) }})" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-indigo-200/70 cursor-pointer">
                                             <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-600"></i>
                                             <span>View Details</span>
@@ -400,6 +413,74 @@
             <div class="pt-2 flex items-center justify-end gap-2">
                 <button type="button" onclick="document.getElementById('assignTaskModal').classList.add('hidden')" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancel</button>
                 <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition">Assign Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Task Specifications (Permitted only before employee submission) -->
+<div id="editTaskModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3.5 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3.5">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">Edit Task Specifications</h3>
+                    <p class="text-[11px] text-slate-400">Update instructions, assignee, or deadline prior to submission</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditTaskModal()" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">✕</button>
+        </div>
+
+        <div class="mb-3.5 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-900 flex items-center gap-2">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600 shrink-0"></i>
+            <span><strong>Policy:</strong> Tasks can only be edited before submission by employee. Once submitted, specifications are locked.</span>
+        </div>
+
+        <form id="editTaskForm" method="POST" action="" onsubmit="updateTaskAjax(event)" class="space-y-4">
+            @csrf
+            @method('PUT')
+            <input type="hidden" id="editTaskId" name="task_id" value="">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Task Title <span class="text-rose-500">*</span></label>
+                <input type="text" id="editTaskTitle" name="title" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Instructions / Description</label>
+                <textarea id="editTaskDescription" name="description" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Assignee <span class="text-rose-500">*</span></label>
+                    <span class="text-[10px] text-emerald-600 font-bold">🟢 Present Members Only</span>
+                </div>
+                <select id="editTaskAssignee" name="assigned_to" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required>
+                    @foreach($members as $m)
+                        @php
+                            $att = $todayAttendances->get($m->id);
+                            $attStatus = $att ? $att->status : 'present';
+                            $isAbsent = in_array($attStatus, ['absent', 'on_leave']);
+                        @endphp
+                        <option value="{{ $m->id }}" {{ $isAbsent ? 'disabled class=text-slate-400' : '' }}>
+                            {{ $m->name }} ({{ strtoupper($m->role) }}) {{ $isAbsent ? '- ' . strtoupper(str_replace('_', ' ', $attStatus)) : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Deadline Date & Time <span class="text-rose-500">*</span></label>
+                <input type="datetime-local" id="editTaskDeadline" name="deadline" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeEditTaskModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" id="editTaskSubmitBtn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition cursor-pointer">Save Changes</button>
             </div>
         </form>
     </div>
@@ -800,6 +881,24 @@ function openDetailsModal(taskId) {
     
     let buttonsHtml = '';
 
+    // 0. Edit Task Specifications (Permitted only BEFORE employee submission)
+    if (task.status !== 'submitted' && task.status !== 'completed' && !task.submitted_at) {
+        const editPayload = JSON.stringify({
+            id: task.id,
+            title: task.title || '',
+            description: task.description || '',
+            assigned_to: typeof task.assigned_to === 'object' ? task.assigned_to.id : task.assigned_to,
+            deadline: task.deadline ? task.deadline.substring(0, 16) : ''
+        }).replace(/"/g, '&quot;');
+
+        buttonsHtml += `
+            <button type="button" onclick="closeDetailsModal(); openEditTaskModal(${editPayload})" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer border border-slate-200" title="Edit Task Specifications (Prior to Submission)">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-600"></i>
+                <span>Edit Specifications</span>
+            </button>
+        `;
+    }
+
     // 1. Reassign Task button (available for tasks that are in progress or submitted)
     if (task.status === 'submitted' || task.status === 'in-progress') {
         const assignedName = (task.assigned_to_user ? task.assigned_to_user.name : (task.assigned_to ? (task.assigned_to.name || 'Member') : 'Member')).replace(/'/g, "\\'");
@@ -1080,7 +1179,9 @@ async function approveTaskAjax(event, taskId) {
                 `;
             }
 
-            // 2. Update action button in row
+            // 2. Update action button in row and remove edit button
+            const editBtn = document.querySelector('.task-edit-btn-' + taskId);
+            if (editBtn) editBtn.remove();
             form.outerHTML = '<span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">✓ Completed & Approved</span>';
 
             // 3. Update task in allTasksData
@@ -1156,6 +1257,88 @@ async function sendOverdueAlertAjax(btn, taskId) {
         }
     } catch (err) {
         showInstantToast('Error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+// ✏️ Edit Task Specifications (Permitted only before employee submission)
+function openEditTaskModal(taskData) {
+    if (!taskData) return;
+    document.getElementById('editTaskId').value = taskData.id;
+    document.getElementById('editTaskTitle').value = taskData.title || '';
+    document.getElementById('editTaskDescription').value = taskData.description || '';
+    document.getElementById('editTaskAssignee').value = taskData.assigned_to || '';
+    document.getElementById('editTaskDeadline').value = taskData.deadline || '';
+    document.getElementById('editTaskForm').action = `/tasks/${taskData.id}`;
+    document.getElementById('editTaskModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeEditTaskModal() {
+    document.getElementById('editTaskModal').classList.add('hidden');
+    document.getElementById('editTaskForm').reset();
+}
+
+async function updateTaskAjax(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById('editTaskSubmitBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Saving...';
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Task specifications updated!');
+            closeEditTaskModal();
+
+            const taskId = data.task.id;
+            const row = document.getElementById(`task-row-${taskId}`);
+            if (row) {
+                // 1. Update title in status container
+                const titleH3 = row.querySelector(`.task-status-container-${taskId} h3`);
+                if (titleH3) titleH3.innerText = data.task.title;
+
+                // 2. Update description
+                const descP = row.querySelector(`p.text-xs.text-slate-500`);
+                if (descP) descP.innerText = data.task.description || 'No instructions provided.';
+
+                // 3. Update deadline
+                const metaContainer = row.querySelector(`.task-meta-container-${taskId}`);
+                if (metaContainer) {
+                    const firstSpan = metaContainer.querySelector('span');
+                    if (firstSpan) firstSpan.innerText = `Deadline: ${data.task.deadline}`;
+                }
+            }
+
+            // Update in local cache
+            const t = allTasksData.find(x => x.id === taskId);
+            if (t) {
+                t.title = data.task.title;
+                t.description = data.task.description;
+                t.assigned_to = data.task.assigned_to;
+                t.deadline = data.task.deadline_iso;
+            }
+
+            if (window.lucide) lucide.createIcons();
+        } else {
+            showInstantToast(data.message || 'Failed to update task specifications.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    } catch (err) {
+        showInstantToast('Connection error: ' + err.message, 'error');
         btn.disabled = false;
         btn.innerHTML = origHtml;
     }
@@ -1349,6 +1532,10 @@ async function liveSyncTLTasks() {
                 // Status changed!
                 if (t.status === 'submitted') {
                     showInstantToast(`📥 Member submitted deliverable for "${t.title}"! Ready for review.`);
+                    // Remove edit button as task is now submitted
+                    const editBtn = row.querySelector(`.task-edit-btn-${t.id}`);
+                    if (editBtn) editBtn.remove();
+
                     // Update actions container to include approve button if missing
                     const actionsRow = row.querySelector(`.task-actions-row-${t.id}`);
                     if (actionsRow && !actionsRow.querySelector(`#approve-btn-${t.id}`)) {

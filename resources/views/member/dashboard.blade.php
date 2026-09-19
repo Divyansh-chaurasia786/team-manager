@@ -303,85 +303,167 @@
         </div>
     </div>
 
-    <!-- 📈 CHARTS ROW (Modernized Visuals) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Status Donut -->
-        <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-2">
+    @php
+        $totalTasksCount = max(1, $tasks->count());
+        $donePct = round(($statusCounts['completed'] / $totalTasksCount) * 100);
+        $reviewPct = round(($statusCounts['submitted'] / $totalTasksCount) * 100);
+        $activePct = round(($statusCounts['in-progress'] / $totalTasksCount) * 100);
+        $pendingPct = round(($statusCounts['pending'] / $totalTasksCount) * 100);
+        $weekApprovedTotal = $weeklyTrend->sum('completed');
+        $weekSubmittedTotal = $weeklyTrend->sum('submitted');
+        $weekActiveTotal = $weeklyTrend->sum('active');
+    @endphp
+
+    <!-- 📈 CHARTS ROW (Executive Redesign: Modern Analytics & Velocity) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Status Donut & Progress Breakdown -->
+        <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2">
-                    <div class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                    <div class="p-1.5 rounded-xl bg-indigo-50 text-indigo-600">
                         <i data-lucide="pie-chart" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">Task Status Breakdown</h3>
-                        <p class="text-[11px] text-slate-400">Distribution of your assigned responsibilities</p>
+                        <h3 class="text-sm font-bold text-slate-900">Task Status Overview</h3>
+                        <p class="text-[11px] text-slate-400">Distribution of workload</p>
                     </div>
                 </div>
-                <span class="text-xs font-extrabold px-2 py-1 rounded-lg bg-slate-100 text-slate-700">{{ $tasks->count() }} Total</span>
+                <span class="text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 border border-slate-200/80">
+                    {{ $tasks->count() }} Total
+                </span>
             </div>
-            <div class="h-64 relative flex items-center justify-center my-2">
-                <canvas id="myStatusDonut"></canvas>
-                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-                    @if($tasks->count() > 0)
-                        <span class="text-3xl font-black text-slate-900 tracking-tight">{{ $tasks->count() }}</span>
-                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Tasks</span>
-                    @else
-                        <i data-lucide="check-circle" class="w-8 h-8 text-slate-300 mb-1"></i>
-                        <span class="text-xs font-bold text-slate-500">All Clear</span>
-                        <span class="text-[10px] text-slate-400">No active tasks</span>
-                    @endif
+
+            <!-- Sleek Side-by-Side Donut & Metrics Progress -->
+            <div class="py-4 flex flex-col sm:flex-row items-center justify-between gap-5">
+                <!-- Donut Chart Canvas Container -->
+                <div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
+                    <canvas id="myStatusDonut"></canvas>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+                        @if($tasks->count() > 0)
+                            <span class="text-2xl font-black text-slate-900 tracking-tight leading-none">{{ $tasks->count() }}</span>
+                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 mt-0.5">Tasks</span>
+                        @else
+                            <i data-lucide="check" class="w-6 h-6 text-emerald-500 mb-0.5"></i>
+                            <span class="text-[10px] font-black uppercase text-slate-400">Clear</span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Structured Metric Progress Bars -->
+                <div class="w-full flex-1 space-y-2.5">
+                    <!-- Completed -->
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Completed
+                            </span>
+                            <span class="text-[11px] font-mono text-slate-500 font-bold">
+                                <strong>{{ $statusCounts['completed'] }}</strong> <span class="text-slate-400 font-normal">({{ $donePct }}%)</span>
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $donePct }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- In Review -->
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
+                                <span class="w-2 h-2 rounded-full bg-purple-500"></span> In Review
+                            </span>
+                            <span class="text-[11px] font-mono text-slate-500 font-bold">
+                                <strong>{{ $statusCounts['submitted'] }}</strong> <span class="text-slate-400 font-normal">({{ $reviewPct }}%)</span>
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-purple-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $reviewPct }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span> In Progress
+                            </span>
+                            <span class="text-[11px] font-mono text-slate-500 font-bold">
+                                <strong>{{ $statusCounts['in-progress'] }}</strong> <span class="text-slate-400 font-normal">({{ $activePct }}%)</span>
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $activePct }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pending -->
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
+                                <span class="w-2 h-2 rounded-full bg-slate-400"></span> Pending Start
+                            </span>
+                            <span class="text-[11px] font-mono text-slate-500 font-bold">
+                                <strong>{{ $statusCounts['pending'] }}</strong> <span class="text-slate-400 font-normal">({{ $pendingPct }}%)</span>
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-slate-400 h-1.5 rounded-full transition-all duration-500" style="width: {{ $pendingPct }}%"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 text-center">
-                <div class="bg-slate-50 rounded-xl p-1.5">
-                    <span class="text-[10px] text-slate-400 font-bold block">Pending</span>
-                    <span class="text-xs font-black text-slate-700">{{ $statusCounts['pending'] }}</span>
-                </div>
-                <div class="bg-blue-50 rounded-xl p-1.5">
-                    <span class="text-[10px] text-blue-500 font-bold block">Active</span>
-                    <span class="text-xs font-black text-blue-700">{{ $statusCounts['in-progress'] }}</span>
-                </div>
-                <div class="bg-purple-50 rounded-xl p-1.5">
-                    <span class="text-[10px] text-purple-500 font-bold block">Review</span>
-                    <span class="text-xs font-black text-purple-700">{{ $statusCounts['submitted'] }}</span>
-                </div>
-                <div class="bg-emerald-50 rounded-xl p-1.5">
-                    <span class="text-[10px] text-emerald-500 font-bold block">Done</span>
-                    <span class="text-xs font-black text-emerald-700">{{ $statusCounts['completed'] }}</span>
-                </div>
+
+            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <span>Task Distribution</span>
+                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5">
+                    <span>Manage Tasks</span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
             </div>
         </div>
 
-        <!-- 7-Day Deliverables & Productivity Velocity Chart -->
-        <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-2">
+        <!-- 7-Day Deliverables Velocity Stacked Modern Bar Chart -->
+        <div class="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
                 <div class="flex items-center gap-2">
-                    <div class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                    <div class="p-1.5 rounded-xl bg-emerald-50 text-emerald-600">
                         <i data-lucide="trending-up" class="w-4 h-4"></i>
                     </div>
                     <div>
                         <h3 class="text-sm font-bold text-slate-900">7-Day Deliverable Velocity</h3>
-                        <p class="text-[11px] text-slate-400">Daily submissions, approvals & work in flight</p>
+                        <p class="text-[11px] text-slate-400">Daily productivity & submission velocity</p>
                     </div>
                 </div>
-                <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition">View Tasks</a>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-black border border-emerald-200/70">
+                        {{ $weekApprovedTotal }} Completed This Week
+                    </span>
+                </div>
             </div>
-            <div class="h-64 relative my-2">
+
+            <!-- Stacked Chart Canvas -->
+            <div class="h-44 sm:h-48 relative my-2 w-full">
                 <canvas id="weeklyVelocityChart"></canvas>
             </div>
-            <div class="flex items-center justify-center gap-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex-wrap">
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <span>Approved & Completed</span>
-                </span>
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                    <span>Submitted for Review</span>
-                </span>
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-                    <span>Active In Flight</span>
-                </span>
+
+            <!-- Clean Legend & Summary -->
+            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] flex-wrap gap-2">
+                <div class="flex items-center gap-3.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Done: <strong class="text-emerald-700 font-mono">{{ $weekApprovedTotal }}</strong></span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                        <span>Submitted: <strong class="text-purple-700 font-mono">{{ $weekSubmittedTotal }}</strong></span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                        <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                        <span>Active: <strong class="text-indigo-700 font-mono">{{ $weekActiveTotal }}</strong></span>
+                    </span>
+                </div>
+                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5">
+                    <span>Task Stream</span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
             </div>
         </div>
     </div>
@@ -655,25 +737,25 @@
 @push('scripts')
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. Task Status Donut
+    // 1. Task Status Donut (Sleek Compact Ring)
     const donutCtx = document.getElementById('myStatusDonut');
     if (donutCtx) {
         const hasTasks = {{ $tasks->count() > 0 ? 'true' : 'false' }};
         const statusData = hasTasks 
             ? [
-                {{ $statusCounts['pending'] }},
-                {{ $statusCounts['in-progress'] }},
+                {{ $statusCounts['completed'] }},
                 {{ $statusCounts['submitted'] }},
-                {{ $statusCounts['completed'] }}
+                {{ $statusCounts['in-progress'] }},
+                {{ $statusCounts['pending'] }}
               ]
             : [1];
 
         const bgColors = hasTasks 
-            ? ['#94a3b8', '#3b82f6', '#a855f7', '#10b981']
+            ? ['#10b981', '#a855f7', '#3b82f6', '#94a3b8']
             : ['#e2e8f0'];
 
         const labels = hasTasks
-            ? ['Pending', 'In Progress', 'Submitted', 'Completed']
+            ? ['Completed', 'In Review', 'In Progress', 'Pending Start']
             : ['No Tasks'];
 
         new Chart(donutCtx, {
@@ -683,9 +765,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 datasets: [{
                     data: statusData,
                     backgroundColor: bgColors,
-                    borderWidth: 3,
+                    borderWidth: 2,
                     borderColor: '#ffffff',
-                    hoverOffset: hasTasks ? 6 : 0
+                    hoverOffset: hasTasks ? 4 : 0
                 }]
             },
             options: {
@@ -693,19 +775,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        display: hasTasks,
-                        labels: {
-                            font: { family: 'Inter', size: 11, weight: '600' },
-                            boxWidth: 10,
-                            boxHeight: 10,
-                            borderRadius: 3,
-                            useBorderRadius: true,
-                            padding: 12
-                        }
+                        display: false
                     },
                     tooltip: {
                         enabled: hasTasks,
+                        backgroundColor: '#0f172a',
+                        titleFont: { family: 'Inter', size: 12, weight: '700' },
+                        bodyFont: { family: 'Inter', size: 11 },
+                        padding: 8,
+                        cornerRadius: 8,
                         callbacks: {
                             label: function(ctx) {
                                 const val = ctx.raw || 0;
@@ -716,12 +794,12 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
                 },
-                cutout: '72%'
+                cutout: '78%'
             }
         });
     }
 
-    // 2. 7-Day Deliverable Velocity Chart (Real weekly performance output)
+    // 2. 7-Day Deliverable Velocity Chart (Stacked Pill Bars)
     const velocityCtx = document.getElementById('weeklyVelocityChart');
     if (velocityCtx) {
         const trendData = {!! json_encode($weeklyTrend) !!};
@@ -732,13 +810,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 labels: trendData.map(d => d.short),
                 datasets: [
                     {
-                        label: 'Approved & Done',
+                        label: 'Approved & Completed',
                         data: trendData.map(d => d.completed),
                         backgroundColor: '#10b981',
                         borderRadius: 6,
                         borderSkipped: false,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8
+                        maxBarThickness: 26
                     },
                     {
                         label: 'Submitted for Review',
@@ -746,8 +823,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         backgroundColor: '#a855f7',
                         borderRadius: 6,
                         borderSkipped: false,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8
+                        maxBarThickness: 26
                     },
                     {
                         label: 'Active In Flight',
@@ -755,14 +831,40 @@ document.addEventListener("DOMContentLoaded", function() {
                         backgroundColor: '#818cf8',
                         borderRadius: 6,
                         borderSkipped: false,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8
+                        maxBarThickness: 26
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '600' },
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        suggestedMax: 3,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            font: { family: 'Inter', size: 10, weight: '600' },
+                            color: '#94a3b8'
+                        },
+                        grid: {
+                            color: '#f8fafc',
+                            drawBorder: false
+                        },
+                        border: { display: false }
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -776,31 +878,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const idx = items[0].dataIndex;
                                 return trendData[idx] ? trendData[idx].label : '';
                             }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            precision: 0,
-                            font: { family: 'Inter', size: 10, weight: '600' },
-                            color: '#94a3b8'
-                        },
-                        grid: {
-                            color: '#f1f5f9'
-                        },
-                        border: {
-                            display: false
-                        }
-                    },
-                    x: {
-                        grid: { display: false },
-                        border: { display: false },
-                        ticks: {
-                            font: { family: 'Inter', size: 11, weight: '600' },
-                            color: '#64748b'
                         }
                     }
                 }
