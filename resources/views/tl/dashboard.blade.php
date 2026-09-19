@@ -373,60 +373,212 @@
         </a>
     </div>
 
-    <!-- 📈 CHARTS & ANALYTICS SECTION -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Chart: Status Breakdown -->
-        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
+    @php
+        $totalTlTasks = max(1, $tasks->count());
+        $tlDonePct = round(($statusCounts['completed'] / $totalTlTasks) * 100);
+        $tlReviewPct = round(($statusCounts['submitted'] / $totalTlTasks) * 100);
+        $tlActivePct = round(($statusCounts['in-progress'] / $totalTlTasks) * 100);
+        $tlPendingPct = round(($statusCounts['pending'] / $totalTlTasks) * 100);
+    @endphp
+
+    <!-- 📈 CHARTS & ANALYTICS SECTION (Executive Modern Redesign) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Card 1: Live Status & Workflow Allocation (5 cols) -->
+        <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between">
+            <div>
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-sm leading-tight">Task Status Distribution</h3>
+                            <p class="text-[11px] text-slate-400">Live operational workload across team</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-sm">Task Status Overview</h3>
-                        <p class="text-[11px] text-slate-400">Live operational status</p>
+                    <span class="text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 border border-slate-200/80">
+                        {{ $tasks->count() }} Total
+                    </span>
+                </div>
+
+                <!-- Multi-Segmented Proportional Distribution Track -->
+                <div class="pt-4 pb-2">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1.5">
+                        <span>Workflow Allocation</span>
+                        <span class="font-mono text-slate-700 font-bold">{{ $statusCounts['completed'] }}/{{ $tasks->count() }} Completed</span>
                     </div>
+                    @if($tasks->count() > 0)
+                        <div class="h-3 w-full bg-slate-100 rounded-full flex overflow-hidden p-0.5 gap-0.5 shadow-inner">
+                            @if($tlDonePct > 0)
+                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: {{ $tlDonePct }}%" title="Completed: {{ $statusCounts['completed'] }} ({{ $tlDonePct }}%)"></div>
+                            @endif
+                            @if($tlReviewPct > 0)
+                                <div class="bg-purple-500 h-full rounded-full transition-all duration-500" style="width: {{ $tlReviewPct }}%" title="Submitted: {{ $statusCounts['submitted'] }} ({{ $tlReviewPct }}%)"></div>
+                            @endif
+                            @if($tlActivePct > 0)
+                                <div class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: {{ $tlActivePct }}%" title="In Progress: {{ $statusCounts['in-progress'] }} ({{ $tlActivePct }}%)"></div>
+                            @endif
+                            @if($tlPendingPct > 0)
+                                <div class="bg-slate-400 h-full rounded-full transition-all duration-500" style="width: {{ $tlPendingPct }}%" title="Pending: {{ $statusCounts['pending'] }} ({{ $tlPendingPct }}%)"></div>
+                            @endif
+                        </div>
+                    @else
+                        <div class="h-3 w-full bg-slate-100 rounded-full flex items-center justify-center">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">No active team tasks assigned</span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- High-Density Executive KPI Grid -->
+                <div class="grid grid-cols-2 gap-2.5 pt-2 pb-1">
+                    <!-- Completed -->
+                    <div class="p-3 rounded-xl bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span> Completed
+                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono">{{ $tlDonePct }}%</span>
+                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight" id="tlChartCompleted">{{ $statusCounts['completed'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Approved & closed</div>
+                    </div>
+
+                    <!-- Submitted / In Review -->
+                    <div class="p-3 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-purple-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-purple-500 ring-2 ring-purple-200"></span> In Review
+                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-mono">{{ $tlReviewPct }}%</span>
+                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight" id="tlChartSubmitted">{{ $statusCounts['submitted'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Awaiting your sign-off</div>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="p-3 rounded-xl bg-amber-50/50 hover:bg-amber-50 border border-amber-100/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-amber-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-200"></span> In Progress
+                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono">{{ $tlActivePct }}%</span>
+                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight" id="tlChartInProgress">{{ $statusCounts['in-progress'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Being worked on</div>
+                    </div>
+
+                    <!-- Pending Start -->
+                    <div class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-slate-400 ring-2 ring-slate-200"></span> Pending
+                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">{{ $tlPendingPct }}%</span>
+                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight" id="tlChartPending">{{ $statusCounts['pending'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Not started yet</div>
+                    </div>
+
+                    <!-- Overdue Bar Alert if any -->
+                    @if(($overdueCount ?? 0) > 0)
+                        <div class="col-span-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between">
+                            <span class="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> Overdue Deliverables
+                            </span>
+                            <span class="text-xs font-black px-2 py-0.5 rounded-md bg-rose-600 text-white font-mono">
+                                {{ $overdueCount }} Overdue
+                            </span>
+                        </div>
+                    @endif
                 </div>
             </div>
-            <div class="flex flex-col items-center justify-center p-2">
-                @if($tasks->count() === 0)
-                    <div class="h-[200px] w-full flex flex-col items-center justify-center text-center p-4">
-                        <div class="w-16 h-16 rounded-full border-4 border-dashed border-slate-200 flex items-center justify-center text-slate-400 mb-2">
-                            <i data-lucide="pie-chart" class="w-7 h-7 text-slate-300"></i>
-                        </div>
-                        <span class="text-xs font-bold text-slate-600">No Tasks Assigned Yet</span>
-                        <span class="text-[11px] text-slate-400 mt-0.5">Assign tasks to view status graph</span>
-                    </div>
-                @else
-                    <div style="width: 100%; max-width: 220px; height: 200px; position: relative;">
-                        <canvas id="statusDonut"></canvas>
-                    </div>
-                @endif
-                <div class="grid grid-cols-2 gap-2 mt-4 text-xs font-medium text-slate-600 w-full">
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Pending: <strong>{{ $statusCounts['pending'] }}</strong></div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> In Progress: <strong>{{ $statusCounts['in-progress'] }}</strong></div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> Submitted: <strong>{{ $statusCounts['submitted'] }}</strong></div>
-                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Completed: <strong>{{ $statusCounts['completed'] }}</strong></div>
-                    <div class="flex items-center gap-1.5 col-span-2 text-rose-600 font-bold"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Overdue Deliverables: <strong>{{ $overdueCount ?? 0 }}</strong></div>
-                </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <span class="flex items-center gap-1">
+                    <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-500"></i>
+                    <span>Real-time squad pulse</span>
+                </span>
+                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 transition">
+                    <span>Task Console</span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
             </div>
         </div>
 
-        <!-- Chart: Workload per Member -->
-        <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+        <!-- Card 2: Team Workload & 7-Day Velocity (7 cols) -->
+        <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between">
+            <div>
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 flex-wrap gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-sm leading-tight">Team Workload & 7-Day Velocity</h3>
+                            <p class="text-[11px] text-slate-400">Deliverable distribution & 7-day completion curve</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-sm">Team Workload Distribution</h3>
-                        <p class="text-[11px] text-slate-400">Tasks assigned across members</p>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-black border border-emerald-200/70 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {{ $completionTrend->sum('count') }} Approved (7 Days)
+                        </span>
                     </div>
                 </div>
+
+                <!-- Team Workload Distribution Bars -->
+                <div class="my-3">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-2">
+                        <span>Workload Allocation Per Member</span>
+                        <span class="text-slate-400">{{ $members->count() }} Team Staff</span>
+                    </div>
+                    @if($members->count() > 0)
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            @foreach($taskPerMember->take(4) as $memberStat)
+                                @php
+                                    $mCount = $memberStat['count'] ?? 0;
+                                    $mPct = min(100, round(($mCount / max(1, $tasks->count())) * 100));
+                                @endphp
+                                <div class="p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 hover:bg-slate-50 transition">
+                                    <div class="flex items-center justify-between text-xs font-bold mb-1.5">
+                                        <span class="text-slate-800 truncate max-w-[140px]">{{ $memberStat['name'] }}</span>
+                                        <span class="font-mono text-indigo-600 font-black">{{ $mCount }} <span class="text-[10px] text-slate-400 font-normal">tasks</span></span>
+                                    </div>
+                                    <div class="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style="width: {{ $mPct }}%"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="py-4 text-center text-xs text-slate-400 font-semibold">
+                            No team members registered yet.
+                        </div>
+                    @endif
+                </div>
+
+                <!-- 7-Day Completion Velocity Line Chart -->
+                <div class="h-32 sm:h-36 relative mt-2 w-full">
+                    <canvas id="tlVelocityChart"></canvas>
+                </div>
             </div>
-            <div style="position: relative; height: 200px; width: 100%;">
-                <canvas id="memberBar"></canvas>
+
+            <!-- Clean Legend & Summary -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] flex-wrap gap-2">
+                <div class="flex items-center gap-3.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>7-Day Completions: <strong class="text-emerald-700 font-mono">{{ $completionTrend->sum('count') }}</strong></span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        <span>Active Assigned: <strong class="text-indigo-700 font-mono">{{ $statusCounts['pending'] + $statusCounts['in-progress'] }}</strong></span>
+                    </span>
+                </div>
+                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 transition">
+                    <span>Task Stream</span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
             </div>
         </div>
     </div>
@@ -626,60 +778,68 @@
 @push('scripts')
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // 1. Status Donut Chart
-    const statusEl = document.getElementById('statusDonut');
-    let statusChartInstance = null;
-    if (statusEl && typeof Chart !== 'undefined') {
-        statusChartInstance = new Chart(statusEl, {
-            type: 'doughnut',
+    // 1. 7-Day Completion Velocity Spline Chart
+    const velocityEl = document.getElementById('tlVelocityChart');
+    if (velocityEl && typeof Chart !== 'undefined') {
+        const trendData = {!! json_encode($completionTrend) !!};
+        const ctx2d = velocityEl.getContext('2d');
+
+        const emeraldGradient = ctx2d.createLinearGradient(0, 0, 0, 140);
+        emeraldGradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
+        emeraldGradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+
+        new Chart(velocityEl, {
+            type: 'line',
             data: {
-                labels: ['Pending', 'In Progress', 'Submitted', 'Completed', 'Overdue'],
+                labels: trendData.map(d => d.date),
                 datasets: [{
-                    data: [{{ $statusCounts['pending'] }}, {{ $statusCounts['in-progress'] }}, {{ $statusCounts['submitted'] }}, {{ $statusCounts['completed'] }}, {{ $overdueCount ?? 0 }}],
-                    backgroundColor: ['#94A3B8', '#F59E0B', '#4F46E5', '#10B981', '#F43F5E'],
-                    borderWidth: 0,
-                    hoverOffset: 4
+                    label: 'Approved Deliverables',
+                    data: trendData.map(d => d.count),
+                    borderColor: '#10b981',
+                    borderWidth: 2.5,
+                    backgroundColor: emeraldGradient,
+                    fill: true,
+                    tension: 0.38,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(ctx) {
-                                return ` ${ctx.label}: ${ctx.raw} task(s)`;
-                            }
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: {
+                            font: { family: 'Inter', size: 10, weight: '700' },
+                            color: '#64748b'
                         }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 3,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            font: { family: 'Inter', size: 10, weight: '600' },
+                            color: '#94a3b8'
+                        },
+                        grid: {
+                            color: '#f1f5f9',
+                            borderDash: [3, 3],
+                            drawBorder: false
+                        },
+                        border: { display: false }
                     }
                 },
-                cutout: '72%'
-            }
-        });
-    }
-
-    // 2. Member Workload Bar Chart
-    const memberEl = document.getElementById('memberBar');
-    if (memberEl && typeof Chart !== 'undefined') {
-        new Chart(memberEl, {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($taskPerMember->pluck('name')) !!},
-                datasets: [{
-                    label: 'Tasks Assigned',
-                    data: {!! json_encode($taskPerMember->pluck('count')) !!},
-                    backgroundColor: '#6366f1',
-                    hoverBackgroundColor: '#4f46e5',
-                    borderRadius: 10,
-                    borderSkipped: false,
-                    barThickness: 28,
-                    maxBarThickness: 40
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -688,32 +848,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         bodyFont: { family: 'Inter', size: 11 },
                         padding: 10,
                         cornerRadius: 10,
-                        callbacks: {
-                            label: function(ctx) {
-                                return ` Assigned Tasks: ${ctx.raw}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        suggestedMax: 4,
-                        ticks: { stepSize: 1, precision: 0, color: '#94A3B8', font: { family: 'Inter', size: 10 } },
-                        grid: { color: '#F1F5F9' },
-                        border: { display: false }
-                    },
-                    x: {
-                        grid: { display: false },
-                        border: { display: false },
-                        ticks: { color: '#475569', font: { weight: '600', size: 11, family: 'Inter' } }
                     }
                 }
             }
         });
     }
 
-    // ⚡ 3. Live Sync Polling for TL Dashboard (Zero Page Reload - Smart Conditional Polling)
+    // ⚡ 2. Live Sync Polling for TL Dashboard (Zero Page Reload - Smart Conditional Polling)
     let lastTlTaskHash = '';
     let lastTlDashboardSyncTimestamp = 0;
     let lastTlDashboardTotalCount = -1;
@@ -742,7 +883,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Check if anything changed
             const taskHash = JSON.stringify(data.counts) + '_' + (data.tasks ? data.tasks.map(t => `${t.id}:${t.status}:${t.is_overdue}`).join('|') : '');
             if (lastTlTaskHash && lastTlTaskHash !== taskHash) {
-                // Update Metric Counters
+                // Update Top Metric Counters
                 const overdueEl = document.getElementById('tlMetricOverdue');
                 if (overdueEl) overdueEl.innerHTML = `${data.counts.overdue} <span class="text-xs font-medium text-slate-400">tasks</span>`;
 
@@ -755,17 +896,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 const submittedEl = document.getElementById('tlMetricSubmitted');
                 if (submittedEl) submittedEl.innerHTML = `${data.counts.submitted} <span class="text-xs font-medium text-slate-400">items</span>`;
 
-                // Update Donut Chart if available
-                if (statusChartInstance) {
-                    statusChartInstance.data.datasets[0].data = [
-                        data.counts.pending,
-                        data.counts.pending,
-                        data.counts.submitted,
-                        data.counts.completed,
-                        data.counts.overdue
-                    ];
-                    statusChartInstance.update();
-                }
+                // Update Executive Grid Counters
+                const chartCompleted = document.getElementById('tlChartCompleted');
+                if (chartCompleted) chartCompleted.textContent = data.counts.completed;
+
+                const chartSubmitted = document.getElementById('tlChartSubmitted');
+                if (chartSubmitted) chartSubmitted.textContent = data.counts.submitted;
+
+                const chartInProgress = document.getElementById('tlChartInProgress');
+                if (chartInProgress) chartInProgress.textContent = data.counts.pending;
 
                 if (window.lucide) lucide.createIcons();
             }
