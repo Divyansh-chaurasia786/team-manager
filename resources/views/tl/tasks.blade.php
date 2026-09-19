@@ -246,9 +246,17 @@
 
                                                 <!-- TL Review Timer (Live when submitted) / Timestamp (when completed) -->
                                                 @if($task->status === 'submitted')
-                                                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-900 text-[10px] font-extrabold border border-purple-300 task-tl-review-timer-{{ $task->id }}" data-task-id="{{ $task->id }}" data-submitted-at="{{ $task->submitted_at?->toISOString() }}">
+                                                    @php
+                                                        $tlSubAt = $task->submitted_at ?? $task->updated_at;
+                                                        $tlElapsedSecs = $tlSubAt ? max(0, (int) now()->diffInSeconds($tlSubAt)) : 0;
+                                                        $tlH = floor($tlElapsedSecs / 3600);
+                                                        $tlM = floor(($tlElapsedSecs % 3600) / 60);
+                                                        $tlS = $tlElapsedSecs % 60;
+                                                        $tlServerElapsed = sprintf('%02dh %02dm %02ds', $tlH, $tlM, $tlS);
+                                                    @endphp
+                                                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-900 text-[10px] font-extrabold border border-purple-300 task-tl-review-timer-{{ $task->id }}" data-task-id="{{ $task->id }}" data-submitted-at="{{ ($task->submitted_at ?? $task->updated_at ?? now())->toISOString() }}">
                                                         <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
-                                                        <span>Awaiting Your Review: <span class="font-mono font-black text-purple-950 tl-review-timer-val">Calculating...</span></span>
+                                                        <span>Awaiting Your Review: <span class="font-mono font-black text-purple-950 tl-review-timer-val">{{ $tlServerElapsed }}</span></span>
                                                     </div>
                                                 @elseif($task->status === 'completed')
                                                     <div class="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 task-tl-reviewed-badge-{{ $task->id }}">
@@ -1152,6 +1160,11 @@ async function sendOverdueAlertAjax(btn, taskId) {
         }
     } catch (err) {
         showInstantToast('Error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
 // ➕ Instant Task Assignment via AJAX (Zero Full Page Reload)
 async function assignTaskAjax(event) {
     event.preventDefault();
@@ -1302,7 +1315,8 @@ function updateAllTaskTimers() {
         const submittedStr = el.getAttribute('data-submitted-at');
         if (!submittedStr) return;
         const submittedMs = new Date(submittedStr).getTime();
-        const elapsed = now - submittedMs;
+        if (isNaN(submittedMs)) return;
+        const elapsed = Math.max(0, now - submittedMs);
         const valEl = el.querySelector('.tl-review-timer-val');
         if (!valEl) return;
 
@@ -1314,6 +1328,9 @@ function updateAllTaskTimers() {
 // Tick every second for live real-time updates
 setInterval(updateAllTaskTimers, 1000);
 document.addEventListener('DOMContentLoaded', updateAllTaskTimers);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    updateAllTaskTimers();
+}
 </script>
 
 @endsection

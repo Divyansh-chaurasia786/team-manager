@@ -106,12 +106,20 @@
 
                         <!-- TL Review Timer & Timestamp -->
                         @if($task->status === 'submitted')
-                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold tl-review-timer-container" data-task-id="{{ $task->id }}" data-submitted-at="{{ $task->submitted_at?->toISOString() }}">
+                            @php
+                                $mSubAt = $task->submitted_at ?? $task->updated_at;
+                                $mElapsedSecs = $mSubAt ? max(0, (int) now()->diffInSeconds($mSubAt)) : 0;
+                                $mH = floor($mElapsedSecs / 3600);
+                                $mM = floor(($mElapsedSecs % 3600) / 60);
+                                $mS = $mElapsedSecs % 60;
+                                $mServerElapsed = sprintf('%02dh %02dm %02ds', $mH, $mM, $mS);
+                            @endphp
+                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold tl-review-timer-container" data-task-id="{{ $task->id }}" data-submitted-at="{{ ($task->submitted_at ?? $task->updated_at ?? now())->toISOString() }}">
                                 <span class="flex items-center gap-1.5">
                                     <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
                                     <span>Awaiting TL Review:</span>
                                 </span>
-                                <span class="font-mono text-xs font-black text-purple-900 tl-review-timer-val">Calculating...</span>
+                                <span class="font-mono text-xs font-black text-purple-900 tl-review-timer-val">{{ $mServerElapsed }}</span>
                             </div>
                         @elseif($task->status === 'completed')
                             <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
@@ -286,10 +294,18 @@
 
                                     <!-- TL Review Timer / Timestamp -->
                                     @if($task->status === 'submitted')
-                                        <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-800 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-submitted-at="{{ $task->submitted_at?->toISOString() }}">
+                                        @php
+                                            $dtSubAt = $task->submitted_at ?? $task->updated_at;
+                                            $dtElapsedSecs = $dtSubAt ? max(0, (int) now()->diffInSeconds($dtSubAt)) : 0;
+                                            $dtH = floor($dtElapsedSecs / 3600);
+                                            $dtM = floor(($dtElapsedSecs % 3600) / 60);
+                                            $dtS = $dtElapsedSecs % 60;
+                                            $dtServerElapsed = sprintf('%02dh %02dm %02ds', $dtH, $dtM, $dtS);
+                                        @endphp
+                                        <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-800 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-submitted-at="{{ ($task->submitted_at ?? $task->updated_at ?? now())->toISOString() }}">
                                             <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
                                             <span>Awaiting TL Review:</span>
-                                            <span class="font-mono font-black text-purple-900 tl-review-timer-val">Calculating...</span>
+                                            <span class="font-mono font-black text-purple-900 tl-review-timer-val">{{ $dtServerElapsed }}</span>
                                         </div>
                                     @elseif($task->status === 'completed')
                                         <div class="text-[11px] text-emerald-900 font-semibold flex items-center gap-1.5">
@@ -654,6 +670,7 @@ async function saveTaskNoteAjax(event, taskId) {
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Save Note';
+        }
     }
 }
 
@@ -685,6 +702,7 @@ function updateAllTaskTimers() {
         const deadlineStr = el.getAttribute('data-deadline');
         if (!deadlineStr) return;
         const deadlineMs = new Date(deadlineStr).getTime();
+        if (isNaN(deadlineMs)) return;
         const diff = deadlineMs - now;
         const valEl = el.querySelector('.employee-countdown-val');
         if (!valEl) return;
@@ -703,7 +721,8 @@ function updateAllTaskTimers() {
         const submittedStr = el.getAttribute('data-submitted-at');
         if (!submittedStr) return;
         const submittedMs = new Date(submittedStr).getTime();
-        const elapsed = now - submittedMs;
+        if (isNaN(submittedMs)) return;
+        const elapsed = Math.max(0, now - submittedMs);
         const valEl = el.querySelector('.tl-review-timer-val');
         if (!valEl) return;
 
@@ -715,6 +734,9 @@ function updateAllTaskTimers() {
 // Tick every second for live update
 setInterval(updateAllTaskTimers, 1000);
 document.addEventListener('DOMContentLoaded', updateAllTaskTimers);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    updateAllTaskTimers();
+}
 </script>
 @endpush
 
