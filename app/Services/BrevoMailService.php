@@ -294,6 +294,65 @@ class BrevoMailService
     }
 
     /**
+     * Send leave application/status notification email to designated recipients (HR, CEO, TL, or applicant).
+     */
+    public static function sendLeaveNotificationMail(\App\Models\LeaveApplication $leave, string $eventType, array $recipients, ?string $remarks = null, ?array $leaveSummary = null): bool
+    {
+        $filtered = array_values(array_filter(array_unique($recipients)));
+        if (empty($filtered)) {
+            return false;
+        }
+
+        if (app()->environment('testing')) {
+            Mail::to($filtered)->send(new \App\Mail\LeaveNotificationMail($leave, $eventType, $remarks, $leaveSummary));
+            return true;
+        }
+
+        try {
+            $mailable = new \App\Mail\LeaveNotificationMail($leave, $eventType, $remarks, $leaveSummary);
+            $html = $mailable->render();
+            $envelope = $mailable->envelope();
+            $subject = $envelope->subject;
+
+            // Deliver via Brevo API to each recipient
+            $allSuccess = true;
+            foreach ($filtered as $email) {
+                $user = User::where('email', $email)->first();
+                $name = $user ? $user->name : 'Team Member';
+
+                $result = self::sendViaApi($email, $name, $subject, $html);
+                if (!$result['success']) {
+                    $allSuccess = false;
+                }
+            }
+
+            if ($allSuccess) {
+                ActivityLog::log(
+                    action: 'leave_email_dispatched',
+                    description: sprintf('Leave notification (%s) delivered via Brevo to: %s', $eventType, implode(', ', $filtered)),
+                    entityType: 'LeaveApplication',
+                    entityId: $leave->id,
+                    userId: auth()->id() ?? $leave->user_id
+                );
+                return true;
+            }
+
+            // Fallback to standard mailer
+            Mail::to($filtered)->send($mailable);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send leave notification email via Brevo: ' . $e->getMessage());
+            try {
+                Mail::to($filtered)->send(new \App\Mail\LeaveNotificationMail($leave, $eventType, $remarks, $leaveSummary));
+                return true;
+            } catch (\Exception $fallbackError) {
+                Log::error('Fallback mail for leave notification failed too: ' . $fallbackError->getMessage());
+                return false;
+            }
+        }
+    }
+
+    /**
      * Direct HTTP dispatch via Brevo REST API (HTTPS port 443 - never blocked by cloud firewalls).
      */
     public static function sendViaApi(string $toEmail, string $toName, string $subject, string $htmlContent): array

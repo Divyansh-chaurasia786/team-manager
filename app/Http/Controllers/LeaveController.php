@@ -433,17 +433,27 @@ class LeaveController extends Controller
     }
 
     /**
-     * Safe email dispatch helper.
+     * Safe email dispatch helper routed through Brevo HTTPS API and fallback mailer.
      */
     protected function sendNotificationSafely(array $recipients, $mailable): void
     {
         try {
-            $filtered = array_filter(array_unique($recipients));
+            $filtered = array_values(array_filter(array_unique($recipients)));
             if (!empty($filtered)) {
-                Mail::to($filtered)->send($mailable);
+                if ($mailable instanceof LeaveNotificationMail) {
+                    \App\Services\BrevoMailService::sendLeaveNotificationMail(
+                        leave: $mailable->leave,
+                        eventType: $mailable->eventType,
+                        recipients: $filtered,
+                        remarks: $mailable->remarks,
+                        leaveSummary: $mailable->leaveSummary
+                    );
+                } else {
+                    Mail::to($filtered)->send($mailable);
+                }
             }
         } catch (\Throwable $e) {
-            Log::warning('Leave email delivery notice: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('Leave email delivery notice: ' . $e->getMessage());
         }
     }
 

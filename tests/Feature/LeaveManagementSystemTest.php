@@ -82,7 +82,9 @@ class LeaveManagementSystemTest extends TestCase
             'status'     => 'pending',
         ]);
 
-        Mail::assertSent(LeaveNotificationMail::class);
+        Mail::assertSent(LeaveNotificationMail::class, function ($mail) {
+            return $mail->hasTo($this->hr->email) && $mail->eventType === 'applied';
+        });
     }
 
     public function test_employee_cannot_apply_when_leave_toggle_is_off(): void
