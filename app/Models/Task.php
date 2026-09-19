@@ -16,6 +16,7 @@ class Task extends Model
         'previous_deadline',
         'status',
         'submitted_at',
+        'reviewed_at',
         'submission_remarks',
         'submission_link',
         'submission_file',
@@ -32,6 +33,7 @@ class Task extends Model
         'deadline'                 => 'datetime',
         'previous_deadline'        => 'datetime',
         'submitted_at'             => 'datetime',
+        'reviewed_at'              => 'datetime',
         'overdue_reminder_sent_at' => 'datetime',
     ];
 
@@ -54,19 +56,68 @@ class Task extends Model
     }
 
     public function isOverdue(): bool {
-        return $this->status !== 'completed' && $this->deadline->isPast();
+        return !in_array($this->status, ['completed', 'submitted']) && $this->deadline && $this->deadline->isPast();
     }
 
     public function isDueSoon(int $days = 2): bool {
-        return $this->status !== 'completed' && $this->deadline->isFuture() && $this->deadline->lte(now()->addDays($days));
+        return !in_array($this->status, ['completed', 'submitted']) && $this->deadline && $this->deadline->isFuture() && $this->deadline->lte(now()->addDays($days));
+    }
+
+    public function getSubmissionFormattedAttribute(): ?string
+    {
+        return $this->submitted_at ? $this->submitted_at->format('d M Y, h:i A') : null;
+    }
+
+    public function getReviewFormattedAttribute(): ?string
+    {
+        return $this->reviewed_at ? $this->reviewed_at->format('d M Y, h:i A') : null;
+    }
+
+    public function getReviewDurationAttribute(): ?string
+    {
+        if (!$this->submitted_at) return null;
+        $end = $this->reviewed_at ?? now();
+        $diffM = (int) $this->submitted_at->diffInMinutes($end);
+        if ($diffM < 1) return 'less than a min';
+        if ($diffM < 60) return $diffM . ' min' . ($diffM > 1 ? 's' : '');
+        $h = intdiv($diffM, 60);
+        $m = $diffM % 60;
+        return $h . 'h' . ($m > 0 ? ' ' . $m . 'm' : '');
+    }
+
+    public function getTimerConfigAttribute(): array
+    {
+        return [
+            'id'                     => $this->id,
+            'status'                 => $this->status,
+            'deadline_iso'           => $this->deadline ? $this->deadline->toISOString() : null,
+            'submitted_at_iso'       => $this->submitted_at ? $this->submitted_at->toISOString() : null,
+            'reviewed_at_iso'        => $this->reviewed_at ? $this->reviewed_at->toISOString() : null,
+            'submission_formatted'   => $this->submission_formatted,
+            'review_formatted'       => $this->review_formatted,
+            'review_duration'        => $this->review_duration,
+            'employee_timer_stopped' => in_array($this->status, ['submitted', 'completed']),
+            'review_timer_running'   => ($this->status === 'submitted' && $this->submitted_at && !$this->reviewed_at),
+        ];
     }
 
     /**
      * Human-friendly due label used everywhere in views.
-     * Returns: "Overdue by X", "Due Today", "Due Tomorrow", "Due in X hours", "Due in X days"
+     * Returns: "Overdue by X", "Due Today", "Due Tomorrow", "Due in X hours", "Due in X days", or status-based labels
      */
     public function getDueLabelAttribute(): string
     {
+        if ($this->status === 'completed') {
+            return 'Completed & Approved' . ($this->reviewed_at ? ' (' . $this->reviewed_at->format('d M, h:i A') . ')' : '');
+        }
+        if ($this->status === 'submitted') {
+            return 'Submitted (' . ($this->submitted_at ? $this->submitted_at->format('d M, h:i A') : 'Under Review') . ')';
+        }
+
+        if (!$this->deadline) {
+            return 'No Deadline Set';
+        }
+
         $now      = now();
         $deadline = $this->deadline;
 
@@ -134,6 +185,24 @@ class Task extends Model
         $label    = $this->due_label;
         $deadline = $this->deadline;
         $now      = now();
+
+        if ($this->status === 'submitted') {
+            return [
+                'label'     => 'Deliverables Submitted — Awaiting TL Review',
+                'class'     => 'bg-purple-50 text-purple-700 border-purple-200',
+                'badge'     => 'Submitted',
+                'is_urgent' => false,
+            ];
+        }
+
+        if ($this->status === 'completed') {
+            return [
+                'label'     => 'Completed & Approved',
+                'class'     => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                'badge'     => 'Completed',
+                'is_urgent' => false,
+            ];
+        }
 
         // Overdue
         if ($deadline->isPast()) {

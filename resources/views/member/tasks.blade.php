@@ -36,19 +36,19 @@
                             <div class="text-[11px] text-slate-500 mt-1 line-clamp-2">{{ $task->description }}</div>
                         </div>
                         @if($task->status === 'completed')
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                            <span class="task-status-badge-mobile-{{ $task->id }} px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
                                 ✓ Done
                             </span>
                         @elseif($task->status === 'submitted')
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
+                            <span class="task-status-badge-mobile-{{ $task->id }} px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
                                 In Review
                             </span>
                         @elseif($task->status === 'in-progress')
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-800 border border-blue-300 shrink-0">
-                                Active
+                            <span class="task-status-badge-mobile-{{ $task->id }} px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-800 border border-blue-300 shrink-0">
+                                In Progress
                             </span>
                         @else
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+                            <span class="task-status-badge-mobile-{{ $task->id }} px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
                                 Pending
                             </span>
                         @endif
@@ -64,14 +64,74 @@
                         </div>
                     @endif
 
-                    <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex-wrap gap-2">
-                        <div class="flex items-center gap-1.5 font-medium">
-                            <i data-lucide="calendar" class="w-3.5 h-3.5 {{ $task->isOverdue() ? 'text-rose-500' : ($task->deadline->isToday() ? 'text-rose-400' : 'text-slate-400') }}"></i>
-                            <span class="{{ $task->isOverdue() ? 'text-rose-600 font-bold' : ($task->deadline->isToday() ? 'text-rose-600 font-bold' : ($task->deadline->isTomorrow() ? 'text-amber-700 font-bold' : 'text-slate-700 font-semibold') ) }}">
-                                {{ $task->due_label }}
+                    <!-- Timestamps & Timer Lifecycle Section (Mobile) -->
+                    <div class="space-y-1.5 pt-1.5 border-t border-slate-100 task-lifecycle-mobile-{{ $task->id }}">
+                        <!-- Target Deadline -->
+                        <div class="flex items-center justify-between text-[11px] text-slate-500">
+                            <span class="flex items-center gap-1 font-medium text-slate-600">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span>Deadline:</span>
                             </span>
+                            <span class="font-bold text-slate-700">{{ $task->deadline ? $task->deadline->format('d M Y, h:i A') : 'None' }}</span>
                         </div>
-                        <div class="text-[10px] text-slate-400">By {{ $task->assignedBy->name }}</div>
+
+                        <!-- Active Employee Countdown or Stopped Indicator -->
+                        @if($task->status === 'pending' || $task->status === 'in-progress')
+                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-indigo-50/90 border border-indigo-200 text-indigo-800 font-bold employee-timer-container" data-task-id="{{ $task->id }}" data-deadline="{{ $task->deadline?->toISOString() }}">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                    <span>Time Left:</span>
+                                </span>
+                                <span class="font-mono text-xs font-black employee-countdown-val">{{ $task->due_label }}</span>
+                            </div>
+                        @else
+                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
+                                <span class="flex items-center gap-1">
+                                    <span>⏹️ Employee Timer:</span>
+                                </span>
+                                <span class="text-slate-800 font-bold">Stopped at Submission</span>
+                            </div>
+                        @endif
+
+                        <!-- Submission Timestamp with Date & Time -->
+                        @if($task->submitted_at)
+                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-semibold">
+                                <span class="flex items-center gap-1.5 font-bold text-indigo-700">
+                                    <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                    <span>Submitted to TL:</span>
+                                </span>
+                                <span class="font-bold font-mono text-[11px] text-indigo-950">{{ $task->submitted_at->format('d M Y, h:i A') }}</span>
+                            </div>
+                        @endif
+
+                        <!-- TL Review Timer & Timestamp -->
+                        @if($task->status === 'submitted')
+                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold tl-review-timer-container" data-task-id="{{ $task->id }}" data-submitted-at="{{ $task->submitted_at?->toISOString() }}">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
+                                    <span>Awaiting TL Review:</span>
+                                </span>
+                                <span class="font-mono text-xs font-black text-purple-900 tl-review-timer-val">Calculating...</span>
+                            </div>
+                        @elseif($task->status === 'completed')
+                            <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
+                                <span class="flex items-center gap-1.5 font-bold text-emerald-700">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                    <span>Reviewed by TL:</span>
+                                </span>
+                                <span class="font-bold font-mono text-[11px] text-emerald-950">{{ $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : ($task->updated_at ? $task->updated_at->format('d M Y, h:i A') : 'Approved') }}</span>
+                            </div>
+                            @if($task->review_duration)
+                                <div class="text-[10px] text-emerald-700 text-right font-medium">Turnaround: {{ $task->review_duration }}</div>
+                            @endif
+                        @endif
+
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                            <span>Delegated by: {{ $task->assignedBy->name }}</span>
+                            @if($task->isReassigned() && $task->previous_deadline)
+                                <span class="line-through">Prev: {{ $task->previous_deadline->format('d M, h:i A') }}</span>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Action and Progress Details for Mobile -->
@@ -79,9 +139,9 @@
                         <details class="group flex-1">
                             <summary class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer flex items-center gap-1 select-none">
                                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                                <span>Add Note ({{ $task->updates->count() }})</span>
+                                <span>Add Note (<span class="note-counter-{{ $task->id }}">{{ $task->updates->count() }}</span>)</span>
                             </summary>
-                            <form method="POST" action="{{ route('tasks.update.add', $task) }}" class="mt-2 space-y-1.5">
+                            <form method="POST" action="{{ route('tasks.update.add', $task) }}" onsubmit="saveTaskNoteAjax(event, {{ $task->id }})" class="mt-2 space-y-1.5">
                                 @csrf @method('PUT')
                                 <input type="text" name="message" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="What progress did you make?" required>
                                 <button type="submit" class="w-full py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-md transition shadow-xs">
@@ -90,12 +150,22 @@
                             </form>
                         </details>
 
-                        @if(!in_array($task->status, ['submitted', 'completed']))
-                            <button type="button" onclick="openSubmissionModal({{ $task->id }}, '{{ addslashes($task->title) }}')" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition shadow-xs flex items-center gap-1 cursor-pointer shrink-0">
-                                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                                <span>Submit Work</span>
-                            </button>
-                        @endif
+                        <div class="task-action-container-{{ $task->id }}">
+                            @if(!in_array($task->status, ['submitted', 'completed']))
+                                <button type="button" onclick="openSubmissionModal({{ $task->id }}, '{{ addslashes($task->title) }}')" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition shadow-xs flex items-center gap-1 cursor-pointer shrink-0">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                                    <span>Submit Work</span>
+                                </button>
+                            @elseif($task->status === 'submitted')
+                                <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
+                                    In Review
+                                </span>
+                            @else
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                    Done
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @empty
@@ -112,11 +182,11 @@
                 <thead>
                     <tr class="bg-slate-50 text-slate-500 uppercase font-extrabold tracking-wider border-b border-slate-200">
                         <th class="py-3.5 px-4" style="width: 25%;">Task Deliverable</th>
-                        <th class="py-3.5 px-4" style="width: 14%;">Team Lead</th>
-                        <th class="py-3.5 px-4" style="width: 14%;">Deadline</th>
+                        <th class="py-3.5 px-4" style="width: 13%;">Team Lead</th>
+                        <th class="py-3.5 px-4" style="width: 19%;">Deadline & Timers</th>
                         <th class="py-3.5 px-4" style="width: 12%;">Status</th>
-                        <th class="py-3.5 px-4" style="width: 20%;">Updates & Notes</th>
-                        <th class="py-3.5 px-4 text-right" style="width: 15%;">Action</th>
+                        <th class="py-3.5 px-4" style="width: 16%;">Updates & Notes</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap" style="width: 15%;">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -179,35 +249,62 @@
                                 </div>
                             </td>
 
-                            <!-- Deadline Column: Distinctly shows Previous vs New if Reassigned -->
+                            <!-- Deadline & Lifecycle Timers Column -->
                             <td class="py-4 px-4 align-top">
-                                <div class="space-y-0.5">
-                                    {{-- Smart due label --}}
-                                    <div class="flex items-center gap-1 font-bold
-                                        {{ $task->isOverdue() ? 'text-rose-600' : ($task->deadline->isToday() ? 'text-rose-600' : ($task->deadline->isTomorrow() ? 'text-amber-700' : 'text-slate-700')) }}">
-                                        <i data-lucide="calendar" class="w-3.5 h-3.5 shrink-0
-                                            {{ $task->isOverdue() ? 'text-rose-500' : ($task->deadline->isToday() ? 'text-rose-400' : ($task->deadline->isTomorrow() ? 'text-amber-500' : 'text-slate-400')) }}"></i>
-                                        <span>{{ $task->due_label }}</span>
+                                <div class="space-y-1.5 task-deadline-desktop-{{ $task->id }}">
+                                    <!-- Target Deadline -->
+                                    <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                                        <span>Deadline: {{ $task->deadline ? $task->deadline->format('d M Y, h:i A') : 'No deadline' }}</span>
                                     </div>
-                                    {{-- Raw date/time for reference --}}
-                                    <div class="text-[11px] text-slate-400 pl-4.5">{{ $task->deadline->format('d M Y, h:i A') }}</div>
                                     @if($task->isReassigned() && $task->previous_deadline)
-                                        <div class="text-[10px] text-slate-400 line-through pl-4.5">
+                                        <div class="text-[10px] text-slate-400 line-through pl-5">
                                             Prev: {{ $task->previous_deadline->format('d M, h:i A') }}
                                         </div>
                                     @endif
-                                    @if($task->isOverdue())
-                                        <span class="inline-block mt-0.5 text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">Overdue</span>
-                                    @elseif($task->deadline->isToday())
-                                        <span class="inline-block mt-0.5 text-[9px] font-black uppercase text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">Due Today</span>
-                                    @elseif($task->deadline->isTomorrow())
-                                        <span class="inline-block mt-0.5 text-[9px] font-black uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Due Tomorrow</span>
+
+                                    <!-- Employee Timer (Active Countdown or Stopped) -->
+                                    @if($task->status === 'pending' || $task->status === 'in-progress')
+                                        <div class="employee-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-deadline="{{ $task->deadline?->toISOString() }}">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                            <span>Time Left:</span>
+                                            <span class="font-mono font-black employee-countdown-val">{{ $task->due_label }}</span>
+                                        </div>
+                                    @else
+                                        <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold">
+                                            <span>⏹️ Employee Timer Stopped</span>
+                                        </div>
+                                    @endif
+
+                                    <!-- Submission Timestamp with Date & Time -->
+                                    @if($task->submitted_at)
+                                        <div class="text-[11px] text-indigo-900 font-semibold flex items-center gap-1.5">
+                                            <i data-lucide="upload" class="w-3 h-3 text-indigo-600 shrink-0"></i>
+                                            <span>Submitted: <strong class="font-mono">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
+                                        </div>
+                                    @endif
+
+                                    <!-- TL Review Timer / Timestamp -->
+                                    @if($task->status === 'submitted')
+                                        <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-800 text-[10px] font-bold" data-task-id="{{ $task->id }}" data-submitted-at="{{ $task->submitted_at?->toISOString() }}">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
+                                            <span>Awaiting TL Review:</span>
+                                            <span class="font-mono font-black text-purple-900 tl-review-timer-val">Calculating...</span>
+                                        </div>
+                                    @elseif($task->status === 'completed')
+                                        <div class="text-[11px] text-emerald-900 font-semibold flex items-center gap-1.5">
+                                            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-600 shrink-0"></i>
+                                            <span>Reviewed by TL: <strong class="font-mono">{{ $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : ($task->updated_at ? $task->updated_at->format('d M Y, h:i A') : 'Approved') }}</strong></span>
+                                        </div>
+                                        @if($task->review_duration)
+                                            <div class="text-[10px] text-emerald-700 pl-4.5 font-medium">Turnaround: {{ $task->review_duration }}</div>
+                                        @endif
                                     @endif
                                 </div>
                             </td>
 
                             <!-- Status Badge -->
-                            <td class="py-4 px-4 align-top">
+                            <td class="py-4 px-4 align-top task-status-col-{{ $task->id }}">
                                 @if($task->status === 'completed')
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1">
                                         <i data-lucide="check-circle" class="w-3 h-3"></i> Completed
@@ -218,7 +315,7 @@
                                     </span>
                                 @elseif($task->status === 'in-progress')
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-300 inline-flex items-center gap-1">
-                                        <i data-lucide="loader" class="w-3 h-3"></i> In Progress
+                                        <i data-lucide="play-circle" class="w-3 h-3"></i> In Progress
                                     </span>
                                 @else
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
@@ -229,14 +326,14 @@
 
                             <!-- Updates column -->
                             <td class="py-4 px-4 align-top">
-                                <div class="space-y-1 mb-2">
+                                <div class="space-y-1 mb-2 task-updates-list-{{ $task->id }}">
                                     @forelse($task->updates->take(2) as $update)
                                         <div class="text-[11px] text-slate-600 flex items-start gap-1">
                                             <span class="text-slate-400">&bull;</span>
                                             <span class="truncate">{{ $update->message }}</span>
                                         </div>
                                     @empty
-                                        <span class="text-[11px] text-slate-400 italic">No notes posted yet</span>
+                                        <span class="text-[11px] text-slate-400 italic no-notes-placeholder-{{ $task->id }}">No notes posted yet</span>
                                     @endforelse
                                 </div>
 
@@ -246,7 +343,7 @@
                                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                                             <span>Add Progress Note</span>
                                         </summary>
-                                        <form method="POST" action="{{ route('tasks.update.add', $task) }}" class="mt-2 space-y-1.5">
+                                        <form method="POST" action="{{ route('tasks.update.add', $task) }}" onsubmit="saveTaskNoteAjax(event, {{ $task->id }})" class="mt-2 space-y-1.5">
                                             @csrf @method('PUT')
                                             <input type="text" name="message" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="What progress did you make?" required>
                                             <button type="submit" class="w-full py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-md transition shadow-xs">
@@ -257,21 +354,23 @@
                                 @endif
                             </td>
 
-                            <td class="py-4 px-4 align-top text-right">
-                                @if(!in_array($task->status, ['submitted', 'completed']))
-                                    <button type="button" onclick="openSubmissionModal({{ $task->id }}, '{{ addslashes($task->title) }}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs transition shadow-xs flex items-center gap-1.5 ml-auto cursor-pointer">
-                                        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                                        <span>Submit Work</span>
-                                    </button>
-                                @elseif($task->status === 'submitted')
-                                    <span class="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
-                                        Under TL Review
-                                    </span>
-                                @else
-                                    <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                                        Approved
-                                    </span>
-                                @endif
+                            <td class="py-4 px-4 align-top text-right whitespace-nowrap">
+                                <div class="task-action-container-desktop-{{ $task->id }}">
+                                    @if(!in_array($task->status, ['submitted', 'completed']))
+                                        <button type="button" onclick="openSubmissionModal({{ $task->id }}, '{{ addslashes($task->title) }}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs transition shadow-xs flex items-center gap-1.5 ml-auto cursor-pointer whitespace-nowrap">
+                                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                                            <span>Submit Work</span>
+                                        </button>
+                                    @elseif($task->status === 'submitted')
+                                        <span class="inline-flex items-center justify-center whitespace-nowrap text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
+                                            Under TL Review
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center justify-center whitespace-nowrap text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                            Approved
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -300,7 +399,7 @@
             <button type="button" onclick="closeSubmissionModal()" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">✕</button>
         </div>
 
-        <form id="submissionForm" method="POST" action="" enctype="multipart/form-data" class="space-y-4">
+        <form id="submissionForm" method="POST" action="" enctype="multipart/form-data" class="space-y-4" onsubmit="submitDeliverableAjax(event)">
             @csrf @method('PUT')
 
             <div>
@@ -326,18 +425,27 @@
                 <button type="button" onclick="closeSubmissionModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">
                     Cancel
                 </button>
-                <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 flex items-center gap-1.5">
+                <button type="submit" id="submissionSubmitBtn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer">
                     <i data-lucide="send" class="w-4 h-4"></i>
-                    <span>Submit to Team Lead</span>
+                    <span id="submissionSubmitText">Submit to Team Lead</span>
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Floating Instant Toast Notification -->
+<div id="instantToast" class="hidden fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-semibold transition-all transform duration-300 translate-y-4">
+    <span id="toastIcon"></span>
+    <span id="toastMessage"></span>
+</div>
+
 @push('scripts')
 <script>
+let currentActiveTaskId = null;
+
 function openSubmissionModal(taskId, taskTitle) {
+    currentActiveTaskId = taskId;
     document.getElementById('modalTaskTitle').innerText = taskTitle;
     document.getElementById('submissionForm').action = '/tasks/' + taskId + '/submit';
     document.getElementById('submissionModal').classList.remove('hidden');
@@ -345,7 +453,268 @@ function openSubmissionModal(taskId, taskTitle) {
 
 function closeSubmissionModal() {
     document.getElementById('submissionModal').classList.add('hidden');
+    document.getElementById('submissionForm').reset();
+    currentActiveTaskId = null;
 }
+
+function showInstantToast(message, type = 'success') {
+    const toast = document.getElementById('instantToast');
+    const toastMessage = document.getElementById('toastMessage');
+    const toastIcon = document.getElementById('toastIcon');
+
+    if (!toast) return;
+
+    if (type === 'success') {
+        toast.className = 'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border bg-emerald-900 text-white border-emerald-500/30 text-xs font-bold transition-all transform duration-300 translate-y-0';
+        toastIcon.innerHTML = '<svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+    } else {
+        toast.className = 'fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border bg-rose-900 text-white border-rose-500/30 text-xs font-bold transition-all transform duration-300 translate-y-0';
+        toastIcon.innerHTML = '<svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+    }
+
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 4000);
+}
+
+// 1. Submit Deliverable via AJAX (Zero Full Page Reload)
+async function submitDeliverableAjax(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById('submissionSubmitBtn');
+    const btnText = document.getElementById('submissionSubmitText');
+    const taskId = currentActiveTaskId;
+
+    btn.disabled = true;
+    btnText.textContent = 'Submitting...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Deliverables submitted for review!');
+            closeSubmissionModal();
+
+            // 1. Instant DOM update for mobile action button
+            const mobileActionContainer = document.querySelector(`.task-action-container-${taskId}`);
+            if (mobileActionContainer) {
+                mobileActionContainer.innerHTML = '<span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">In Review</span>';
+            }
+
+            // 2. Instant DOM update for desktop action button
+            const desktopActionContainer = document.querySelector(`.task-action-container-desktop-${taskId}`);
+            if (desktopActionContainer) {
+                desktopActionContainer.innerHTML = '<span class="inline-flex items-center justify-center whitespace-nowrap text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">Under TL Review</span>';
+            }
+
+            // 3. Instant status badge updates
+            const mobileStatusBadge = document.querySelector(`.task-status-badge-mobile-${taskId}`);
+            if (mobileStatusBadge) {
+                mobileStatusBadge.className = `task-status-badge-mobile-${taskId} px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0`;
+                mobileStatusBadge.textContent = 'In Review';
+            }
+
+            const desktopStatusCol = document.querySelector(`.task-status-col-${taskId}`);
+            if (desktopStatusCol) {
+                desktopStatusCol.innerHTML = '<span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 inline-flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Submitted</span>';
+            }
+
+            // 4. Instant deadline & timer updates (freezes employee timer, records submission time, starts TL review timer)
+            const submissionFormatted = data.submitted_at || new Date().toLocaleString();
+            const submittedIso = data.submitted_at_iso || new Date().toISOString();
+
+            // 4a. Mobile Lifecycle update
+            const mobileLifecycle = document.querySelector(`.task-lifecycle-mobile-${taskId}`);
+            if (mobileLifecycle) {
+                mobileLifecycle.innerHTML = `
+                    <div class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
+                        <span>⏹️ Employee Timer:</span>
+                        <span class="text-slate-800 font-bold">Stopped at Submission</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-900 font-semibold">
+                        <span class="flex items-center gap-1.5 font-bold text-indigo-700">
+                            <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            <span>Submitted to TL:</span>
+                        </span>
+                        <span class="font-bold font-mono text-[11px] text-indigo-950">${submissionFormatted}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold tl-review-timer-container" data-task-id="${taskId}" data-submitted-at="${submittedIso}">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
+                            <span>Awaiting TL Review:</span>
+                        </span>
+                        <span class="font-mono text-xs font-black text-purple-900 tl-review-timer-val">00h 00m 01s</span>
+                    </div>
+                `;
+            }
+
+            // 4b. Desktop Deadline & Timers Column update
+            const desktopDeadlineContainer = document.querySelector(`.task-deadline-desktop-${taskId}`);
+            if (desktopDeadlineContainer) {
+                desktopDeadlineContainer.innerHTML = `
+                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold">
+                        <span>⏹️ Employee Timer Stopped</span>
+                    </div>
+                    <div class="text-[11px] text-indigo-900 font-semibold flex items-center gap-1.5">
+                        <i data-lucide="upload" class="w-3 h-3 text-indigo-600 shrink-0"></i>
+                        <span>Submitted: <strong class="font-mono">${submissionFormatted}</strong></span>
+                    </div>
+                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-800 text-[10px] font-bold" data-task-id="${taskId}" data-submitted-at="${submittedIso}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
+                        <span>Awaiting TL Review:</span>
+                        <span class="font-mono font-black text-purple-900 tl-review-timer-val">00h 00m 01s</span>
+                    </div>
+                `;
+            }
+
+            // Trigger timer recalculation immediately
+            updateAllTaskTimers();
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        } else {
+            showInstantToast(data.message || 'Submission failed. Please check fields.', 'error');
+        }
+    } catch (err) {
+        showInstantToast('Connection error: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Submit to Team Lead';
+    }
+}
+
+// 2. Add Task Progress Note via AJAX (Zero Full Page Reload)
+async function saveTaskNoteAjax(event, taskId) {
+    event.preventDefault();
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const input = form.querySelector('input[name="message"]');
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+    }
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast('Progress note logged!');
+            input.value = '';
+
+            // Update desktop note list
+            const updatesContainer = document.querySelector(`.task-updates-list-${taskId}`);
+            if (updatesContainer) {
+                const placeholder = updatesContainer.querySelector(`.no-notes-placeholder-${taskId}`);
+                if (placeholder) placeholder.remove();
+
+                const noteEl = document.createElement('div');
+                noteEl.className = 'text-[11px] text-slate-800 flex items-start gap-1 font-semibold animate-in fade-in';
+                noteEl.innerHTML = `<span class="text-indigo-500 font-black">&bull;</span> <span class="truncate">${data.note.message}</span>`;
+                updatesContainer.prepend(noteEl);
+            }
+
+            // Increment note counter
+            const counters = document.querySelectorAll(`.note-counter-${taskId}`);
+            counters.forEach(c => {
+                const cur = parseInt(c.textContent) || 0;
+                c.textContent = cur + 1;
+            });
+        } else {
+            showInstantToast(data.message || 'Failed to save note.', 'error');
+        }
+    } catch (err) {
+        showInstantToast('Error saving note: ' + err.message, 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Note';
+    }
+}
+
+// ⏱️ Live Real-Time Timers (Employee Countdown & TL Review Elapsed Timer)
+function formatTimeDiff(ms) {
+    const isNegative = ms < 0;
+    const absMs = Math.abs(ms);
+    const totalSecs = Math.floor(absMs / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    
+    const hStr = hours < 10 ? '0' + hours : '' + hours;
+    const mStr = mins < 10 ? '0' + mins : '' + mins;
+    const sStr = secs < 10 ? '0' + secs : '' + secs;
+    
+    return {
+        formatted: `${hStr}h ${mStr}m ${sStr}s`,
+        isNegative,
+        hours, mins, secs
+    };
+}
+
+function updateAllTaskTimers() {
+    const now = new Date().getTime();
+
+    // 1. Employee Active Countdown Timers (Freeze on submission/completion)
+    document.querySelectorAll('.employee-timer-container').forEach(el => {
+        const deadlineStr = el.getAttribute('data-deadline');
+        if (!deadlineStr) return;
+        const deadlineMs = new Date(deadlineStr).getTime();
+        const diff = deadlineMs - now;
+        const valEl = el.querySelector('.employee-countdown-val');
+        if (!valEl) return;
+
+        const time = formatTimeDiff(diff);
+        if (time.isNegative) {
+            el.className = el.className.replace('bg-indigo-50', 'bg-rose-50').replace('text-indigo-700', 'text-rose-700').replace('border-indigo-200', 'border-rose-200');
+            valEl.textContent = `Overdue: ${time.formatted}`;
+        } else {
+            valEl.textContent = time.formatted;
+        }
+    });
+
+    // 2. TL Review Live Elapsed Timers (Counting upward from submission until TL reviews)
+    document.querySelectorAll('.tl-review-timer-container').forEach(el => {
+        const submittedStr = el.getAttribute('data-submitted-at');
+        if (!submittedStr) return;
+        const submittedMs = new Date(submittedStr).getTime();
+        const elapsed = now - submittedMs;
+        const valEl = el.querySelector('.tl-review-timer-val');
+        if (!valEl) return;
+
+        const time = formatTimeDiff(elapsed);
+        valEl.textContent = time.formatted;
+    });
+}
+
+// Tick every second for live update
+setInterval(updateAllTaskTimers, 1000);
+document.addEventListener('DOMContentLoaded', updateAllTaskTimers);
 </script>
 @endpush
 

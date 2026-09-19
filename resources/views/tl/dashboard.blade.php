@@ -120,6 +120,18 @@
                                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-slate-400"></i>
                                     <span>Assigned: <strong class="text-slate-600">{{ $task->created_at->format('d M, h:i A') }}</strong></span>
                                 </div>
+                                @if($task->submitted_at)
+                                    <div class="flex items-center gap-1.5 text-[11px] text-indigo-700 font-semibold">
+                                        <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                        <span>Submitted: <strong class="text-indigo-900">{{ $task->submitted_at->format('d M, h:i A') }}</strong></span>
+                                    </div>
+                                @endif
+                                @if($task->reviewed_at)
+                                    <div class="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
+                                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span>Reviewed: <strong class="text-emerald-900">{{ $task->reviewed_at->format('d M, h:i A') }}</strong></span>
+                                    </div>
+                                @endif
                                 <div class="flex items-center gap-1.5 font-semibold text-slate-700">
                                     <i data-lucide="clock" class="w-3.5 h-3.5 {{ $rem['is_urgent'] ? 'text-amber-600' : 'text-slate-400' }}"></i>
                                     <span class="{{ $rem['is_urgent'] ? 'text-amber-800 font-bold' : '' }}">{{ $rem['label'] }}</span>
@@ -557,8 +569,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 datasets: [{
                     label: 'Tasks Assigned',
                     data: {!! json_encode($taskPerMember->pluck('count')) !!},
-                    backgroundColor: '#4F46E5',
-                    borderRadius: 8,
+                    backgroundColor: '#6366f1',
+                    hoverBackgroundColor: '#4f46e5',
+                    borderRadius: 10,
+                    borderSkipped: false,
                     barThickness: 28,
                     maxBarThickness: 40
                 }]
@@ -569,9 +583,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 plugins: {
                     legend: { display: false },
                     tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { family: 'Inter', size: 12, weight: '700' },
+                        bodyFont: { family: 'Inter', size: 11 },
+                        padding: 10,
+                        cornerRadius: 10,
                         callbacks: {
                             label: function(ctx) {
-                                return ` Tasks: ${ctx.raw}`;
+                                return ` Assigned Tasks: ${ctx.raw}`;
                             }
                         }
                     }
@@ -579,12 +598,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { stepSize: 1, color: '#94A3B8' },
-                        grid: { color: '#F1F5F9' }
+                        suggestedMax: 4,
+                        ticks: { stepSize: 1, precision: 0, color: '#94A3B8', font: { family: 'Inter', size: 10 } },
+                        grid: { color: '#F1F5F9' },
+                        border: { display: false }
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#475569', font: { weight: '600', size: 11 } }
+                        border: { display: false },
+                        ticks: { color: '#475569', font: { weight: '600', size: 11, family: 'Inter' } }
                     }
                 }
             }

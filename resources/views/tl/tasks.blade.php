@@ -172,7 +172,7 @@
                                             </div>
                                         @endif
                                         <div class="space-y-1.5 flex-1 min-w-0">
-                                            <div class="flex items-center gap-2 flex-wrap">
+                                            <div class="flex items-center gap-2 flex-wrap task-status-container-{{ $task->id }}">
                                                 <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">{{ $task->title }}</h3>
 
                                                 <!-- Status Badge -->
@@ -210,8 +210,9 @@
 
                                             <p class="text-xs text-slate-500 line-clamp-2 max-w-2xl">{{ $task->description }}</p>
 
-                                            <!-- Meta tags: Deadline, Submitted time, and Deliverable badges -->
-                                            <div class="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap pt-1">
+                                            <!-- Meta tags: Deadline, Active Countdown, Submitted timestamp, and TL Review status -->
+                                            <div class="flex items-center gap-2.5 text-[11px] text-slate-500 flex-wrap pt-1.5 task-meta-container-{{ $task->id }}">
+                                                <!-- Deadline -->
                                                 <div class="flex items-center gap-1 font-semibold text-slate-700">
                                                     <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
                                                     <span>Deadline: {{ $task->deadline->format('d M Y, h:i A') }}</span>
@@ -223,10 +224,39 @@
                                                     </span>
                                                 @endif
 
+                                                <!-- Employee Timer (Countdown when active, or Stopped upon submission) -->
+                                                @if($task->status === 'pending' || $task->status === 'in-progress')
+                                                    <div class="employee-timer-container inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200" data-deadline="{{ $task->deadline?->toISOString() }}">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                                        <span>Time Left: <span class="font-mono font-black employee-countdown-val">{{ $task->due_label }}</span></span>
+                                                    </div>
+                                                @else
+                                                    <div class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                                        <span>⏹️ Timer Stopped</span>
+                                                    </div>
+                                                @endif
+
+                                                <!-- Submission Timestamp with Date & Time -->
                                                 @if($task->submitted_at)
-                                                    <div class="flex items-center gap-1 font-semibold text-indigo-700">
-                                                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-indigo-500"></i>
-                                                        <span>Submitted {{ $task->submitted_at->diffForHumans() }}</span>
+                                                    <div class="flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-200/60">
+                                                        <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                                        <span>Submitted: <strong class="font-mono text-indigo-950">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
+                                                    </div>
+                                                @endif
+
+                                                <!-- TL Review Timer (Live when submitted) / Timestamp (when completed) -->
+                                                @if($task->status === 'submitted')
+                                                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-900 text-[10px] font-extrabold border border-purple-300 task-tl-review-timer-{{ $task->id }}" data-task-id="{{ $task->id }}" data-submitted-at="{{ $task->submitted_at?->toISOString() }}">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
+                                                        <span>Awaiting Your Review: <span class="font-mono font-black text-purple-950 tl-review-timer-val">Calculating...</span></span>
+                                                    </div>
+                                                @elseif($task->status === 'completed')
+                                                    <div class="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 task-tl-reviewed-badge-{{ $task->id }}">
+                                                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                                        <span>Reviewed by TL: <strong class="font-mono text-emerald-950">{{ $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : ($task->updated_at ? $task->updated_at->format('d M Y, h:i A') : 'Approved') }}</strong></span>
+                                                        @if($task->review_duration)
+                                                            <span class="text-[10px] text-emerald-600 font-semibold">({{ $task->review_duration }})</span>
+                                                        @endif
                                                     </div>
                                                 @endif
 
@@ -253,16 +283,23 @@
                                     </div>
 
                                     <!-- Right: Clean Unified Single Button Group -->
-                                    <div class="flex items-center gap-2 shrink-0 sm:self-center w-full sm:w-auto justify-end">
+                                    <div class="flex items-center gap-2 shrink-0 sm:self-center w-full sm:w-auto justify-end task-actions-row-{{ $task->id }}">
+                                        @if($task->isOverdue())
+                                            <button type="button" onclick="sendOverdueAlertAjax(this, {{ $task->id }})" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Dispatch Formal Overdue Reminder Email to Assignee">
+                                                <i data-lucide="mail-warning" class="w-3.5 h-3.5"></i>
+                                                <span>Send Alert</span>
+                                            </button>
+                                        @endif
+
                                         <button type="button" onclick="openDetailsModal({{ json_encode($task->id) }})" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-indigo-200/70 cursor-pointer">
                                             <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-600"></i>
                                             <span>View Details</span>
                                         </button>
 
                                         @if($task->status === 'submitted')
-                                            <form method="POST" action="{{ route('tasks.complete', $task) }}" class="m-0">
+                                            <form method="POST" action="{{ route('tasks.complete', $task) }}" class="m-0" onsubmit="approveTaskAjax(event, {{ $task->id }})">
                                                 @csrf @method('PUT')
-                                                <button type="submit" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
+                                                <button type="submit" id="approve-btn-{{ $task->id }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
                                                     <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                                     <span>Approve</span>
                                                 </button>
@@ -444,7 +481,7 @@
 
         <!-- Modal Body Content (Scrollable) -->
         <div class="p-6 space-y-5 overflow-y-auto">
-            <!-- Key Metrics Grid: Status, Deadline, Previous Deadline -->
+            <!-- Key Metrics Grid: Status, Deadline, Submission, Review -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <!-- Status Card -->
                 <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
@@ -468,6 +505,30 @@
                     </div>
                     <div class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center shadow-2xs">
                         <i data-lucide="calendar" class="w-4 h-4 text-slate-600"></i>
+                    </div>
+                </div>
+
+                <!-- Submission Timestamp Card -->
+                <div class="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-wider text-indigo-700 block">Task Submission Time</span>
+                        <div id="detailSubmissionTimestamp" class="text-xs font-black text-indigo-950 mt-1 font-mono">Not submitted yet</div>
+                        <span id="detailEmployeeTimerStatus" class="text-[10px] text-slate-500 block mt-0.5"></span>
+                    </div>
+                    <div class="w-9 h-9 rounded-xl bg-white border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-2xs">
+                        <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                    </div>
+                </div>
+
+                <!-- TL Review Timestamp Card -->
+                <div class="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-wider text-purple-700 block">TL Review Status & Time</span>
+                        <div id="detailReviewTimestamp" class="text-xs font-black text-purple-950 mt-1 font-mono">Pending review</div>
+                        <span id="detailReviewDuration" class="text-[10px] text-purple-600 font-semibold block mt-0.5"></span>
+                    </div>
+                    <div class="w-9 h-9 rounded-xl bg-white border border-purple-200 text-purple-600 flex items-center justify-center shadow-2xs">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
                     </div>
                 </div>
             </div>
@@ -619,6 +680,38 @@ function openDetailsModal(taskId) {
         document.getElementById('detailPrevDeadline').innerText = new Date(task.previous_deadline).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
     } else {
         document.getElementById('detailPrevDeadlineContainer').classList.add('hidden');
+    }
+
+    // Submission Timestamp & Employee Timer Status
+    const subTimestampEl = document.getElementById('detailSubmissionTimestamp');
+    const empTimerStatusEl = document.getElementById('detailEmployeeTimerStatus');
+    if (subTimestampEl && empTimerStatusEl) {
+        if (task.submitted_at) {
+            subTimestampEl.innerText = new Date(task.submitted_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            empTimerStatusEl.innerText = '⏹️ Employee timer stopped at submission';
+        } else {
+            subTimestampEl.innerText = 'Not submitted yet';
+            empTimerStatusEl.innerText = task.status === 'completed' ? 'Marked complete' : '⏱️ Active work in progress';
+        }
+    }
+
+    // TL Review Timestamp & Duration
+    const revTimestampEl = document.getElementById('detailReviewTimestamp');
+    const revDurationEl = document.getElementById('detailReviewDuration');
+    if (revTimestampEl && revDurationEl) {
+        if (task.reviewed_at) {
+            revTimestampEl.innerText = new Date(task.reviewed_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            revDurationEl.innerText = task.review_duration ? '✓ Review Turnaround: ' + task.review_duration : '✓ Approved';
+        } else if (task.status === 'submitted') {
+            revTimestampEl.innerText = '⏳ Under Review (Action Required)';
+            revDurationEl.innerText = 'Review timer is currently running';
+        } else if (task.status === 'completed') {
+            revTimestampEl.innerText = new Date(task.updated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            revDurationEl.innerText = '✓ Completed & Approved';
+        } else {
+            revTimestampEl.innerText = 'Awaiting member submission';
+            revDurationEl.innerText = '';
+        }
     }
 
     // Revisions
@@ -912,6 +1005,216 @@ function confirmBulkDelete() {
         document.getElementById('bulkDeleteForm').submit();
     }
 }
+
+// 🟢 Floating Instant Toast Helper
+function showInstantToast(message, type = 'success') {
+    let toast = document.getElementById('instantFloatingToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'instantFloatingToast';
+        toast.className = 'fixed bottom-6 right-6 z-50 transform transition-all duration-300';
+        document.body.appendChild(toast);
+    }
+    const bgColor = type === 'success' ? 'bg-slate-900 text-white border-emerald-500' : 'bg-rose-900 text-white border-rose-500';
+    const icon = type === 'success' ? '✓' : '✕';
+    toast.innerHTML = `
+        <div class="flex items-center gap-2.5 px-4 py-3 rounded-2xl ${bgColor} border shadow-2xl text-xs font-bold animate-in slide-in-from-bottom-5">
+            <span class="w-5 h-5 rounded-full ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'} text-white flex items-center justify-center text-[10px] font-black">${icon}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    toast.classList.remove('hidden');
+    setTimeout(() => { toast.classList.add('hidden'); }, 4500);
+}
+
+// ⚡ Instant AJAX Task Approval (Zero Page Reload)
+async function approveTaskAjax(event, taskId) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Approving...';
+    }
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Task approved and marked as completed!');
+
+            // 1. Update task row status badge
+            const statusBadgeContainer = document.querySelector(`.task-status-container-${taskId}`);
+            if (statusBadgeContainer) {
+                statusBadgeContainer.innerHTML = `
+                    <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">${data.task_title || document.querySelector(`.task-status-container-${taskId} h3`)?.innerText || 'Task'}</h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        ✓ Completed
+                    </span>
+                `;
+            }
+
+            // 1b. Stop review timer and display Reviewed by TL timestamp
+            const reviewTimerEl = document.querySelector(`.task-tl-review-timer-${taskId}`);
+            const reviewedFormatted = data.reviewed_at || new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            if (reviewTimerEl) {
+                reviewTimerEl.outerHTML = `
+                    <div class="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 task-tl-reviewed-badge-${taskId}">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        <span>Reviewed by TL: <strong class="font-mono text-emerald-950">${reviewedFormatted}</strong></span>
+                        ${data.review_duration ? `<span class="text-[10px] text-emerald-600 font-semibold">(${data.review_duration})</span>` : ''}
+                    </div>
+                `;
+            }
+
+            // 2. Update action button in row
+            form.outerHTML = '<span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">✓ Completed & Approved</span>';
+
+            // 3. Update task in allTasksData
+            const t = allTasksData.find(x => x.id === taskId);
+            if (t) {
+                t.status = 'completed';
+                t.reviewed_at = data.reviewed_at_iso || new Date().toISOString();
+                t.review_duration = data.review_duration;
+            }
+
+            // 4. Update modal if open
+            const modalBadge = document.getElementById('detailStatusBadge');
+            if (modalBadge) {
+                modalBadge.innerHTML = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">✓ Completed</span>';
+            }
+            const modalReviewTs = document.getElementById('detailReviewTimestamp');
+            if (modalReviewTs) {
+                modalReviewTs.innerText = reviewedFormatted;
+            }
+            const modalReviewDur = document.getElementById('detailReviewDuration');
+            if (modalReviewDur) {
+                modalReviewDur.innerText = data.review_duration ? '✓ Review Turnaround: ' + data.review_duration : '✓ Approved';
+            }
+            const modalActionSlot = document.getElementById('detailActionSlot');
+            if (modalActionSlot) {
+                modalActionSlot.innerHTML = '';
+            }
+
+            if (window.lucide) lucide.createIcons();
+        } else {
+            showInstantToast(data.message || 'Failed to approve task.', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Approve</span>';
+            }
+        }
+    } catch (err) {
+        showInstantToast('Error: ' + err.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Approve</span>';
+        }
+    }
+}
+
+// 🔔 Instant Overdue Email Alert Dispatch (Zero Page Reload)
+async function sendOverdueAlertAjax(btn, taskId) {
+    if (!confirm('Dispatch formal overdue reminder email alert to the assigned employee?')) return;
+
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Sending...';
+
+    try {
+        const response = await fetch(`/tasks/${taskId}/send-overdue-reminder`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Overdue alert email dispatched successfully!');
+            btn.innerHTML = '✓ Alert Sent';
+            btn.className = 'px-3 py-2 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs border border-slate-200 cursor-default';
+        } else {
+            showInstantToast(data.message || 'Failed to dispatch alert.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    } catch (err) {
+        showInstantToast('Error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// ⏱️ Live Real-Time Timers (Employee Countdown & TL Review Elapsed Timer)
+function formatTimeDiff(ms) {
+    const isNegative = ms < 0;
+    const absMs = Math.abs(ms);
+    const totalSecs = Math.floor(absMs / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    
+    const hStr = hours < 10 ? '0' + hours : '' + hours;
+    const mStr = mins < 10 ? '0' + mins : '' + mins;
+    const sStr = secs < 10 ? '0' + secs : '' + secs;
+    
+    return {
+        formatted: `${hStr}h ${mStr}m ${sStr}s`,
+        isNegative,
+        hours, mins, secs
+    };
+}
+
+function updateAllTaskTimers() {
+    const now = new Date().getTime();
+
+    // 1. Employee Active Countdown Timers (Freeze on submission/completion)
+    document.querySelectorAll('.employee-timer-container').forEach(el => {
+        const deadlineStr = el.getAttribute('data-deadline');
+        if (!deadlineStr) return;
+        const deadlineMs = new Date(deadlineStr).getTime();
+        const diff = deadlineMs - now;
+        const valEl = el.querySelector('.employee-countdown-val');
+        if (!valEl) return;
+
+        const time = formatTimeDiff(diff);
+        if (time.isNegative) {
+            el.className = el.className.replace('bg-indigo-50', 'bg-rose-50').replace('text-indigo-700', 'text-rose-700').replace('border-indigo-200', 'border-rose-200');
+            valEl.textContent = `Overdue: ${time.formatted}`;
+        } else {
+            valEl.textContent = time.formatted;
+        }
+    });
+
+    // 2. TL Review Live Elapsed Timers (Counting upward from submission until TL reviews)
+    document.querySelectorAll('.tl-review-timer-container').forEach(el => {
+        const submittedStr = el.getAttribute('data-submitted-at');
+        if (!submittedStr) return;
+        const submittedMs = new Date(submittedStr).getTime();
+        const elapsed = now - submittedMs;
+        const valEl = el.querySelector('.tl-review-timer-val');
+        if (!valEl) return;
+
+        const time = formatTimeDiff(elapsed);
+        valEl.textContent = time.formatted;
+    });
+}
+
+// Tick every second for live real-time updates
+setInterval(updateAllTaskTimers, 1000);
+document.addEventListener('DOMContentLoaded', updateAllTaskTimers);
 </script>
 
 @endsection

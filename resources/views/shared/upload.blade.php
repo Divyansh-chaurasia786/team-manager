@@ -38,24 +38,33 @@
                     </svg>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <h3 class="text-sm font-black text-white">Google Drive Connected & Synchronized</h3>
-                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Active</span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Active Live Sync</span>
+                        @if(!empty($connectedAccount['is_service_account']))
+                            <span class="px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-bold border border-indigo-400/30">Service Account</span>
+                        @endif
                     </div>
                     <p class="text-xs text-slate-300 mt-0.5">
-                        Connected as <strong class="text-white">{{ $connectedAccount['email'] ?? 'Authorized Account' }}</strong>. All files automatically sort into date folders and Photos/Videos/Documents subfolders.
+                        Connected as <strong class="text-white">{{ $connectedAccount['email'] ?? 'Authorized Account' }}</strong> &bull; Target: <span class="text-emerald-300 font-semibold">EcoFone Operations Drive</span>. Files auto-organize into date and Photos/Videos/Documents subfolders.
                     </p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-                <form method="POST" action="{{ route('google.disconnect') }}" onsubmit="return confirm('Disconnect Google Drive?')">
-                    @csrf
-                    <button type="submit" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-600/80 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
-                        <i data-lucide="unlink" class="w-3.5 h-3.5"></i>
-                        <span>Disconnect</span>
-                    </button>
-                </form>
+                <a href="https://drive.google.com/drive/folders/{{ config('services.google.drive_folder_id', '14ctR4tZhSEKk_yPf-quSwPmcJBTo6Gt1') }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    <span>Open in Drive</span>
+                </a>
+                @if(empty($connectedAccount['is_service_account']))
+                    <form method="POST" action="{{ route('google.disconnect') }}" onsubmit="return confirm('Disconnect Google Drive?')">
+                        @csrf
+                        <button type="submit" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-600/80 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
+                            <i data-lucide="unlink" class="w-3.5 h-3.5"></i>
+                            <span>Disconnect</span>
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
     @else

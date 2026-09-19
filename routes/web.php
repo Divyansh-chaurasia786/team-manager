@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/tasks/{task}/reassign', [TaskController::class, 'reassign'])->name('tasks.reassign');
     Route::put('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/tasks/{task}/send-overdue-reminder', [TaskController::class, 'sendOverdueReminder'])->name('tasks.send_overdue_reminder');
     Route::post('/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('tasks.bulk_destroy');
 
     // Member dashboard
@@ -172,8 +173,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/plans/{plan}/status', [WeeklyPlanController::class, 'updateStatus'])->name('plans.status.update');
     Route::delete('/plans/{plan}', [WeeklyPlanController::class, 'destroy'])->name('plans.destroy');
 
-    // Team Discussion & Thought Sharing Hub
+    // Team Discussion & Thought Sharing Hub (WhatsApp Live Chat)
     Route::get('/thoughts', [\App\Http\Controllers\TeamThoughtController::class, 'index'])->name('thoughts.index');
+    Route::get('/thoughts/messages', [\App\Http\Controllers\TeamThoughtController::class, 'getMessages'])->name('thoughts.messages');
     Route::post('/thoughts', [\App\Http\Controllers\TeamThoughtController::class, 'store'])->name('thoughts.store');
     Route::post('/thoughts/{thought}/drive-upload', [\App\Http\Controllers\TeamThoughtController::class, 'uploadToDrive'])->name('thoughts.drive.upload');
     Route::delete('/thoughts/{thought}', [\App\Http\Controllers\TeamThoughtController::class, 'destroy'])->name('thoughts.destroy');

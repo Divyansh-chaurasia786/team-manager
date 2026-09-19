@@ -20,23 +20,34 @@ class GoogleAuthController extends Controller
     public static function isConnected(): bool
     {
         $path = self::getTokenPath();
-        if (!file_exists($path)) {
-            return false;
+        if (file_exists($path)) {
+            $tokenData = json_decode(file_get_contents($path), true);
+            if (!empty($tokenData['access_token']) || !empty($tokenData['refresh_token'])) {
+                return true;
+            }
         }
 
-        $tokenData = json_decode(file_get_contents($path), true);
-        return !empty($tokenData['access_token']) || !empty($tokenData['refresh_token']);
+        return false;
     }
 
     public static function getConnectedAccount(): ?array
     {
         $path = self::getTokenPath();
-        if (!file_exists($path)) {
-            return null;
+        if (file_exists($path)) {
+            $tokenData = json_decode(file_get_contents($path), true);
+            if (!empty($tokenData['user_info'])) {
+                return $tokenData['user_info'];
+            }
+            if (!empty($tokenData['access_token'])) {
+                return [
+                    'email' => $tokenData['email'] ?? 'Google Drive Account',
+                    'name'  => 'Connected Google Account',
+                    'type'  => 'OAuth Account',
+                ];
+            }
         }
 
-        $tokenData = json_decode(file_get_contents($path), true);
-        return $tokenData['user_info'] ?? null;
+        return null;
     }
 
     public function getClient(): Client

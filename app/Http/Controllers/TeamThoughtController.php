@@ -29,12 +29,84 @@ class TeamThoughtController extends Controller
             ->orWhere('created_by', $tl->id)
             ->pluck('id');
 
+        $teamUsers = User::whereIn('id', $teamUserIds)->get();
+
         $thoughts = TeamThought::with(['user', 'driveUploader'])
             ->whereIn('user_id', $teamUserIds)
-            ->latest()
-            ->paginate(30);
+            ->latest('id')
+            ->take(50)
+            ->get()
+            ->reverse()
+            ->values();
 
-        return view('thoughts.index', compact('thoughts', 'tl'));
+        return view('thoughts.index', compact('thoughts', 'tl', 'teamUsers'));
+    }
+
+    /**
+     * Polling endpoint to fetch recent messages for real-time live WhatsApp chat.
+     */
+    public function getMessages(Request $request)
+    {
+        $user = Auth::user();
+        $tl = $user->isTL() ? $user : ($user->creator ?? $user);
+
+        $teamUserIds = User::where('id', $tl->id)
+            ->orWhere('created_by', $tl->id)
+            ->pluck('id');
+
+        $afterId = (int) $request->get('after_id', 0);
+
+        $query = TeamThought::with(['user', 'driveUploader'])
+            ->whereIn('user_id', $teamUserIds);
+
+        if ($afterId > 0) {
+            $thoughts = $query->where('id', '>', $afterId)
+                ->orderBy('id', 'asc')
+                ->take(50)
+                ->get();
+        } else {
+            $thoughts = $query->latest('id')
+                ->take(50)
+                ->get()
+                ->reverse()
+                ->values();
+        }
+
+        $formatted = $thoughts->map(function ($t) {
+            $mediaUrl = null;
+            if ($t->media_path && file_exists(public_path($t->media_path))) {
+                $mediaUrl = asset($t->media_path);
+            } elseif ($t->drive_url) {
+                $mediaUrl = $t->drive_url;
+            }
+
+            return [
+                'id'                  => $t->id,
+                'user_id'             => $t->user_id,
+                'user_name'           => $t->user?->name ?? 'Team Member',
+                'user_initials'       => strtoupper(substr($t->user?->name ?? 'TM', 0, 2)),
+                'user_role'           => $t->user?->designation ?: ($t->user?->isTL() ? 'Team Lead' : 'Staff'),
+                'user_avatar'         => $t->user?->avatar_url,
+                'is_me'               => $t->user_id === Auth::id(),
+                'is_tl'               => $t->user?->isTL() ?? false,
+                'content'             => $t->content,
+                'link_url'            => $t->link_url,
+                'media_url'           => $mediaUrl,
+                'media_type'          => $t->media_type,
+                'media_original_name' => $t->media_original_name,
+                'has_drive_sync'      => $t->hasDriveSync(),
+                'drive_url'           => $t->drive_url,
+                'time'                => $t->created_at->format('h:i A'),
+                'date_label'          => $t->created_at->isToday() ? 'Today' : ($t->created_at->isYesterday() ? 'Yesterday' : $t->created_at->format('M d, Y')),
+                'raw_timestamp'       => $t->created_at->timestamp,
+            ];
+        });
+
+        return response()->json([
+            'success'   => true,
+            'messages'  => $formatted,
+            'latest_id' => $thoughts->max('id') ?: $afterId,
+        ]);
     }
 
     /**
@@ -49,6 +121,9 @@ class TeamThoughtController extends Controller
         ]);
 
         if (empty($request->content) && empty($request->link_url) && !$request->hasFile('media')) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Please provide a message, a link, or attach media.'], 422);
+            }
             return back()->with('error', 'Please provide a message, a link, or attach an image/video.');
         }
 
@@ -110,6 +185,40 @@ class TeamThoughtController extends Controller
             entityType: 'TeamThought',
             entityId: $thought->id
         );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            $mediaUrl = null;
+            if ($thought->media_path && file_exists(public_path($thought->media_path))) {
+                $mediaUrl = asset($thought->media_path);
+            } elseif ($thought->drive_url) {
+                $mediaUrl = $thought->drive_url;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Message sent successfully!',
+                'thought' => [
+                    'id'                  => $thought->id,
+                    'user_id'             => $thought->user_id,
+                    'user_name'           => Auth::user()->name,
+                    'user_initials'       => strtoupper(substr(Auth::user()->name, 0, 2)),
+                    'user_role'           => Auth::user()->designation ?: (Auth::user()->isTL() ? 'Team Lead' : 'Staff'),
+                    'user_avatar'         => Auth::user()->avatar_url,
+                    'is_me'               => true,
+                    'is_tl'               => Auth::user()->isTL(),
+                    'content'             => $thought->content,
+                    'link_url'            => $thought->link_url,
+                    'media_url'           => $mediaUrl,
+                    'media_type'          => $thought->media_type,
+                    'media_original_name' => $thought->media_original_name,
+                    'has_drive_sync'      => false,
+                    'drive_url'           => null,
+                    'time'                => $thought->created_at->format('h:i A'),
+                    'date_label'          => 'Today',
+                    'raw_timestamp'       => $thought->created_at->timestamp,
+                ],
+            ]);
+        }
 
         return back()->with('success', 'Your thought has been posted to the team feed!');
     }

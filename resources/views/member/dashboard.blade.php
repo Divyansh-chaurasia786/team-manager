@@ -116,6 +116,18 @@
                                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-slate-400"></i>
                                     <span>Assigned: <strong class="text-slate-600">{{ $task->created_at->format('d M, h:i A') }}</strong></span>
                                 </div>
+                                @if($task->submitted_at)
+                                    <div class="flex items-center gap-1.5 text-[11px] text-indigo-700 font-semibold">
+                                        <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                        <span>Submitted: <strong class="text-indigo-900">{{ $task->submitted_at->format('d M, h:i A') }}</strong></span>
+                                    </div>
+                                @endif
+                                @if($task->reviewed_at)
+                                    <div class="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
+                                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span>Reviewed by TL: <strong class="text-emerald-900">{{ $task->reviewed_at->format('d M, h:i A') }}</strong></span>
+                                    </div>
+                                @endif
                                 <div class="flex items-center gap-1.5 font-semibold text-slate-700">
                                     <i data-lucide="clock" class="w-3.5 h-3.5 {{ $rem['is_urgent'] ? 'text-amber-600' : 'text-slate-400' }}"></i>
                                     <span class="{{ $rem['is_urgent'] ? 'text-amber-800 font-bold' : '' }}">{{ $rem['label'] }}</span>
@@ -125,10 +137,17 @@
 
                         <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
                             <span class="text-[10px] text-slate-400 font-medium">Deliverable</span>
-                            <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1">
-                                <span>Submit Work</span>
-                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                            </a>
+                            @if($task->status === 'submitted')
+                                <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-purple-600 hover:text-purple-800 inline-flex items-center gap-1">
+                                    <span>View Submission</span>
+                                    <i data-lucide="eye" class="w-3 h-3"></i>
+                                </a>
+                            @else
+                                <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1">
+                                    <span>Submit Work</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -216,92 +235,153 @@
         </div>
     @endif
 
-    <!-- 📊 VITALS METRIC CARDS -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
+    <!-- 📊 VITALS METRIC CARDS (5 Core Delivery Columns) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
             <div class="flex items-center justify-between">
-                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-                    <i data-lucide="list-todo" class="w-5 h-5"></i>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+                    <i data-lucide="list-todo" class="w-4 h-4"></i>
                 </div>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Total</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Total</span>
             </div>
             <div class="mt-3">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned Tasks</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $tasks->count() }} <span class="text-xs font-medium text-slate-400">tasks</span></div>
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Assigned</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{{ $tasks->count() }} <span class="text-xs font-medium text-slate-400">tasks</span></div>
             </div>
         </div>
 
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
             <div class="flex items-center justify-between">
-                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-                    <i data-lucide="hourglass" class="w-5 h-5"></i>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+                    <i data-lucide="hourglass" class="w-4 h-4"></i>
                 </div>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Pending</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Pending</span>
             </div>
             <div class="mt-3">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">To Start</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['pending'] }} <span class="text-xs font-medium text-slate-400">waiting</span></div>
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">To Start</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['pending'] }} <span class="text-xs font-medium text-slate-400">waiting</span></div>
             </div>
         </div>
 
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
             <div class="flex items-center justify-between">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-                    <i data-lucide="activity" class="w-5 h-5"></i>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
                 </div>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">In Progress</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">Active</span>
             </div>
             <div class="mt-3">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Work</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['in-progress'] }} <span class="text-xs font-medium text-slate-400">active</span></div>
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">In Progress</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['in-progress'] }} <span class="text-xs font-medium text-slate-400">active</span></div>
             </div>
         </div>
 
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group">
+        <div class="bg-white p-4 rounded-2xl border border-purple-200/80 shadow-xs hover:shadow-md transition-all group">
             <div class="flex items-center justify-between">
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-                    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+                    <i data-lucide="send" class="w-4 h-4"></i>
                 </div>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Done</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Under Review</span>
             </div>
             <div class="mt-3">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Completed</div>
-                <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['completed'] }} <span class="text-xs font-medium text-slate-400">finished</span></div>
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Submitted</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['submitted'] }} <span class="text-xs font-medium text-purple-500 font-bold">in review</span></div>
+            </div>
+        </div>
+
+        <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-xs hover:shadow-md transition-all group">
+            <div class="flex items-center justify-between">
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                </div>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Done</span>
+            </div>
+            <div class="mt-3">
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Completed</div>
+                <div class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{{ $statusCounts['completed'] }} <span class="text-xs font-medium text-emerald-600 font-bold">approved</span></div>
             </div>
         </div>
     </div>
 
-    <!-- 📈 CHARTS ROW -->
+    <!-- 📈 CHARTS ROW (Modernized Visuals) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Status Donut -->
-        <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
+        <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
                     <div class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
                         <i data-lucide="pie-chart" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="text-sm font-bold text-slate-900">Task Status Breakdown</h3>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">Task Status Breakdown</h3>
+                        <p class="text-[11px] text-slate-400">Distribution of your assigned responsibilities</p>
+                    </div>
                 </div>
-                <span class="text-xs font-bold text-slate-400">{{ $tasks->count() }} Total</span>
+                <span class="text-xs font-extrabold px-2 py-1 rounded-lg bg-slate-100 text-slate-700">{{ $tasks->count() }} Total</span>
             </div>
-            <div class="h-64 relative flex items-center justify-center">
+            <div class="h-64 relative flex items-center justify-center my-2">
                 <canvas id="myStatusDonut"></canvas>
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+                    @if($tasks->count() > 0)
+                        <span class="text-3xl font-black text-slate-900 tracking-tight">{{ $tasks->count() }}</span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Tasks</span>
+                    @else
+                        <i data-lucide="check-circle" class="w-8 h-8 text-slate-300 mb-1"></i>
+                        <span class="text-xs font-bold text-slate-500">All Clear</span>
+                        <span class="text-[10px] text-slate-400">No active tasks</span>
+                    @endif
+                </div>
+            </div>
+            <div class="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 text-center">
+                <div class="bg-slate-50 rounded-xl p-1.5">
+                    <span class="text-[10px] text-slate-400 font-bold block">Pending</span>
+                    <span class="text-xs font-black text-slate-700">{{ $statusCounts['pending'] }}</span>
+                </div>
+                <div class="bg-blue-50 rounded-xl p-1.5">
+                    <span class="text-[10px] text-blue-500 font-bold block">Active</span>
+                    <span class="text-xs font-black text-blue-700">{{ $statusCounts['in-progress'] }}</span>
+                </div>
+                <div class="bg-purple-50 rounded-xl p-1.5">
+                    <span class="text-[10px] text-purple-500 font-bold block">Review</span>
+                    <span class="text-xs font-black text-purple-700">{{ $statusCounts['submitted'] }}</span>
+                </div>
+                <div class="bg-emerald-50 rounded-xl p-1.5">
+                    <span class="text-[10px] text-emerald-500 font-bold block">Done</span>
+                    <span class="text-xs font-black text-emerald-700">{{ $statusCounts['completed'] }}</span>
+                </div>
             </div>
         </div>
 
-        <!-- Upcoming Deadlines -->
-        <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
-            <div class="flex items-center justify-between mb-4">
+        <!-- 7-Day Deliverables & Productivity Velocity Chart -->
+        <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
                     <div class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
-                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="text-sm font-bold text-slate-900">Upcoming Deadlines Schedule</h3>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">7-Day Deliverable Velocity</h3>
+                        <p class="text-[11px] text-slate-400">Daily submissions, approvals & work in flight</p>
+                    </div>
                 </div>
-                <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition">View All</a>
+                <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition">View Tasks</a>
             </div>
-            <div class="h-64 relative">
-                <canvas id="deadlineBar"></canvas>
+            <div class="h-64 relative my-2">
+                <canvas id="weeklyVelocityChart"></canvas>
+            </div>
+            <div class="flex items-center justify-center gap-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex-wrap">
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span>Approved & Completed</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                    <span>Submitted for Review</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                    <span>Active In Flight</span>
+                </span>
             </div>
         </div>
     </div>
@@ -578,21 +658,34 @@ document.addEventListener("DOMContentLoaded", function() {
     // 1. Task Status Donut
     const donutCtx = document.getElementById('myStatusDonut');
     if (donutCtx) {
+        const hasTasks = {{ $tasks->count() > 0 ? 'true' : 'false' }};
+        const statusData = hasTasks 
+            ? [
+                {{ $statusCounts['pending'] }},
+                {{ $statusCounts['in-progress'] }},
+                {{ $statusCounts['submitted'] }},
+                {{ $statusCounts['completed'] }}
+              ]
+            : [1];
+
+        const bgColors = hasTasks 
+            ? ['#94a3b8', '#3b82f6', '#a855f7', '#10b981']
+            : ['#e2e8f0'];
+
+        const labels = hasTasks
+            ? ['Pending', 'In Progress', 'Submitted', 'Completed']
+            : ['No Tasks'];
+
         new Chart(donutCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Pending', 'In Progress', 'Submitted', 'Completed'],
+                labels: labels,
                 datasets: [{
-                    data: [
-                        {{ $statusCounts['pending'] }},
-                        {{ $statusCounts['in-progress'] }},
-                        {{ $statusCounts['submitted'] }},
-                        {{ $statusCounts['completed'] }}
-                    ],
-                    backgroundColor: ['#94a3b8', '#3b82f6', '#6366f1', '#10b981'],
+                    data: statusData,
+                    backgroundColor: bgColors,
                     borderWidth: 3,
                     borderColor: '#ffffff',
-                    hoverOffset: 6
+                    hoverOffset: hasTasks ? 6 : 0
                 }]
             },
             options: {
@@ -601,10 +694,25 @@ document.addEventListener("DOMContentLoaded", function() {
                 plugins: {
                     legend: {
                         position: 'bottom',
+                        display: hasTasks,
                         labels: {
                             font: { family: 'Inter', size: 11, weight: '600' },
-                            boxWidth: 12,
-                            padding: 14
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            borderRadius: 3,
+                            useBorderRadius: true,
+                            padding: 12
+                        }
+                    },
+                    tooltip: {
+                        enabled: hasTasks,
+                        callbacks: {
+                            label: function(ctx) {
+                                const val = ctx.raw || 0;
+                                const total = {{ max(1, $tasks->count()) }};
+                                const pct = Math.round((val / total) * 100);
+                                return ` ${ctx.label}: ${val} (${pct}%)`;
+                            }
                         }
                     }
                 },
@@ -613,20 +721,44 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 2. Upcoming Deadlines Bar
-    const barCtx = document.getElementById('deadlineBar');
-    if (barCtx) {
-        new Chart(barCtx, {
+    // 2. 7-Day Deliverable Velocity Chart (Real weekly performance output)
+    const velocityCtx = document.getElementById('weeklyVelocityChart');
+    if (velocityCtx) {
+        const trendData = {!! json_encode($weeklyTrend) !!};
+        
+        new Chart(velocityCtx, {
             type: 'bar',
             data: {
-                labels: {!! json_encode(collect($upcomingTasks)->pluck('title')->map(fn($t) => \Illuminate\Support\Str::limit($t, 18))) !!},
-                datasets: [{
-                    label: 'Scheduled Due Date',
-                    data: {!! json_encode(collect($upcomingTasks)->map(fn($t, $idx) => 7 - $idx)) !!},
-                    backgroundColor: '#4f46e5',
-                    borderRadius: 8,
-                    borderSkipped: false
-                }]
+                labels: trendData.map(d => d.short),
+                datasets: [
+                    {
+                        label: 'Approved & Done',
+                        data: trendData.map(d => d.completed),
+                        backgroundColor: '#10b981',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Submitted for Review',
+                        data: trendData.map(d => d.submitted),
+                        backgroundColor: '#a855f7',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Active In Flight',
+                        data: trendData.map(d => d.active),
+                        backgroundColor: '#818cf8',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -634,25 +766,38 @@ document.addEventListener("DOMContentLoaded", function() {
                 plugins: {
                     legend: { display: false },
                     tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { family: 'Inter', size: 12, weight: '700' },
+                        bodyFont: { family: 'Inter', size: 11 },
+                        padding: 10,
+                        cornerRadius: 10,
                         callbacks: {
                             title: function(items) {
-                                const fullTitles = {!! json_encode(collect($upcomingTasks)->pluck('title')) !!};
-                                return fullTitles[items[0].dataIndex] || '';
-                            },
-                            label: function(ctx) {
-                                const dates = {!! json_encode(collect($upcomingTasks)->pluck('deadline')) !!};
-                                return 'Due: ' + (dates[ctx.dataIndex] || '');
+                                const idx = items[0].dataIndex;
+                                return trendData[idx] ? trendData[idx].label : '';
                             }
                         }
                     }
                 },
                 scales: {
                     y: {
-                        display: false,
-                        grid: { display: false }
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            font: { family: 'Inter', size: 10, weight: '600' },
+                            color: '#94a3b8'
+                        },
+                        grid: {
+                            color: '#f1f5f9'
+                        },
+                        border: {
+                            display: false
+                        }
                     },
                     x: {
                         grid: { display: false },
+                        border: { display: false },
                         ticks: {
                             font: { family: 'Inter', size: 11, weight: '600' },
                             color: '#64748b'

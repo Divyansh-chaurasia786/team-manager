@@ -13,10 +13,10 @@ class MemberDashboardController extends Controller
         $user = Auth::user();
         $tasks = Task::with(['assignedBy', 'updates'])->where('assigned_to', $user->id)->latest()->get();
 
-        // ⏰ 2-Day Scheduled Task Reminders for Member
+        // ⏰ 2-Day Scheduled Task Reminders for Member (Actionable only: excludes completed and submitted)
         $upcomingTaskReminders = Task::with(['assignedBy'])
             ->where('assigned_to', $user->id)
-            ->where('status', '!=', 'completed')
+            ->whereNotIn('status', ['completed', 'submitted'])
             ->where('deadline', '<=', now()->addDays(2))
             ->orderBy('deadline', 'asc')
             ->get();
@@ -42,8 +42,8 @@ class MemberDashboardController extends Controller
             'completed'   => $tasks->where('status', 'completed')->count(),
         ];
 
-        // Deadline chart - next 7 tasks by deadline
-        $upcomingTasks = $tasks->where('status', '!=', 'completed')
+        // Deadline chart - upcoming active tasks by deadline
+        $upcomingTasks = $tasks->whereNotIn('status', ['completed', 'submitted'])
             ->sortBy('deadline')
             ->take(7)
             ->map(fn($t) => [
@@ -51,6 +51,34 @@ class MemberDashboardController extends Controller
                 'deadline' => $t->deadline->format('M d'),
                 'overdue'  => $t->isOverdue(),
             ])->values();
+
+        // 7-day productivity & work output trend (Real data for weekly velocity chart)
+        $weeklyTrend = collect(range(6, 0))->map(function($daysAgo) use ($user) {
+            $dayCarbon = now()->subDays($daysAgo);
+            $date = $dayCarbon->format('Y-m-d');
+            
+            $completed = Task::where('assigned_to', $user->id)
+                ->where('status', 'completed')
+                ->whereDate('updated_at', $date)
+                ->count();
+                
+            $submitted = Task::where('assigned_to', $user->id)
+                ->whereDate('submitted_at', $date)
+                ->count();
+
+            $active = Task::where('assigned_to', $user->id)
+                ->whereIn('status', ['in-progress', 'pending'])
+                ->whereDate('created_at', '<=', $date)
+                ->count();
+
+            return [
+                'label'       => $dayCarbon->format('D, M d'),
+                'short'       => $dayCarbon->format('D'),
+                'completed'   => $completed,
+                'submitted'   => $submitted,
+                'active'      => $active,
+            ];
+        });
 
         $driveFiles = DriveFile::where('uploaded_by', $user->id)->latest()->take(10)->get();
 
@@ -65,7 +93,7 @@ class MemberDashboardController extends Controller
         $recentActivities = ActivityLog::where('user_id', $user->id)->latest()->take(5)->get();
 
         return view('member.dashboard', compact(
-            'tasks', 'statusCounts', 'upcomingTasks', 'driveFiles', 'recentActivities',
+            'tasks', 'statusCounts', 'upcomingTasks', 'weeklyTrend', 'driveFiles', 'recentActivities',
             'upcomingTaskReminders', 'upcomingShootReminders', 'assignedShoots'
         ));
     }

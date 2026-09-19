@@ -17,13 +17,23 @@ class TLDashboardController extends Controller
         $members = User::where('created_by', $tl->id)->get();
         $tasks = Task::with(['assignedTo', 'updates'])->where('assigned_by', $tl->id)->latest()->get();
 
-        // ⏰ 2-Day Scheduled Task Reminders (Tasks due within 2 days or overdue)
+        // ⏰ 2-Day Scheduled Task Reminders (Tasks due within 2 days or overdue, actionable only)
         $upcomingTaskReminders = Task::with(['assignedTo'])
             ->where('assigned_by', $tl->id)
-            ->where('status', '!=', 'completed')
+            ->whereNotIn('status', ['completed', 'submitted'])
             ->where('deadline', '<=', now()->addDays(2))
             ->orderBy('deadline', 'asc')
             ->get();
+
+        // Opportunistic automated overdue scan (throttled to once every 15 minutes)
+        \Illuminate\Support\Facades\Cache::remember('tl_overdue_scan_' . $tl->id, 900, function () {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('tasks:send-overdue-reminders');
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Opportunistic overdue scan error: ' . $e->getMessage());
+            }
+            return now()->timestamp;
+        });
 
         // ⏰ 2-Day Scheduled Shoot Reminders (Shoots in the next 48 hours)
         $upcomingShootReminders = ContentShoot::with(['managingMember', 'cameraPerson', 'model', 'editor'])

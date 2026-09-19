@@ -52,10 +52,10 @@ class TeamThoughtTest extends TestCase
 
         $response = $this->actingAs($this->member)->get(route('thoughts.index'));
         $response->assertStatus(200);
-        $response->assertSee('Open Team Collaboration Board', false);
+        $response->assertSee('Team Chat', false);
         $response->assertSee('John Member', false);
         $response->assertSee('Lead UI Designer', false);
-        $response->assertSee($thought->created_at->format('d M Y'), false);
+        $response->assertSee('Design system token review', false);
         $response->assertSee($thought->created_at->format('h:i A'), false);
     }
 

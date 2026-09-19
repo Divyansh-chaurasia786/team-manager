@@ -124,6 +124,19 @@ class TaskController extends Controller
             entityId: $task->id
         );
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Progress update logged successfully!',
+                'task_id' => $task->id,
+                'status'  => $task->status,
+                'note'    => [
+                    'message'    => $request->message,
+                    'created_at' => now()->format('d M, h:i A'),
+                ],
+            ]);
+        }
+
         return back()->with('success', 'Update added!');
     }
 
@@ -166,6 +179,7 @@ class TaskController extends Controller
         $task->update([
             'status'               => 'submitted',
             'submitted_at'         => now(),
+            'reviewed_at'          => null,
             'submission_remarks'   => $request->submission_remarks,
             'submission_link'      => $request->submission_link,
             'submission_file'      => $filePath,
@@ -183,6 +197,20 @@ class TaskController extends Controller
             entityType: 'Task',
             entityId: $task->id
         );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'              => true,
+                'message'              => 'Deliverables successfully submitted to Team Lead for review!',
+                'task_id'              => $task->id,
+                'status'               => 'submitted',
+                'status_label'         => 'Under TL Review',
+                'submitted_at'         => $task->submitted_at->format('d M Y, h:i A'),
+                'submitted_at_iso'     => $task->submitted_at->toISOString(),
+                'submission_formatted' => $task->submission_formatted,
+                'timer_config'         => $task->timer_config,
+            ]);
+        }
 
         return back()->with('success', 'Deliverables successfully submitted to Team Lead for review!');
     }
@@ -208,6 +236,7 @@ class TaskController extends Controller
             'revision_notes'     => $request->revision_notes,
             'reassignment_count' => $task->reassignment_count + 1,
             'submitted_at'       => null,
+            'reviewed_at'        => now(),
         ]);
 
         // Add a task update history note
@@ -235,7 +264,7 @@ class TaskController extends Controller
         return back()->with('success', 'Task has been reassigned to member with new deadline and revision directives.');
     }
 
-    public function complete(Task $task)
+    public function complete(Request $request, Task $task)
     {
         $user = Auth::user();
         // Original assigner or CEO can approve tasks
@@ -273,6 +302,7 @@ class TaskController extends Controller
                         // Update task with drive reference and clear local path
                         $task->update([
                             'status'          => 'completed',
+                            'reviewed_at'     => now(),
                             'drive_file_id'   => $uploadResult['drive_file_id'],
                             'drive_url'       => $uploadResult['drive_url'],
                             'submission_file' => null, // cleaned from local storage
@@ -292,19 +322,31 @@ class TaskController extends Controller
                         );
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::error('Automated Drive upload on task approval failed: ' . $e->getMessage());
-                        $task->update(['status' => 'completed']);
+                        $task->update([
+                            'status'      => 'completed',
+                            'reviewed_at' => now(),
+                        ]);
                         $uploadMessage = ' Note: Local file could not be uploaded to Google Drive (' . $e->getMessage() . ').';
                     }
                 } else {
                     // Credentials not yet placed; delete from local storage as approved or keep with notice
-                    $task->update(['status' => 'completed']);
+                    $task->update([
+                        'status'      => 'completed',
+                        'reviewed_at' => now(),
+                    ]);
                     $uploadMessage = ' Approved. (Google Drive credentials.json not found in root, local file kept).';
                 }
             } else {
-                $task->update(['status' => 'completed']);
+                $task->update([
+                    'status'      => 'completed',
+                    'reviewed_at' => now(),
+                ]);
             }
         } else {
-            $task->update(['status' => 'completed']);
+            $task->update([
+                'status'      => 'completed',
+                'reviewed_at' => now(),
+            ]);
         }
 
         // Audit Log
@@ -317,6 +359,20 @@ class TaskController extends Controller
             entityType: 'Task',
             entityId: $task->id
         );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'           => true,
+                'message'           => 'Task approved and marked as completed!' . $uploadMessage,
+                'task_id'           => $task->id,
+                'task_title'        => $task->title,
+                'status'            => 'completed',
+                'reviewed_at'       => $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : now()->format('d M Y, h:i A'),
+                'reviewed_at_iso'   => $task->reviewed_at ? $task->reviewed_at->toISOString() : now()->toISOString(),
+                'review_duration'   => $task->review_duration,
+                'timer_config'      => $task->timer_config,
+            ]);
+        }
 
         return back()->with('success', 'Task approved and marked as completed!' . $uploadMessage);
     }
@@ -376,5 +432,62 @@ class TaskController extends Controller
         );
 
         return back()->with('success', "Successfully deleted {$count} task(s) from history.");
+    }
+
+    public function sendOverdueReminder(Request $request, Task $task)
+    {
+        $actor = Auth::user();
+        if (!$actor->isTL() && !$actor->isCEO() && !$actor->isHR() && $actor->id !== $task->assigned_by) {
+            abort(403, 'Unauthorized: Only supervisors can dispatch overdue task reminders.');
+        }
+
+        $employee = $task->assignedTo;
+        if (!$employee || empty($employee->email)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Assigned employee has no email address.'], 422);
+            }
+            return back()->with('error', 'Assigned employee has no valid email address.');
+        }
+
+        $sent = \App\Services\BrevoMailService::sendOverdueTaskReminder($task);
+
+        if ($sent) {
+            $task->update([
+                'overdue_reminder_sent_at' => now(),
+                'overdue_reminder_count'   => $task->overdue_reminder_count + 1,
+            ]);
+
+            ActivityLog::log(
+                action: 'overdue_reminder_sent',
+                description: sprintf(
+                    '%s dispatched formal overdue reminder #%d to %s (%s) for task "%s"',
+                    $actor->name,
+                    $task->overdue_reminder_count,
+                    $employee->name,
+                    $employee->email,
+                    $task->title
+                ),
+                entityType: 'Task',
+                entityId: $task->id,
+                userId: $actor->id
+            );
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Overdue email reminder dispatched to {$employee->name} ({$employee->email})!",
+                    'sent_at' => now()->format('d M, h:i A'),
+                    'count'   => $task->overdue_reminder_count,
+                ]);
+            }
+
+            return back()->with('success', "Overdue reminder email successfully dispatched to {$employee->name} ({$employee->email}).");
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => false, 'message' => 'Email dispatch failed. Please check mail settings.'], 500);
+        }
+
+        return back()->with('error', 'Failed to dispatch email reminder. Please check email configuration.');
     }
 }
