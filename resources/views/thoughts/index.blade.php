@@ -1515,12 +1515,12 @@ function closeManageMembersModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-// 🟢 Real-time Automatic Live Synchronization
+// 🟢 Real-time Automatic Live Synchronization (Smart Tab-Aware Polling)
 function startLivePolling() {
     if (pollingInterval) clearInterval(pollingInterval);
     pollingInterval = setInterval(() => {
         pollNewMessages();
-    }, 2500);
+    }, 4000);
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -1534,6 +1534,9 @@ window.addEventListener('focus', () => {
 });
 
 async function pollNewMessages() {
+    // Skip network polling when tab is minimized or in the background
+    if (document.hidden) return;
+
     try {
         const res = await fetch(`{{ route('thoughts.messages') }}?group=${activeGroupType}&after_id=${latestMessageId}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }

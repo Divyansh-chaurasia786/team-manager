@@ -719,16 +719,25 @@ function updateAllTaskTimers() {
     });
 }
 
-// Tick every second for live update
-setInterval(updateAllTaskTimers, 1000);
+// Tick every 5 seconds for live countdown without eating CPU
+setInterval(updateAllTaskTimers, 5000);
 
-// ⚡ Real-Time Task Live Sync (Zero Page Reload - Instant Backend Polling)
+// ⚡ Real-Time Task Live Sync (Zero Page Reload - Smart Conditional Polling)
 let lastMemberTaskState = {};
 let isFirstMemberSync = true;
+let lastMemberSyncTimestamp = 0;
+let lastKnownTaskCount = -1;
 
 async function liveSyncMemberTasks() {
+    // Avoid hammering backend when tab is inactive or hidden
+    if (document.hidden) return;
+
     try {
-        const response = await fetch('/tasks/sync', {
+        const currentCount = document.querySelectorAll('[id^="task-card-"]').length;
+        if (lastKnownTaskCount === -1) lastKnownTaskCount = currentCount;
+
+        const url = `/tasks/sync?since=${lastMemberSyncTimestamp}&known_count=${lastKnownTaskCount}`;
+        const response = await fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -736,7 +745,14 @@ async function liveSyncMemberTasks() {
         });
         if (!response.ok) return;
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.tasks)) return;
+        if (!data.success) return;
+
+        // Fast-path: Backend verified no modifications, skip heavy DOM iterations
+        if (data.changed === false) return;
+
+        if (data.timestamp) lastMemberSyncTimestamp = data.timestamp;
+        if (data.counts && typeof data.counts.total !== 'undefined') lastKnownTaskCount = data.counts.total;
+        if (!Array.isArray(data.tasks)) return;
 
         let stateChanged = false;
 
@@ -859,19 +875,28 @@ async function liveSyncMemberTasks() {
     }
 }
 
-// Live polling every 3.5 seconds
-setInterval(liveSyncMemberTasks, 3500);
+// Live polling every 6 seconds (automatically dormant when tab is in background)
+setInterval(liveSyncMemberTasks, 6000);
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateAllTaskTimers();
-    liveSyncMemberTasks();
-    if (window.lucide) {
-        lucide.createIcons();
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        liveSyncMemberTasks();
+        updateAllTaskTimers();
     }
 });
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
+
+let memberTasksInitialized = false;
+function initMemberTasksView() {
+    if (memberTasksInitialized) return;
+    memberTasksInitialized = true;
     updateAllTaskTimers();
     liveSyncMemberTasks();
+    if (window.lucide) lucide.createIcons();
+}
+
+document.addEventListener('DOMContentLoaded', initMemberTasksView);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initMemberTasksView();
 }
 </script>
 @endpush

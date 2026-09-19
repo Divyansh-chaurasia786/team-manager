@@ -713,11 +713,17 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ⚡ 3. Live Sync Polling for TL Dashboard (Zero Page Reload)
+    // ⚡ 3. Live Sync Polling for TL Dashboard (Zero Page Reload - Smart Conditional Polling)
     let lastTlTaskHash = '';
+    let lastTlDashboardSyncTimestamp = 0;
+    let lastTlDashboardTotalCount = -1;
+
     async function syncTLDashboardLive() {
+        if (document.hidden) return;
+
         try {
-            const res = await fetch('/tasks/sync', {
+            const url = `/tasks/sync?since=${lastTlDashboardSyncTimestamp}&known_count=${lastTlDashboardTotalCount}`;
+            const res = await fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
@@ -726,6 +732,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!res.ok) return;
             const data = await res.json();
             if (!data.success) return;
+
+            // Fast-path: Nothing changed
+            if (data.changed === false) return;
+
+            if (data.timestamp) lastTlDashboardSyncTimestamp = data.timestamp;
+            if (data.counts && typeof data.counts.total !== 'undefined') lastTlDashboardTotalCount = data.counts.total;
 
             // Check if anything changed
             const taskHash = JSON.stringify(data.counts) + '_' + (data.tasks ? data.tasks.map(t => `${t.id}:${t.status}:${t.is_overdue}`).join('|') : '');
@@ -763,8 +775,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Poll every 4 seconds
-    setInterval(syncTLDashboardLive, 4000);
+    // Poll every 8 seconds (automatically paused when tab is in background)
+    setInterval(syncTLDashboardLive, 8000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) syncTLDashboardLive();
+    });
 });
 </script>
 @endpush

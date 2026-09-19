@@ -623,18 +623,42 @@ class TaskController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
+        // Base query for tasks matching user scope
+        $baseQuery = Task::query();
         if ($user->isOperationsLead()) {
-            $tasksQuery = Task::with(['assignedTo', 'assignedBy', 'updates']);
             if ($user->isTL()) {
                 $memberIds = User::where('created_by', $user->id)->pluck('id');
-                $tasksQuery->where(function ($q) use ($user, $memberIds) {
+                $baseQuery->where(function ($q) use ($user, $memberIds) {
                     $q->where('assigned_by', $user->id)
                       ->orWhereIn('assigned_to', $memberIds);
                 });
             }
+        } else {
+            $baseQuery->where('assigned_to', $user->id);
+        }
+
+        $latestTaskUpdate = (clone $baseQuery)->max('updated_at');
+        $latestTimestamp = $latestTaskUpdate ? strtotime($latestTaskUpdate) : 0;
+        $totalCount = (clone $baseQuery)->count();
+
+        $clientSince = (int) $request->get('since', 0);
+        $clientCount = (int) $request->get('known_count', -1);
+
+        // Fast-path: If client has latest timestamp and total count has not changed, return 0 heavy relations!
+        if ($clientSince > 0 && $clientSince >= $latestTimestamp && ($clientCount === -1 || $clientCount === $totalCount)) {
+            return response()->json([
+                'success'   => true,
+                'changed'   => false,
+                'timestamp' => $latestTimestamp,
+            ]);
+        }
+
+        // Slow-path: changes occurred or initial sync -> load relations and full task payload
+        if ($user->isOperationsLead()) {
+            $tasksQuery = (clone $baseQuery)->with(['assignedTo', 'assignedBy', 'updates']);
             $tasks = $tasksQuery->latest()->get();
         } else {
-            $tasks = Task::with(['assignedBy', 'updates'])->where('assigned_to', $user->id)->latest()->get();
+            $tasks = (clone $baseQuery)->with(['assignedBy', 'updates'])->latest()->get();
         }
 
         $tasksData = $tasks->map(function ($t) {

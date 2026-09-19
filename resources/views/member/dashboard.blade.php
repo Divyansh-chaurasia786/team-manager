@@ -316,152 +316,197 @@
 
     <!-- 📈 CHARTS ROW (Executive Redesign: Modern Analytics & Velocity) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Status Donut & Progress Breakdown -->
+        <!-- Card 1: Deliverables Distribution & Workload Health -->
         <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2">
-                    <div class="p-1.5 rounded-xl bg-indigo-50 text-indigo-600">
-                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
+            <div>
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 leading-tight">Deliverables Distribution</h3>
+                            <p class="text-[11px] text-slate-400">Workflow health & workload status</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900">Task Status Overview</h3>
-                        <p class="text-[11px] text-slate-400">Distribution of workload</p>
-                    </div>
-                </div>
-                <span class="text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 border border-slate-200/80">
-                    {{ $tasks->count() }} Total
-                </span>
-            </div>
-
-            <!-- Sleek Side-by-Side Donut & Metrics Progress -->
-            <div class="py-4 flex flex-col sm:flex-row items-center justify-between gap-5">
-                <!-- Donut Chart Canvas Container -->
-                <div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
-                    <canvas id="myStatusDonut"></canvas>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-                        @if($tasks->count() > 0)
-                            <span class="text-2xl font-black text-slate-900 tracking-tight leading-none">{{ $tasks->count() }}</span>
-                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 mt-0.5">Tasks</span>
-                        @else
-                            <i data-lucide="check" class="w-6 h-6 text-emerald-500 mb-0.5"></i>
-                            <span class="text-[10px] font-black uppercase text-slate-400">Clear</span>
-                        @endif
-                    </div>
+                    <span class="text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 border border-slate-200/80">
+                        {{ $tasks->count() }} Total
+                    </span>
                 </div>
 
-                <!-- Structured Metric Progress Bars -->
-                <div class="w-full flex-1 space-y-2.5">
+                <!-- Multi-Segmented Proportional Distribution Track -->
+                <div class="pt-4 pb-2">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1.5">
+                        <span>Workflow Allocation</span>
+                        <span class="font-mono text-slate-700 font-bold">{{ $statusCounts['completed'] }}/{{ $tasks->count() }} Completed</span>
+                    </div>
+                    @if($tasks->count() > 0)
+                        <div class="h-3 w-full bg-slate-100 rounded-full flex overflow-hidden p-0.5 gap-0.5 shadow-inner">
+                            @if($donePct > 0)
+                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: {{ $donePct }}%" title="Completed: {{ $statusCounts['completed'] }} ({{ $donePct }}%)"></div>
+                            @endif
+                            @if($reviewPct > 0)
+                                <div class="bg-purple-500 h-full rounded-full transition-all duration-500" style="width: {{ $reviewPct }}%" title="In Review: {{ $statusCounts['submitted'] }} ({{ $reviewPct }}%)"></div>
+                            @endif
+                            @if($activePct > 0)
+                                <div class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: {{ $activePct }}%" title="In Progress: {{ $statusCounts['in-progress'] }} ({{ $activePct }}%)"></div>
+                            @endif
+                            @if($pendingPct > 0)
+                                <div class="bg-slate-400 h-full rounded-full transition-all duration-500" style="width: {{ $pendingPct }}%" title="Pending: {{ $statusCounts['pending'] }} ({{ $pendingPct }}%)"></div>
+                            @endif
+                        </div>
+                    @else
+                        <div class="h-3 w-full bg-slate-100 rounded-full flex items-center justify-center">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">No active tasks assigned</span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- 2x2 High-Density Modern KPI Grid -->
+                <div class="grid grid-cols-2 gap-2.5 pt-2 pb-1">
                     <!-- Completed -->
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-1">
-                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Completed
+                    <div class="p-3 rounded-xl bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span> Completed
                             </span>
-                            <span class="text-[11px] font-mono text-slate-500 font-bold">
-                                <strong>{{ $statusCounts['completed'] }}</strong> <span class="text-slate-400 font-normal">({{ $donePct }}%)</span>
-                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono">{{ $donePct }}%</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $donePct }}%"></div>
-                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight">{{ $statusCounts['completed'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Approved deliverables</div>
                     </div>
 
                     <!-- In Review -->
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-1">
-                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                                <span class="w-2 h-2 rounded-full bg-purple-500"></span> In Review
+                    <div class="p-3 rounded-xl bg-purple-50/50 hover:bg-purple-50 border border-purple-100/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-purple-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-purple-500 ring-2 ring-purple-200"></span> In Review
                             </span>
-                            <span class="text-[11px] font-mono text-slate-500 font-bold">
-                                <strong>{{ $statusCounts['submitted'] }}</strong> <span class="text-slate-400 font-normal">({{ $reviewPct }}%)</span>
-                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-mono">{{ $reviewPct }}%</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-purple-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $reviewPct }}%"></div>
-                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight">{{ $statusCounts['submitted'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Awaiting TL sign-off</div>
                     </div>
 
                     <!-- In Progress -->
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-1">
-                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                                <span class="w-2 h-2 rounded-full bg-blue-500"></span> In Progress
+                    <div class="p-3 rounded-xl bg-blue-50/50 hover:bg-blue-50 border border-blue-100/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-blue-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-blue-500 ring-2 ring-blue-200"></span> In Progress
                             </span>
-                            <span class="text-[11px] font-mono text-slate-500 font-bold">
-                                <strong>{{ $statusCounts['in-progress'] }}</strong> <span class="text-slate-400 font-normal">({{ $activePct }}%)</span>
-                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-mono">{{ $activePct }}%</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ $activePct }}%"></div>
-                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight">{{ $statusCounts['in-progress'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Active work in flight</div>
                     </div>
 
-                    <!-- Pending -->
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-1">
-                            <span class="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                                <span class="w-2 h-2 rounded-full bg-slate-400"></span> Pending Start
+                    <!-- Pending Start -->
+                    <div class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-slate-400 ring-2 ring-slate-200"></span> Pending
                             </span>
-                            <span class="text-[11px] font-mono text-slate-500 font-bold">
-                                <strong>{{ $statusCounts['pending'] }}</strong> <span class="text-slate-400 font-normal">({{ $pendingPct }}%)</span>
-                            </span>
+                            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">{{ $pendingPct }}%</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-slate-400 h-1.5 rounded-full transition-all duration-500" style="width: {{ $pendingPct }}%"></div>
-                        </div>
+                        <div class="text-xl font-black text-slate-900 tracking-tight">{{ $statusCounts['pending'] }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Ready to initiate</div>
                     </div>
                 </div>
             </div>
 
-            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Task Distribution</span>
-                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5">
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <span class="flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500"></i>
+                    <span>Real-time workflow health</span>
+                </span>
+                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 transition">
                     <span>Manage Tasks</span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
                 </a>
             </div>
         </div>
 
-        <!-- 7-Day Deliverables Velocity Stacked Modern Bar Chart -->
+        <!-- Card 2: 7-Day Deliverable Velocity & Daily Activity -->
         <div class="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
-                <div class="flex items-center gap-2">
-                    <div class="p-1.5 rounded-xl bg-emerald-50 text-emerald-600">
-                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+            <div>
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 leading-tight">7-Day Deliverable Velocity</h3>
+                            <p class="text-[11px] text-slate-400">Daily productivity & submission velocity</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900">7-Day Deliverable Velocity</h3>
-                        <p class="text-[11px] text-slate-400">Daily productivity & submission velocity</p>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-black border border-emerald-200/70 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {{ $weekApprovedTotal }} Approved This Week
+                        </span>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-black border border-emerald-200/70">
-                        {{ $weekApprovedTotal }} Completed This Week
-                    </span>
-                </div>
-            </div>
 
-            <!-- Stacked Chart Canvas -->
-            <div class="h-44 sm:h-48 relative my-2 w-full">
-                <canvas id="weeklyVelocityChart"></canvas>
+                <!-- 7-Day Day-by-Day Activity Pillar Strip -->
+                <div class="grid grid-cols-7 gap-1.5 sm:gap-2 my-3">
+                    @foreach($weeklyTrend as $day)
+                        @php
+                            $hasCompleted = ($day['completed'] ?? 0) > 0;
+                            $hasSubmitted = ($day['submitted'] ?? 0) > 0;
+                            $hasActive = ($day['active'] ?? 0) > 0;
+                            $isToday = !empty($day['is_today']);
+                        @endphp
+                        <div class="flex flex-col items-center justify-between p-2 rounded-xl transition border text-center {{ $isToday ? 'bg-indigo-50/60 border-indigo-200 ring-1 ring-indigo-300/60' : 'bg-slate-50/70 border-slate-100 hover:bg-slate-50' }}">
+                            <div class="text-[10px] font-bold uppercase tracking-wider {{ $isToday ? 'text-indigo-600' : 'text-slate-400' }}">
+                                {{ $day['short'] }}
+                            </div>
+                            <div class="text-xs font-black my-1 {{ $isToday ? 'text-indigo-900' : 'text-slate-700' }}">
+                                {{ $day['day_num'] }}
+                            </div>
+                            <!-- Daily Badge / Activity Indicator -->
+                            <div>
+                                @if($hasCompleted)
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-500 text-white shadow-2xs" title="{{ $day['completed'] }} completed">
+                                        ✓{{ $day['completed'] }}
+                                    </span>
+                                @elseif($hasSubmitted)
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-black bg-purple-500 text-white shadow-2xs" title="{{ $day['submitted'] }} in review">
+                                        ↑{{ $day['submitted'] }}
+                                    </span>
+                                @elseif($hasActive)
+                                    <span class="inline-block w-2 h-2 rounded-full bg-indigo-400" title="{{ $day['active'] }} active"></span>
+                                @else
+                                    <span class="text-[11px] text-slate-300 font-bold">—</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Smooth Spline Velocity Chart Canvas -->
+                <div class="h-32 sm:h-36 relative my-1 w-full">
+                    <canvas id="weeklyVelocityChart"></canvas>
+                </div>
             </div>
 
             <!-- Clean Legend & Summary -->
-            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] flex-wrap gap-2">
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] flex-wrap gap-2">
                 <div class="flex items-center gap-3.5 flex-wrap">
                     <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span>Done: <strong class="text-emerald-700 font-mono">{{ $weekApprovedTotal }}</strong></span>
+                        <span>Approved: <strong class="text-emerald-700 font-mono">{{ $weekApprovedTotal }}</strong></span>
                     </span>
                     <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
                         <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                        <span>Submitted: <strong class="text-purple-700 font-mono">{{ $weekSubmittedTotal }}</strong></span>
+                        <span>In Review: <strong class="text-purple-700 font-mono">{{ $weekSubmittedTotal }}</strong></span>
                     </span>
                     <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
                         <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
                         <span>Active: <strong class="text-indigo-700 font-mono">{{ $weekActiveTotal }}</strong></span>
                     </span>
                 </div>
-                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5">
+                <a href="{{ route('tasks.index') }}" class="font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 transition">
                     <span>Task Stream</span> <i data-lucide="chevron-right" class="w-3 h-3"></i>
                 </a>
             </div>
@@ -737,121 +782,77 @@
 @push('scripts')
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. Task Status Donut (Sleek Compact Ring)
-    const donutCtx = document.getElementById('myStatusDonut');
-    if (donutCtx) {
-        const hasTasks = {{ $tasks->count() > 0 ? 'true' : 'false' }};
-        const statusData = hasTasks 
-            ? [
-                {{ $statusCounts['completed'] }},
-                {{ $statusCounts['submitted'] }},
-                {{ $statusCounts['in-progress'] }},
-                {{ $statusCounts['pending'] }}
-              ]
-            : [1];
-
-        const bgColors = hasTasks 
-            ? ['#10b981', '#a855f7', '#3b82f6', '#94a3b8']
-            : ['#e2e8f0'];
-
-        const labels = hasTasks
-            ? ['Completed', 'In Review', 'In Progress', 'Pending Start']
-            : ['No Tasks'];
-
-        new Chart(donutCtx, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: statusData,
-                    backgroundColor: bgColors,
-                    borderWidth: 2,
-                    borderColor: '#ffffff',
-                    hoverOffset: hasTasks ? 4 : 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        enabled: hasTasks,
-                        backgroundColor: '#0f172a',
-                        titleFont: { family: 'Inter', size: 12, weight: '700' },
-                        bodyFont: { family: 'Inter', size: 11 },
-                        padding: 8,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(ctx) {
-                                const val = ctx.raw || 0;
-                                const total = {{ max(1, $tasks->count()) }};
-                                const pct = Math.round((val / total) * 100);
-                                return ` ${ctx.label}: ${val} (${pct}%)`;
-                            }
-                        }
-                    }
-                },
-                cutout: '78%'
-            }
-        });
-    }
-
-    // 2. 7-Day Deliverable Velocity Chart (Stacked Pill Bars)
+    // 7-Day Deliverable Velocity Chart (Smooth Spline Gradient Area Chart)
     const velocityCtx = document.getElementById('weeklyVelocityChart');
-    if (velocityCtx) {
+    if (velocityCtx && typeof Chart !== 'undefined') {
         const trendData = {!! json_encode($weeklyTrend) !!};
+        const ctx2d = velocityCtx.getContext('2d');
         
+        // Dynamic Emerald Gradient for Completed Tasks
+        const emeraldGradient = ctx2d.createLinearGradient(0, 0, 0, 140);
+        emeraldGradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
+        emeraldGradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+
+        // Dynamic Purple Gradient for Submitted Tasks
+        const purpleGradient = ctx2d.createLinearGradient(0, 0, 0, 140);
+        purpleGradient.addColorStop(0, 'rgba(168, 85, 247, 0.22)');
+        purpleGradient.addColorStop(1, 'rgba(168, 85, 247, 0.00)');
+
         new Chart(velocityCtx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: trendData.map(d => d.short),
                 datasets: [
                     {
                         label: 'Approved & Completed',
                         data: trendData.map(d => d.completed),
-                        backgroundColor: '#10b981',
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        maxBarThickness: 26
+                        borderColor: '#10b981',
+                        borderWidth: 2.5,
+                        backgroundColor: emeraldGradient,
+                        fill: true,
+                        tension: 0.38,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
                     },
                     {
                         label: 'Submitted for Review',
                         data: trendData.map(d => d.submitted),
-                        backgroundColor: '#a855f7',
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        maxBarThickness: 26
-                    },
-                    {
-                        label: 'Active In Flight',
-                        data: trendData.map(d => d.active),
-                        backgroundColor: '#818cf8',
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        maxBarThickness: 26
+                        borderColor: '#a855f7',
+                        borderWidth: 2,
+                        backgroundColor: purpleGradient,
+                        fill: true,
+                        tension: 0.38,
+                        borderDash: [3, 3],
+                        pointRadius: 3.5,
+                        pointHoverRadius: 5.5,
+                        pointBackgroundColor: '#a855f7',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
                 scales: {
                     x: {
-                        stacked: true,
                         grid: { display: false },
                         border: { display: false },
                         ticks: {
-                            font: { family: 'Inter', size: 11, weight: '600' },
+                            font: { family: 'Inter', size: 10, weight: '700' },
                             color: '#64748b'
                         }
                     },
                     y: {
-                        stacked: true,
                         beginAtZero: true,
-                        suggestedMax: 3,
+                        suggestedMax: 2,
                         ticks: {
                             stepSize: 1,
                             precision: 0,
@@ -859,7 +860,8 @@ document.addEventListener("DOMContentLoaded", function() {
                             color: '#94a3b8'
                         },
                         grid: {
-                            color: '#f8fafc',
+                            color: '#f1f5f9',
+                            borderDash: [3, 3],
                             drawBorder: false
                         },
                         border: { display: false }

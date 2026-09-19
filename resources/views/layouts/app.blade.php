@@ -768,6 +768,7 @@
             <script>
                 (function() {
                     async function checkUnreadChatMessages() {
+                        if (document.hidden) return;
                         try {
                             const res = await fetch('{{ route("thoughts.unread_count") }}', {
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -802,8 +803,11 @@
                             }
                         } catch (e) {}
                     }
-                    // Poll unread chat messages every 15 seconds
-                    setInterval(checkUnreadChatMessages, 15000);
+                    // Poll unread chat messages every 30 seconds (paused when tab is hidden)
+                    setInterval(checkUnreadChatMessages, 30000);
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden) checkUnreadChatMessages();
+                    });
                 })();
             </script>
         @endunless

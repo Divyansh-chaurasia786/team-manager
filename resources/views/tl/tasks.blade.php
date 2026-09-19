@@ -1504,14 +1504,24 @@ function updateAllTaskTimers() {
     });
 }
 
-// Tick every second for live real-time updates
-setInterval(updateAllTaskTimers, 1000);
+// Tick every 5 seconds for live real-time updates without CPU thrashing
+setInterval(updateAllTaskTimers, 5000);
 
 // ⚡ Live Sync Polling for TL Task Stream (Detect Member Submissions in Real-Time)
 let lastTLTasksSyncState = {};
+let lastTLSyncTimestamp = 0;
+let lastTLKnownCount = -1;
+
 async function liveSyncTLTasks() {
+    // Dormant when tab is inactive
+    if (document.hidden) return;
+
     try {
-        const res = await fetch('/tasks/sync', {
+        const currentCount = document.querySelectorAll('[id^="task-row-"]').length;
+        if (lastTLKnownCount === -1) lastTLKnownCount = currentCount;
+
+        const url = `/tasks/sync?since=${lastTLSyncTimestamp}&known_count=${lastTLKnownCount}`;
+        const res = await fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -1519,7 +1529,14 @@ async function liveSyncTLTasks() {
         });
         if (!res.ok) return;
         const data = await res.json();
-        if (!data.success || !Array.isArray(data.tasks)) return;
+        if (!data.success) return;
+
+        // Fast-path: no changes on server
+        if (data.changed === false) return;
+
+        if (data.timestamp) lastTLSyncTimestamp = data.timestamp;
+        if (data.counts && typeof data.counts.total !== 'undefined') lastTLKnownCount = data.counts.total;
+        if (!Array.isArray(data.tasks)) return;
 
         let needsIconRefresh = false;
 
@@ -1586,16 +1603,28 @@ async function liveSyncTLTasks() {
     }
 }
 
-// Poll every 3.5 seconds
-setInterval(liveSyncTLTasks, 3500);
+// Poll every 6 seconds (paused automatically when tab is in background)
+setInterval(liveSyncTLTasks, 6000);
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateAllTaskTimers();
-    liveSyncTLTasks();
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        liveSyncTLTasks();
+        updateAllTaskTimers();
+    }
 });
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
+
+let tlTasksInitialized = false;
+function initTLTasksView() {
+    if (tlTasksInitialized) return;
+    tlTasksInitialized = true;
     updateAllTaskTimers();
     liveSyncTLTasks();
+    if (window.lucide) lucide.createIcons();
+}
+
+document.addEventListener('DOMContentLoaded', initTLTasksView);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initTLTasksView();
 }
 </script>
 

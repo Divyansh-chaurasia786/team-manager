@@ -74,6 +74,9 @@ class MemberDashboardController extends Controller
             return [
                 'label'       => $dayCarbon->format('D, M d'),
                 'short'       => $dayCarbon->format('D'),
+                'day_num'     => $dayCarbon->format('j'),
+                'date'        => $date,
+                'is_today'    => $daysAgo === 0,
                 'completed'   => $completed,
                 'submitted'   => $submitted,
                 'active'      => $active,
