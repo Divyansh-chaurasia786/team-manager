@@ -123,13 +123,13 @@
                                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                                 <span>Drive</span>
                             </a>
-                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>Audit Log</span>
-                            </a>
                             <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
+                            </a>
+                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>Audit Log</span>
                             </a>
 
                         @elseif(auth()->user()->role === 'hr')
@@ -150,13 +150,13 @@
                                 <i data-lucide="calendar-off" class="w-4 h-4"></i>
                                 <span>Leaves</span>
                             </a>
-                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>Logs</span>
-                            </a>
                             <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
+                            </a>
+                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>Logs</span>
                             </a>
 
                         @elseif(auth()->user()->role === 'tl')
@@ -240,13 +240,13 @@
                                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                                 <span>Drive</span>
                             </a>
-                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>History</span>
-                            </a>
                             <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
+                            </a>
+                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>History</span>
                             </a>
                         @else
                             {{-- Member Nav --}}
@@ -305,13 +305,13 @@
                                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                                 <span>Drive</span>
                             </a>
-                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>History</span>
-                            </a>
                             <a href="{{ route('my-tasks.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
+                            </a>
+                            <a href="{{ route('history.index') }}" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>History</span>
                             </a>
                         @endif
                     </nav>
@@ -487,6 +487,10 @@
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
                             </a>
+                            <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>System Audit Logs</span>
+                            </a>
                             <a href="{{ route('hr.members') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('hr.members*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span>Staff Roster</span>
@@ -499,10 +503,6 @@
                                 <i data-lucide="calendar-off" class="w-4 h-4"></i>
                                 <span>Leave Approvals</span>
                             </a>
-                            <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>System Audit Logs</span>
-                            </a>
 
                         @elseif(auth()->user()->role === 'tl')
                             <a href="{{ route('tl.dashboard') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('tl.dashboard') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
@@ -512,6 +512,10 @@
                             <a href="{{ route('my-tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
+                            </a>
+                            <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>Activity History</span>
                             </a>
                             <a href="{{ route('tl.members') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('tl.members*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="users" class="w-4 h-4"></i>
@@ -541,10 +545,6 @@
                                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                                 <span>Google Drive</span>
                             </a>
-                            <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>Activity History</span>
-                            </a>
 
                         @else
                             <a href="{{ route('member.dashboard') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('member.dashboard') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
@@ -554,6 +554,10 @@
                             <a href="{{ route('my-tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('my-tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="notebook-pen" class="w-4 h-4"></i>
                                 <span>My Tasks</span>
+                            </a>
+                            <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                                <span>My Activity Log</span>
                             </a>
                             <a href="{{ route('tasks.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('tasks.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="check-square" class="w-4 h-4"></i>
@@ -578,10 +582,6 @@
                             <a href="{{ route('upload.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('upload.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                                 <span>Google Drive</span>
-                            </a>
-                            <a href="{{ route('history.index') }}" class="px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-3 {{ request()->routeIs('history.*') ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100' }}">
-                                <i data-lucide="history" class="w-4 h-4"></i>
-                                <span>My Activity Log</span>
                             </a>
                         @endif
 
