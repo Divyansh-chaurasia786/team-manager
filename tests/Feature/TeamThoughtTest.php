@@ -474,5 +474,44 @@ class TeamThoughtTest extends TestCase
             'media_original_name' => 'voice_note.mp3',
         ]);
     }
+
+    public function test_unread_thoughts_count_and_endpoint(): void
+    {
+        // 1. Initially no unread messages
+        $this->assertEquals(0, $this->member->unreadThoughtsCount());
+
+        // 2. TL posts a message
+        $thought = TeamThought::create([
+            'user_id'    => $this->tl->id,
+            'tl_id'      => $this->tl->id,
+            'group_type' => 'team',
+            'content'    => 'Unread message for member',
+        ]);
+
+        // Member should have 1 unread message
+        $this->assertEquals(1, $this->member->unreadThoughtsCount());
+        // TL should have 0 unread messages (they wrote it)
+        $this->assertEquals(0, $this->tl->unreadThoughtsCount());
+
+        // Check unread count endpoint
+        $response = $this->actingAs($this->member)->getJson(route('thoughts.unread_count'));
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success'      => true,
+            'unread_count' => 1,
+        ]);
+
+        // Member visits thoughts page, which marks it seen
+        $this->actingAs($this->member)->get(route('thoughts.index'));
+
+        // Member should now have 0 unread messages
+        $this->assertEquals(0, $this->member->fresh()->unreadThoughtsCount());
+
+        $responseAfter = $this->actingAs($this->member)->getJson(route('thoughts.unread_count'));
+        $responseAfter->assertJson([
+            'success'      => true,
+            'unread_count' => 0,
+        ]);
+    }
 }
 

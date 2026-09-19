@@ -727,15 +727,27 @@
     <!-- FLOATING CHAT & THOUGHTS HUB BUTTON (Adjusted for mobile bottom bar) -->
     @auth
         @unless(request()->routeIs('thoughts.*'))
+            @php
+                $unreadChatCount = auth()->user()->unreadThoughtsCount();
+            @endphp
             <div class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 group">
                 <a href="{{ route('thoughts.index') }}" 
                    class="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 text-white shadow-xl shadow-indigo-600/35 hover:shadow-2xl hover:shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/20 cursor-pointer"
                    title="Open Team Chat & Thoughts Hub">
-                    <!-- Ping animation indicator -->
-                    <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-                    </span>
+                    
+                    <!-- Unread Messages Badge / Active Status Container -->
+                    <div id="floatingChatBadgeContainer">
+                        @if($unreadChatCount > 0)
+                            <span id="floatingChatUnreadBadge" class="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-600 text-white text-[10px] font-black shadow-md border-2 border-white animate-bounce">
+                                {{ $unreadChatCount > 99 ? '99+' : $unreadChatCount }}
+                            </span>
+                        @else
+                            <span id="floatingChatOnlineDot" class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+                            </span>
+                        @endif
+                    </div>
                     
                     <i data-lucide="message-square" class="w-6 h-6 transition-transform group-hover:rotate-6"></i>
                 </a>
@@ -745,9 +757,55 @@
                     <div class="bg-slate-900 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg whitespace-nowrap flex items-center gap-1.5 border border-slate-700">
                         <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
                         <span>Team Chat & Thoughts</span>
+                        <span id="floatingChatTooltipCount" class="{{ $unreadChatCount > 0 ? '' : 'hidden' }} px-1.5 py-0.2 rounded-full bg-rose-600 text-[10px] font-black">
+                            {{ $unreadChatCount }} unread
+                        </span>
                     </div>
                 </div>
             </div>
+
+            <!-- Dynamic Unread Messages Background Polling -->
+            <script>
+                (function() {
+                    async function checkUnreadChatMessages() {
+                        try {
+                            const res = await fetch('{{ route("thoughts.unread_count") }}', {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            if (!res.ok) return;
+                            const data = await res.json();
+                            const container = document.getElementById('floatingChatBadgeContainer');
+                            const tooltipCount = document.getElementById('floatingChatTooltipCount');
+                            if (!container) return;
+
+                            if (data.unread_count > 0) {
+                                const displayCount = data.unread_count > 99 ? '99+' : data.unread_count;
+                                container.innerHTML = `
+                                    <span id="floatingChatUnreadBadge" class="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-600 text-white text-[10px] font-black shadow-md border-2 border-white animate-bounce">
+                                        ${displayCount}
+                                    </span>
+                                `;
+                                if (tooltipCount) {
+                                    tooltipCount.textContent = `${data.unread_count} unread`;
+                                    tooltipCount.classList.remove('hidden');
+                                }
+                            } else {
+                                container.innerHTML = `
+                                    <span id="floatingChatOnlineDot" class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+                                    </span>
+                                `;
+                                if (tooltipCount) {
+                                    tooltipCount.classList.add('hidden');
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                    // Poll unread chat messages every 15 seconds
+                    setInterval(checkUnreadChatMessages, 15000);
+                })();
+            </script>
         @endunless
     @endauth
 

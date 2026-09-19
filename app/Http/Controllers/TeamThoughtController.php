@@ -748,4 +748,20 @@ class TeamThoughtController extends Controller
             ]);
         }
     }
+
+    /**
+     * Get unread thoughts count for the authenticated user.
+     */
+    public function unreadCount()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'unread_count' => 0]);
+        }
+
+        return response()->json([
+            'success'      => true,
+            'unread_count' => $user->unreadThoughtsCount(),
+        ]);
+    }
 }

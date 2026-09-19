@@ -104,6 +104,55 @@ class User extends Authenticatable
     public function leaveApplications() { return $this->hasMany(LeaveApplication::class); }
 
     /**
+     * Count unread chat thoughts/messages for this user.
+     */
+    public function unreadThoughtsCount(): int
+    {
+        $query = TeamThought::where('is_deleted', false)
+            ->where('user_id', '!=', $this->id);
+
+        if ($this->isHR() || $this->isCEO()) {
+            $query->where('group_type', 'company');
+        } elseif ($this->isTL()) {
+            $query->where(function ($q) {
+                $q->where('group_type', 'company')
+                  ->orWhere(function ($tq) {
+                      $tq->where('group_type', 'team')
+                         ->where(function ($sq) {
+                             $sq->where('tl_id', $this->id)
+                                ->orWhereNull('tl_id');
+                         });
+                  });
+            });
+        } else {
+            $tl = $this->creator ?? $this;
+            $query->where(function ($q) use ($tl) {
+                $q->where('group_type', 'company')
+                  ->orWhere(function ($tq) use ($tl) {
+                      $tq->where('group_type', 'team')
+                         ->where(function ($sq) use ($tl) {
+                             $sq->where('tl_id', $tl->id)
+                                ->orWhereNull('tl_id');
+                         });
+                  });
+            });
+        }
+
+        return $query->where('created_at', '>=', now()->subDays(30))
+            ->get()
+            ->filter(function ($thought) {
+                $seenBy = $thought->seen_by ?: [];
+                foreach ($seenBy as $entry) {
+                    if (isset($entry['user_id']) && (int) $entry['user_id'] === (int) $this->id) {
+                        return false;
+                    }
+                }
+                return true;
+            })
+            ->count();
+    }
+
+    /**
      * Get a comprehensive leave breakdown for this user, including negative balances.
      */
     public function getLeaveSummary(?int $year = null): array

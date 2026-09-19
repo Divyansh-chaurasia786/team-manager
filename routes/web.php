@@ -176,6 +176,7 @@ Route::middleware('auth')->group(function () {
 
     // Team Discussion & Thought Sharing Hub (WhatsApp & Instagram Live Chat)
     Route::get('/thoughts', [\App\Http\Controllers\TeamThoughtController::class, 'index'])->name('thoughts.index');
+    Route::get('/thoughts/unread-count', [\App\Http\Controllers\TeamThoughtController::class, 'unreadCount'])->name('thoughts.unread_count');
     Route::get('/thoughts/messages', [\App\Http\Controllers\TeamThoughtController::class, 'getMessages'])->name('thoughts.messages');
     Route::post('/thoughts', [\App\Http\Controllers\TeamThoughtController::class, 'store'])->name('thoughts.store');
     Route::post('/thoughts/{thought}/unsend', [\App\Http\Controllers\TeamThoughtController::class, 'unsend'])->name('thoughts.unsend');
