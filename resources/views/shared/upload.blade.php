@@ -25,6 +25,10 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
+            <a href="https://drive.google.com/drive/folders/{{ config('services.google.drive_folder_id', '14ctR4tZhSEKk_yPf-quSwPmcJBTo6Gt1') }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition">
+                <i data-lucide="external-link" class="w-4 h-4 text-slate-500"></i>
+                <span>Open in Drive</span>
+            </a>
             <a href="{{ route('history.index') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition">
                 <i data-lucide="history" class="w-4 h-4"></i>
                 <span>Audit & History</span>
@@ -36,46 +40,7 @@
         </div>
     </div>
 
-    <!-- Connection Hero Status Banner -->
-    @if($isGoogleConnected)
-        <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white border border-emerald-500/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h3 class="text-sm font-black text-white">Google Drive Connected & Synchronized</h3>
-                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Active Live Sync</span>
-                        @if(!empty($connectedAccount['is_service_account']))
-                            <span class="px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-bold border border-indigo-400/30">Service Account</span>
-                        @endif
-                    </div>
-                    <p class="text-xs text-slate-300 mt-0.5">
-                        Connected as <strong class="text-white">{{ $connectedAccount['email'] ?? 'Authorized Account' }}</strong> &bull; Target: <span class="text-emerald-300 font-semibold">EcoFone Operations Drive</span>. Files auto-organize into date and Photos/Videos/Documents subfolders.
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 shrink-0 flex-wrap">
-                <a href="https://drive.google.com/drive/folders/{{ config('services.google.drive_folder_id', '14ctR4tZhSEKk_yPf-quSwPmcJBTo6Gt1') }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
-                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                    <span>Open in Drive</span>
-                </a>
-                @if(empty($connectedAccount['is_service_account']))
-                    <form method="POST" action="{{ route('google.disconnect') }}" onsubmit="return confirm('Disconnect Google Drive?')">
-                        @csrf
-                        <button type="submit" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-rose-600 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
-                            <i data-lucide="unlink" class="w-3.5 h-3.5"></i>
-                            <span>Disconnect</span>
-                        </button>
-                    </form>
-                @endif
-            </div>
-        </div>
-    @else
+    @if(!$isGoogleConnected)
         <!-- Connect Google Drive 1-Click Banner (Clean Full-Width Card) -->
         <div class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-start gap-4">
