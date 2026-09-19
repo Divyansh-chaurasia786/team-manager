@@ -308,6 +308,9 @@ class TaskController extends Controller
             entityId: $task->id
         );
 
+        // Instantly dispatch email notification to the employee's assigned Team Lead
+        \App\Services\BrevoMailService::sendTaskSubmittedMail($task);
+
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success'              => true,

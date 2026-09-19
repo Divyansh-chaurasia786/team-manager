@@ -218,6 +218,82 @@ class BrevoMailService
     }
 
     /**
+     * Send email notification to the assigned Team Lead when an employee submits a task.
+     */
+    public static function sendTaskSubmittedMail(\App\Models\Task $task): bool
+    {
+        $employee = $task->assignedTo;
+        if (!$employee) {
+            return false;
+        }
+
+        // Determine the employee's assigned TL
+        $assignedTl = null;
+        if ($employee->creator && $employee->creator->isTL()) {
+            $assignedTl = $employee->creator;
+        } elseif ($task->assignedBy && $task->assignedBy->isTL()) {
+            $assignedTl = $task->assignedBy;
+        } elseif ($employee->creator) {
+            $assignedTl = $employee->creator;
+        } elseif ($task->assignedBy) {
+            $assignedTl = $task->assignedBy;
+        }
+
+        if (!$assignedTl || empty($assignedTl->email)) {
+            Log::warning(sprintf('Cannot dispatch task submitted email for task #%d: No assigned TL found for employee #%d (%s)',
+                $task->id,
+                $employee->id,
+                $employee->name
+            ));
+            return false;
+        }
+
+        if (app()->environment('testing')) {
+            Mail::to($assignedTl->email)->send(new \App\Mail\TaskSubmittedMail($task, $assignedTl));
+            return true;
+        }
+
+        try {
+            $mailable = new \App\Mail\TaskSubmittedMail($task, $assignedTl);
+            $html = $mailable->render();
+            $subject = sprintf(
+                'TASK SUBMITTED FOR REVIEW: %s • Submitted by %s',
+                $task->title,
+                $employee->name
+            );
+
+            $result = self::sendViaApi($assignedTl->email, $assignedTl->name, $subject, $html);
+            if ($result['success']) {
+                ActivityLog::log(
+                    action: 'task_submitted_email_sent',
+                    description: sprintf('Task submission email for "%s" delivered to assigned TL %s (%s). Brevo ID: %s',
+                        $task->title,
+                        $assignedTl->name,
+                        $assignedTl->email,
+                        $result['message_id']
+                    ),
+                    entityType: 'Task',
+                    entityId: $task->id,
+                    userId: $employee->id
+                );
+                return true;
+            }
+
+            Mail::to($assignedTl->email)->send($mailable);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send task submitted email: ' . $e->getMessage());
+            try {
+                Mail::to($assignedTl->email)->send(new \App\Mail\TaskSubmittedMail($task, $assignedTl));
+                return true;
+            } catch (\Exception $fallbackError) {
+                Log::error('Fallback mail for task submitted failed too: ' . $fallbackError->getMessage());
+                return false;
+            }
+        }
+    }
+
+    /**
      * Direct HTTP dispatch via Brevo REST API (HTTPS port 443 - never blocked by cloud firewalls).
      */
     public static function sendViaApi(string $toEmail, string $toName, string $subject, string $htmlContent): array
