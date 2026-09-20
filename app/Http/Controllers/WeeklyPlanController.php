@@ -52,6 +52,8 @@ class WeeklyPlanController extends Controller
             'wednesday'       => 'nullable|string',
             'thursday'        => 'nullable|string',
             'friday'          => 'nullable|string',
+            'saturday'        => 'nullable|string',
+            'sunday'          => 'nullable|string',
         ]);
 
         $daysBreakdown = [
@@ -60,6 +62,8 @@ class WeeklyPlanController extends Controller
             'wednesday' => $request->wednesday,
             'thursday'  => $request->thursday,
             'friday'    => $request->friday,
+            'saturday'  => $request->saturday,
+            'sunday'    => $request->sunday,
         ];
 
         $plan = WeeklyPlan::create([

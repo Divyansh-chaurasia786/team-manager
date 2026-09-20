@@ -44,6 +44,8 @@ class WeeklyPlanTest extends TestCase
             'wednesday' => 'Integrate cloud storage',
             'thursday' => 'Run unit & e2e tests',
             'friday' => 'Deliver demo to stakeholders',
+            'saturday' => 'Sprint retrospective & team wrap-up',
+            'sunday' => 'Production health check',
             'tl_notes' => 'Reach out on Slack if blocked by DB migrations.',
         ];
 
@@ -59,6 +61,10 @@ class WeeklyPlanTest extends TestCase
             'priority' => 'high',
             'status' => 'shared',
         ]);
+
+        $plan = WeeklyPlan::where('title', 'Sprint 40 Architecture & QA')->first();
+        $this->assertEquals('Sprint retrospective & team wrap-up', $plan->days_breakdown['saturday']);
+        $this->assertEquals('Production health check', $plan->days_breakdown['sunday']);
     }
 
     public function test_member_can_view_their_shared_weekly_plans(): void

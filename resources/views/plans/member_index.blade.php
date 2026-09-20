@@ -97,9 +97,17 @@
                 @endif
 
                 <!-- Daily Breakdown Pills -->
-                <div class="mt-4 grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+                <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
                     @php
-                        $dayNames = ['monday' => 'Monday', 'tuesday' => 'Tuesday', 'wednesday' => 'Wednesday', 'thursday' => 'Thursday', 'friday' => 'Friday'];
+                        $dayNames = [
+                            'monday'    => 'Monday',
+                            'tuesday'   => 'Tuesday',
+                            'wednesday' => 'Wednesday',
+                            'thursday'  => 'Thursday',
+                            'friday'    => 'Friday',
+                            'saturday'  => 'Saturday',
+                            'sunday'    => 'Sunday',
+                        ];
                     @endphp
                     @foreach($dayNames as $dKey => $dLabel)
                         @php $dayTask = $plan->days_breakdown[$dKey] ?? null; @endphp

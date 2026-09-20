@@ -110,7 +110,7 @@
                 <i data-lucide="calendar-check" class="w-5 h-5 text-indigo-600"></i>
                 <h2 class="font-black text-slate-900 text-base">Day-by-Day Focus & Itinerary</h2>
             </div>
-            <span class="text-xs text-slate-400 font-medium">Monday through Friday</span>
+            <span class="text-xs text-slate-400 font-medium">Monday through Sunday (All 7 Days)</span>
         </div>
 
         <div class="space-y-3">
@@ -121,6 +121,8 @@
                     'wednesday' => ['name' => 'Wednesday', 'color' => 'indigo', 'step' => 3],
                     'thursday'  => ['name' => 'Thursday', 'color' => 'indigo', 'step' => 4],
                     'friday'    => ['name' => 'Friday', 'color' => 'indigo', 'step' => 5],
+                    'saturday'  => ['name' => 'Saturday', 'color' => 'amber', 'step' => 6],
+                    'sunday'    => ['name' => 'Sunday', 'color' => 'amber', 'step' => 7],
                 ];
             @endphp
 

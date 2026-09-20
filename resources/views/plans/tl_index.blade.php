@@ -120,7 +120,7 @@
                             <td class="py-4 px-4">
                                 <div class="flex items-center gap-1">
                                     @php
-                                        $days = ['monday' => 'M', 'tuesday' => 'T', 'wednesday' => 'W', 'thursday' => 'T', 'friday' => 'F'];
+                                        $days = ['monday' => 'M', 'tuesday' => 'T', 'wednesday' => 'W', 'thursday' => 'T', 'friday' => 'F', 'saturday' => 'S', 'sunday' => 'S'];
                                     @endphp
                                     @foreach($days as $key => $letter)
                                         @php $hasContent = !empty($plan->days_breakdown[$key]); @endphp
@@ -323,6 +323,14 @@
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                         <span class="w-full sm:w-24 shrink-0 py-1.5 sm:py-2.5 px-3 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-black text-center">Friday</span>
                         <input type="text" name="friday" placeholder="Final delivery, sprint review, retro..." class="w-full flex-grow px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 outline-hidden transition">
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span class="w-full sm:w-24 shrink-0 py-1.5 sm:py-2.5 px-3 bg-amber-50 text-amber-700 rounded-xl text-xs font-black text-center">Saturday</span>
+                        <input type="text" name="saturday" placeholder="Saturday wrap-up, maintenance, on-call..." class="w-full flex-grow px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 outline-hidden transition">
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span class="w-full sm:w-24 shrink-0 py-1.5 sm:py-2.5 px-3 bg-amber-50 text-amber-700 rounded-xl text-xs font-black text-center">Sunday</span>
+                        <input type="text" name="sunday" placeholder="Sunday deployment check, schedule prep..." class="w-full flex-grow px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 outline-hidden transition">
                     </div>
                 </div>
             </div>
