@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Team Attendance Roster')
+@section('title', auth()->user()->isTL() ? 'Team Attendance Roster' : 'Company Attendance Register & Audit')
 @section('content')
 
 <div class="space-y-6">
@@ -7,33 +7,112 @@
     <!-- Header Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Team Attendance Roster</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Mark daily presence to gate task delegation & ensure tasks are only assigned to active members</p>
+            <div class="flex items-center gap-2 flex-wrap">
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {{ auth()->user()->isTL() ? 'Team Attendance Roster' : 'Attendance Register & Audit' }}
+                </h1>
+                @if(auth()->user()->isHR() || auth()->user()->isCEO())
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
+                        HR Auditor
+                    </span>
+                @else
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200">
+                        Team Lead
+                    </span>
+                @endif
+            </div>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                @if(auth()->user()->isTL())
+                    Mark daily presence to gate task delegation. TL can mark same-day attendance only; past dates are read-only.
+                @else
+                    Full attendance register with authorized past record auditing across all team members.
+                @endif
+            </p>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-            <!-- Date Picker Form -->
+            <!-- Date Picker Form (Max restricted to today — future disabled) -->
             <form method="GET" action="{{ route('attendance.index') }}" class="flex items-center gap-2 m-0">
                 <input 
                     type="date" 
                     name="date" 
                     value="{{ $selectedDate }}" 
+                    max="{{ now()->format('Y-m-d') }}"
                     onchange="this.form.submit()" 
-                    class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700 shadow-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    title="Select attendance date (future dates disabled)"
+                    class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700 shadow-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                 >
             </form>
 
-            <!-- Bulk Mark All Present Button -->
-            <form method="POST" action="{{ route('tl.attendance.bulk') }}" class="m-0" onsubmit="return confirm('Mark all active team members as Present for {{ $selectedDate }}?')">
-                @csrf
-                <input type="hidden" name="date" value="{{ $selectedDate }}">
-                <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="check-check" class="w-4 h-4"></i>
-                    <span>Mark All Present</span>
-                </button>
-            </form>
+            @if($selectedDate !== now()->format('Y-m-d'))
+                <a href="{{ route('attendance.index') }}" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs" title="Return to today's attendance roster">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Today</span>
+                </a>
+            @endif
+
+            <!-- Bulk Action Button (Visible only when marking is permitted) -->
+            @if($canMark)
+                <form method="POST" action="{{ route('attendance.bulk') }}" class="m-0" onsubmit="return confirm('Mark all active team members as Present for {{ $selectedDate }}?')">
+                    @csrf
+                    <input type="hidden" name="date" value="{{ $selectedDate }}">
+                    <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check-check" class="w-4 h-4"></i>
+                        <span>{{ $isPast ? 'Audit Bulk Present' : 'Mark All Present' }}</span>
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
+
+    <!-- Informative Mode Banners -->
+    @if($isPast)
+        @if(!$canAudit)
+            <!-- TL Past Date Read-Only Banner -->
+            <div class="rounded-2xl bg-amber-50/90 border border-amber-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-amber-900 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-xs sm:text-sm font-bold text-amber-950">Past Attendance Record (Read-Only)</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-200 text-amber-900">Historical View</span>
+                        </div>
+                        <p class="text-xs text-amber-700 mt-0.5">
+                            Team Leads can only mark attendance for the current day. Only HR administrators have authority to audit or modify past attendance records.
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('attendance.index') }}" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-xs">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    <span>Mark Today's Attendance</span>
+                </a>
+            </div>
+        @else
+            <!-- HR Audit Mode Banner -->
+            <div class="rounded-2xl bg-indigo-50/90 border border-indigo-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-indigo-900 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-xs sm:text-sm font-bold text-indigo-950">HR Attendance Audit Mode</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-200 text-indigo-900">Authorized Audit</span>
+                        </div>
+                        <p class="text-xs text-indigo-700 mt-0.5">
+                            Auditing attendance records for {{ \Carbon\Carbon::parse($selectedDate)->format('d F Y') }}. Any updates will be permanently logged to the audit stream.
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('attendance.index') }}" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-xs">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    <span>Return to Today</span>
+                </a>
+            </div>
+        @endif
+    @endif
 
     <!-- Attendance Vitals Cards -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -45,7 +124,7 @@
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Eligible</span>
             </div>
             <div class="mt-3">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Present Today</div>
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Present</div>
                 <div class="text-2xl font-black text-slate-900 mt-0.5">{{ $presentCount }} <span class="text-xs font-medium text-slate-400">/ {{ $members->count() }}</span></div>
             </div>
         </div>
@@ -95,9 +174,14 @@
         <div class="p-4 border-b border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
-                <span class="text-xs font-bold text-slate-700">Daily Roster for {{ \Carbon\Carbon::parse($selectedDate)->format('l, d F Y') }}</span>
+                <span class="text-xs font-bold text-slate-700">Roster for {{ \Carbon\Carbon::parse($selectedDate)->format('l, d F Y') }}</span>
+                @if($isPast)
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600">Past Date</span>
+                @else
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">Today</span>
+                @endif
             </div>
-            <span class="text-xs text-slate-400 font-semibold">{{ $members->count() }} Team Staff</span>
+            <span class="text-xs text-slate-400 font-semibold">{{ $members->count() }} Staff Members</span>
         </div>
 
         <!-- Desktop Table View -->
@@ -108,7 +192,13 @@
                         <th class="py-3.5 px-4" style="width: 25%;">Team Member</th>
                         <th class="py-3.5 px-4" style="width: 20%;">Current Status</th>
                         <th class="py-3.5 px-4" style="width: 20%;">Task Assignment Status</th>
-                        <th class="py-3.5 px-4 text-right" style="width: 35%;">Mark Attendance (1-Click)</th>
+                        <th class="py-3.5 px-4 text-right" style="width: 35%;">
+                            @if($canMark)
+                                {{ $canAudit && $isPast ? 'Audit Attendance (1-Click)' : 'Mark Attendance (1-Click)' }}
+                            @else
+                                Attendance Record
+                            @endif
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -126,6 +216,9 @@
                                     <div>
                                         <div class="font-bold text-slate-900 text-sm">{{ $m->name }}</div>
                                         <div class="text-[11px] text-slate-400">{{ $m->email }}</div>
+                                        @if($m->creator && (auth()->user()->isHR() || auth()->user()->isCEO()))
+                                            <div class="text-[10px] text-indigo-600 font-semibold mt-0.5">TL: {{ $m->creator->name }}</div>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
@@ -171,51 +264,58 @@
                             </td>
 
                             <td class="py-4 px-4 text-right">
-                                <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
-                                    <!-- Present -->
-                                    <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                                        @csrf
-                                        <input type="hidden" name="user_id" value="{{ $m->id }}">
-                                        <input type="hidden" name="date" value="{{ $selectedDate }}">
-                                        <input type="hidden" name="status" value="present">
-                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition {{ $status === 'present' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' }}" title="Mark Present">
-                                            Present
-                                        </button>
-                                    </form>
+                                @if($canMark)
+                                    <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
+                                        <!-- Present -->
+                                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                            @csrf
+                                            <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                            <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                            <input type="hidden" name="status" value="present">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer {{ $status === 'present' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' }}" title="Mark Present">
+                                                Present
+                                            </button>
+                                        </form>
 
-                                    <!-- WFH -->
-                                    <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                                        @csrf
-                                        <input type="hidden" name="user_id" value="{{ $m->id }}">
-                                        <input type="hidden" name="date" value="{{ $selectedDate }}">
-                                        <input type="hidden" name="status" value="wfh">
-                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition {{ $status === 'wfh' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200' }}" title="Mark Work From Home">
-                                            WFH
-                                        </button>
-                                    </form>
+                                        <!-- WFH -->
+                                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                            @csrf
+                                            <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                            <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                            <input type="hidden" name="status" value="wfh">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer {{ $status === 'wfh' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200' }}" title="Mark Work From Home">
+                                                WFH
+                                            </button>
+                                        </form>
 
-                                    <!-- Half Day -->
-                                    <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                                        @csrf
-                                        <input type="hidden" name="user_id" value="{{ $m->id }}">
-                                        <input type="hidden" name="date" value="{{ $selectedDate }}">
-                                        <input type="hidden" name="status" value="half_day">
-                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition {{ $status === 'half_day' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200' }}" title="Mark Half Day">
-                                            Half-Day
-                                        </button>
-                                    </form>
+                                        <!-- Half Day -->
+                                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                            @csrf
+                                            <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                            <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                            <input type="hidden" name="status" value="half_day">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer {{ $status === 'half_day' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200' }}" title="Mark Half Day">
+                                                Half-Day
+                                            </button>
+                                        </form>
 
-                                    <!-- Absent -->
-                                    <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                                        @csrf
-                                        <input type="hidden" name="user_id" value="{{ $m->id }}">
-                                        <input type="hidden" name="date" value="{{ $selectedDate }}">
-                                        <input type="hidden" name="status" value="absent">
-                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition {{ $status === 'absent' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200' }}" title="Mark Absent (Locks task delegation)">
-                                            Absent
-                                        </button>
-                                    </form>
-                                </div>
+                                        <!-- Absent -->
+                                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                            @csrf
+                                            <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                            <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                            <input type="hidden" name="status" value="absent">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer {{ $status === 'absent' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200' }}" title="Mark Absent (Locks task delegation)">
+                                                Absent
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200" title="Past attendance is locked. Only HR can audit past records.">
+                                        <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <span>Read-Only • Auditable by HR</span>
+                                    </div>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -245,6 +345,9 @@
                             <div class="truncate">
                                 <div class="font-bold text-slate-900 text-xs sm:text-sm truncate">{{ $m->name }}</div>
                                 <div class="text-[10px] text-slate-400 truncate">{{ $m->email }}</div>
+                                @if($m->creator && (auth()->user()->isHR() || auth()->user()->isCEO()))
+                                    <div class="text-[10px] text-indigo-600 font-semibold mt-0.5">TL: {{ $m->creator->name }}</div>
+                                @endif
                             </div>
                         </div>
 
@@ -285,48 +388,56 @@
                         @endif
                     </div>
 
-                    <!-- 1-Click Action Buttons -->
-                    <div class="grid grid-cols-4 gap-1.5 pt-1">
-                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                            @csrf
-                            <input type="hidden" name="user_id" value="{{ $m->id }}">
-                            <input type="hidden" name="date" value="{{ $selectedDate }}">
-                            <input type="hidden" name="status" value="present">
-                            <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center {{ $status === 'present' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' }}">
-                                Present
-                            </button>
-                        </form>
+                    <!-- Actions -->
+                    @if($canMark)
+                        <!-- 1-Click Action Buttons -->
+                        <div class="grid grid-cols-4 gap-1.5 pt-1">
+                            <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                @csrf
+                                <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                <input type="hidden" name="status" value="present">
+                                <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center cursor-pointer {{ $status === 'present' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' }}">
+                                    Present
+                                </button>
+                            </form>
 
-                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                            @csrf
-                            <input type="hidden" name="user_id" value="{{ $m->id }}">
-                            <input type="hidden" name="date" value="{{ $selectedDate }}">
-                            <input type="hidden" name="status" value="wfh">
-                            <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center {{ $status === 'wfh' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200' }}">
-                                WFH
-                            </button>
-                        </form>
+                            <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                @csrf
+                                <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                <input type="hidden" name="status" value="wfh">
+                                <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center cursor-pointer {{ $status === 'wfh' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200' }}">
+                                    WFH
+                                </button>
+                            </form>
 
-                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                            @csrf
-                            <input type="hidden" name="user_id" value="{{ $m->id }}">
-                            <input type="hidden" name="date" value="{{ $selectedDate }}">
-                            <input type="hidden" name="status" value="half_day">
-                            <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center {{ $status === 'half_day' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200' }}">
-                                Half-Day
-                            </button>
-                        </form>
+                            <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                @csrf
+                                <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                <input type="hidden" name="status" value="half_day">
+                                <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center cursor-pointer {{ $status === 'half_day' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200' }}">
+                                    Half-Day
+                                </button>
+                            </form>
 
-                        <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
-                            @csrf
-                            <input type="hidden" name="user_id" value="{{ $m->id }}">
-                            <input type="hidden" name="date" value="{{ $selectedDate }}">
-                            <input type="hidden" name="status" value="absent">
-                            <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center {{ $status === 'absent' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200' }}">
-                                Absent
-                            </button>
-                        </form>
-                    </div>
+                            <form method="POST" action="{{ route('attendance.mark') }}" class="m-0">
+                                @csrf
+                                <input type="hidden" name="user_id" value="{{ $m->id }}">
+                                <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                <input type="hidden" name="status" value="absent">
+                                <button type="submit" class="w-full py-1.5 rounded-lg text-[10px] font-bold transition text-center cursor-pointer {{ $status === 'absent' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200' }}">
+                                    Absent
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <div class="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs font-semibold text-slate-500 flex items-center justify-center gap-1.5">
+                            <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span>Past Record Locked (HR Audit Only)</span>
+                        </div>
+                    @endif
                 </div>
             @empty
                 <div class="py-8 text-center text-slate-400 text-xs">

@@ -167,9 +167,10 @@ Route::middleware('auth')->group(function () {
     // Member dashboard
     Route::get('/member/dashboard', [MemberDashboardController::class, 'index'])->name('member.dashboard');
 
-    // Attendance (TL marks team; Members view personal)
+    // Attendance (TL marks team; HR audits; Members view personal)
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance/mark', [AttendanceController::class, 'mark'])->name('attendance.mark');
+    Route::post('/attendance/bulk-present', [AttendanceController::class, 'bulkMarkPresent'])->name('attendance.bulk');
 
     // Leaves Management
     Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
