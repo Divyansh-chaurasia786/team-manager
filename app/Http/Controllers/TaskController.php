@@ -140,30 +140,32 @@ class TaskController extends Controller
         $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => 'nullable|exists:users,id',
             'deadline'    => 'required|date',
         ]);
 
-        $newAssignee = User::findOrFail($request->assigned_to);
+        $newAssignee = $request->filled('assigned_to') ? User::findOrFail($request->assigned_to) : null;
 
-        // Security check: TL can only assign tasks to their own squad members
-        if ($actor->isTL() && $newAssignee->created_by !== $actor->id) {
-            abort(403, 'Unauthorized: Team Leads can only assign tasks to members in their own assigned team.');
-        }
+        if ($newAssignee) {
+            // Security check: TL can only assign tasks to their own squad members
+            if ($actor->isTL() && $newAssignee->created_by !== $actor->id) {
+                abort(403, 'Unauthorized: Team Leads can only assign tasks to members in their own assigned team.');
+            }
 
-        // Attendance check if assignee changed
-        if ($task->assigned_to != $newAssignee->id) {
-            $today = now()->format('Y-m-d');
-            $todayAttendance = Attendance::where('user_id', $newAssignee->id)
-                ->whereDate('date', $today)
-                ->first();
+            // Attendance check if assignee changed
+            if ($task->assigned_to != $newAssignee->id) {
+                $today = now()->format('Y-m-d');
+                $todayAttendance = Attendance::where('user_id', $newAssignee->id)
+                    ->whereDate('date', $today)
+                    ->first();
 
-            if ($todayAttendance && in_array($todayAttendance->status, ['absent', 'on_leave'])) {
-                $msg = "Cannot reassign task: {$newAssignee->name} is marked " . ucfirst(str_replace('_', ' ', $todayAttendance->status)) . " today.";
-                if ($request->wantsJson() || $request->ajax()) {
-                    return response()->json(['success' => false, 'message' => $msg], 422);
+                if ($todayAttendance && in_array($todayAttendance->status, ['absent', 'on_leave'])) {
+                    $msg = "Cannot reassign task: {$newAssignee->name} is marked " . ucfirst(str_replace('_', ' ', $todayAttendance->status)) . " today.";
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json(['success' => false, 'message' => $msg], 422);
+                    }
+                    return back()->withInput()->with('error', $msg);
                 }
-                return back()->withInput()->with('error', $msg);
             }
         }
 
@@ -171,7 +173,7 @@ class TaskController extends Controller
         $task->update([
             'title'       => $request->title,
             'description' => $request->description,
-            'assigned_to' => $request->assigned_to,
+            'assigned_to' => $newAssignee ? $newAssignee->id : null,
             'deadline'    => $request->deadline,
         ]);
 
@@ -180,7 +182,7 @@ class TaskController extends Controller
             description: sprintf('%s edited task "%s" (Assignee: %s, Deadline: %s)',
                 $actor->name,
                 $task->title,
-                $newAssignee->name,
+                $newAssignee ? $newAssignee->name : 'Unassigned',
                 $task->deadline->format('d M Y, h:i A')
             ),
             entityType: 'Task',
@@ -197,7 +199,7 @@ class TaskController extends Controller
                     'title'         => $task->title,
                     'description'   => $task->description,
                     'assigned_to'   => $task->assigned_to,
-                    'assignee_name' => $newAssignee->name,
+                    'assignee_name' => $newAssignee ? $newAssignee->name : 'Unassigned',
                     'deadline'      => $task->deadline->format('d M Y, h:i A'),
                     'deadline_iso'  => $task->deadline->toISOString(),
                     'status'        => $task->status,
@@ -500,6 +502,137 @@ class TaskController extends Controller
         }
 
         return back()->with('success', 'Task approved and marked as completed!' . $uploadMessage);
+    }
+
+    public function unassign(Request $request, Task $task)
+    {
+        $actor = Auth::user();
+
+        // Only assigner TL or CEO can unassign
+        if ($task->assigned_by !== $actor->id && !$actor->isCEO()) {
+            abort(403, 'Unauthorized: Only the supervisor who assigned this task can unassign it.');
+        }
+
+        // Cannot unassign submitted or completed tasks
+        if (in_array($task->status, ['submitted', 'completed']) || !is_null($task->submitted_at)) {
+            $msg = 'Task cannot be unassigned after submission or completion.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
+        }
+
+        $oldAssignee = $task->assignedTo;
+        $oldAssigneeName = $oldAssignee ? $oldAssignee->name : 'Member';
+        $isOverdue = $task->isOverdue();
+
+        $task->update([
+            'assigned_to' => null,
+            'status'      => 'pending',
+        ]);
+
+        TaskUpdate::create([
+            'task_id' => $task->id,
+            'message' => sprintf('Task unassigned from %s by %s%s.',
+                $oldAssigneeName,
+                $actor->name,
+                $isOverdue ? ' due to overdue status' : ''
+            ),
+        ]);
+
+        ActivityLog::log(
+            action: 'task_unassigned',
+            description: sprintf('%s unassigned task "%s" from %s%s',
+                $actor->name,
+                $task->title,
+                $oldAssigneeName,
+                $isOverdue ? ' (Overdue)' : ''
+            ),
+            entityType: 'Task',
+            entityId: $task->id,
+            userId: $actor->id
+        );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Task \"{$task->title}\" successfully unassigned from {$oldAssigneeName}.",
+                'task_id' => $task->id,
+            ]);
+        }
+
+        return back()->with('success', "Task \"{$task->title}\" successfully unassigned from {$oldAssigneeName}.");
+    }
+
+    public function assignMember(Request $request, Task $task)
+    {
+        $actor = Auth::user();
+
+        if ($task->assigned_by !== $actor->id && !$actor->isCEO()) {
+            abort(403, 'Unauthorized: Only the supervisor who assigned this task can assign members.');
+        }
+
+        $request->validate([
+            'assigned_to' => 'required|exists:users,id',
+            'deadline'    => 'nullable|date',
+        ]);
+
+        $newAssignee = User::findOrFail($request->assigned_to);
+
+        // Security check
+        if ($actor->isTL() && $newAssignee->created_by !== $actor->id) {
+            abort(403, 'Unauthorized: Team Leads can only assign tasks to members in their own assigned team.');
+        }
+
+        // Attendance check
+        $today = now()->format('Y-m-d');
+        $todayAttendance = Attendance::where('user_id', $newAssignee->id)
+            ->whereDate('date', $today)
+            ->first();
+
+        if ($todayAttendance && in_array($todayAttendance->status, ['absent', 'on_leave'])) {
+            $msg = "Cannot assign task: {$newAssignee->name} is marked " . ucfirst(str_replace('_', ' ', $todayAttendance->status)) . " today.";
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->withInput()->with('error', $msg);
+        }
+
+        $updateData = [
+            'assigned_to' => $newAssignee->id,
+            'status'      => 'pending',
+        ];
+        if ($request->filled('deadline')) {
+            $updateData['deadline'] = $request->deadline;
+        }
+
+        $task->update($updateData);
+
+        TaskUpdate::create([
+            'task_id' => $task->id,
+            'message' => sprintf('Task assigned to %s by %s.', $newAssignee->name, $actor->name),
+        ]);
+
+        ActivityLog::log(
+            action: 'task_assigned',
+            description: sprintf('%s assigned task "%s" to %s', $actor->name, $task->title, $newAssignee->name),
+            entityType: 'Task',
+            entityId: $task->id,
+            userId: $actor->id
+        );
+
+        // Instantly dispatch email notification to the new assignee
+        \App\Services\BrevoMailService::sendTaskAssignedMail($task);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Task successfully assigned to {$newAssignee->name}.",
+                'task_id' => $task->id,
+            ]);
+        }
+
+        return back()->with('success', "Task successfully assigned to {$newAssignee->name}.");
     }
 
     public function destroy(Task $task)

@@ -23,9 +23,11 @@
         </div>
     </div>
 
-    <!-- Grouped Tasks by Employee Header -->
+    <!-- Grouped Tasks by Assigned Date & Member -->
     @php
-        $tasksByMember = $tasks->groupBy('assigned_to');
+        $tasksByDate = $tasks->groupBy(function($task) {
+            return $task->created_at ? $task->created_at->format('Y-m-d') : now()->format('Y-m-d');
+        })->sortKeysDesc();
     @endphp
 
     @if($tasks->isEmpty())
@@ -79,282 +81,376 @@
             </form>
         @endif
 
-        <div class="space-y-6">
-            @foreach($tasksByMember as $memberId => $memberTasks)
+        <div class="space-y-8">
+            @foreach($tasksByDate as $dateStr => $dateTasks)
                 @php
-                    $assignee = $memberTasks->first()->assignedTo;
-                    $att = $todayAttendances->get($memberId);
-                    $attStatus = $att ? $att->status : 'present';
-                    $pendingCount = $memberTasks->whereIn('status', ['pending', 'in-progress'])->count();
-                    $submittedCount = $memberTasks->where('status', 'submitted')->count();
-                    $completedCount = $memberTasks->where('status', 'completed')->count();
+                    $dateCarbon = \Carbon\Carbon::parse($dateStr);
+                    $isToday = $dateCarbon->isToday();
+                    $isYesterday = $dateCarbon->isYesterday();
+                    $dateTitle = $isToday ? 'Today' : ($isYesterday ? 'Yesterday' : $dateCarbon->format('l'));
+                    $dateSubtitle = $dateCarbon->format('d M Y');
+                    $dateTaskCount = $dateTasks->count();
+                    $dateOverdueCount = $dateTasks->filter->isOverdue()->count();
+                    $tasksByMemberOnDate = $dateTasks->groupBy('assigned_to');
                 @endphp
 
-                <div class="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
-                    <!-- Assigned Employee Header Card -->
-                    <div class="px-5 py-4 bg-gradient-to-r from-slate-50 via-indigo-50/20 to-slate-50 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <!-- Assigned Date Section Card -->
+                <div class="space-y-4">
+                    <!-- Assigned Date Banner Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-sm border border-slate-800">
                         <div class="flex items-center gap-3">
-                            <div class="relative">
-                                @if(isset($assignee) && $assignee->avatar_url)
-                                    <img src="{{ $assignee->avatar_url }}" alt="{{ $assignee->name }}" class="w-11 h-11 rounded-2xl object-cover shadow-md shadow-indigo-600/20">
-                                @else
-                                    <div class="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-indigo-600/20">
-                                        {{ strtoupper(substr($assignee->name ?? 'U', 0, 1)) }}
-                                    </div>
-                                @endif
-                                @if($attStatus === 'present' || $attStatus === 'wfh')
-                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" title="Active / Present"></span>
-                                @elseif($attStatus === 'half_day')
-                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full" title="Half-Day"></span>
-                                @else
-                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-rose-500 border-2 border-white rounded-full" title="Absent/Leave"></span>
-                                @endif
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold shrink-0">
+                                <i data-lucide="calendar" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <div class="flex items-center gap-2">
-                                    <h2 class="text-sm sm:text-base font-black text-slate-900">{{ $assignee->name ?? 'Unassigned Member' }}</h2>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
-                                        {{ $assignee->designation ?? 'Team Member' }}
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-sm sm:text-base font-black tracking-tight">Assigned Date: {{ $dateSubtitle }}</span>
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider {{ $isToday ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700/60 text-slate-300 border border-slate-600' }}">
+                                        {{ $dateTitle }}
                                     </span>
                                 </div>
-                                <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                                    <span>{{ $assignee->email }}</span>
-                                    <span>•</span>
-                                    <span class="font-medium text-slate-600">Username: {{ $assignee->username ?? '—' }}</span>
-                                </div>
+                                <p class="text-[11px] text-slate-400 mt-0.5">Tasks delegated to team members on {{ $dateSubtitle }}</p>
                             </div>
                         </div>
 
-                        <!-- Member's Task Status Badges & Quick Assign Task Header Action -->
-                        <div class="flex items-center gap-2 flex-wrap">
-                            @if(auth()->user()->isCEO())
-                                <button type="button" onclick="toggleMemberTasks({{ $memberId }})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 cursor-pointer" title="Select/Deselect all tasks for this member">
-                                    <i data-lucide="check-square" class="w-3.5 h-3.5 text-slate-500"></i>
-                                    <span>Select Member Tasks</span>
-                                </button>
-                            @endif
-                            <button type="button" onclick="openAssignTaskForMember({{ $memberId }})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
-                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                                <span>Assign Task</span>
-                            </button>
-                            <span class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200/70">
-                                {{ $memberTasks->count() }} Tasks
+                        <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                            <span class="px-3 py-1 rounded-xl text-xs font-bold bg-white/10 text-white border border-white/10">
+                                {{ $dateTaskCount }} {{ \Illuminate\Support\Str::plural('Task', $dateTaskCount) }} Delegated
                             </span>
-                            @if($submittedCount > 0)
-                                <span class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 animate-pulse flex items-center gap-1">
-                                    <i data-lucide="bell" class="w-3 h-3"></i>
-                                    <span>{{ $submittedCount }} Needs Review</span>
-                                </span>
-                            @endif
-                            @if($pendingCount > 0)
-                                <span class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                    {{ $pendingCount }} In Progress / Pending
-                                </span>
-                            @endif
-                            @if($completedCount > 0)
-                                <span class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                    {{ $completedCount }} Completed
+                            @if($dateOverdueCount > 0)
+                                <span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                                    <span>{{ $dateOverdueCount }} Overdue</span>
                                 </span>
                             @endif
                         </div>
                     </div>
 
-                    <!-- Tasks List Under This Employee Header -->
-                    <div class="divide-y divide-slate-100">
-                        @foreach($memberTasks as $task)
-                            <div class="p-4 sm:p-5 hover:bg-slate-50/70 transition {{ $task->isReassigned() ? 'bg-amber-50/20' : '' }}" id="task-row-{{ $task->id }}">
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <!-- Left: Task Info & Checkbox (for CEO) -->
-                                    <div class="flex items-start gap-3 flex-1 min-w-0">
-                                        @if(auth()->user()->isCEO())
-                                            <div class="pt-0.5 shrink-0">
-                                                <input type="checkbox" name="selected_task_ids[]" value="{{ $task->id }}" data-member-id="{{ $memberId }}" class="task-select-checkbox w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer" onchange="updateSelectedCount()">
+                    <!-- Members and their tasks for this date -->
+                    <div class="space-y-4">
+                        @foreach($tasksByMemberOnDate as $memberId => $memberTasks)
+                            @php
+                                $assignee = $memberTasks->first()->assignedTo;
+                                $isUnassigned = empty($memberId) || is_null($assignee);
+                                $att = $isUnassigned ? null : $todayAttendances->get($memberId);
+                                $attStatus = $att ? $att->status : 'present';
+                                $pendingCount = $memberTasks->whereIn('status', ['pending', 'in-progress'])->count();
+                                $submittedCount = $memberTasks->where('status', 'submitted')->count();
+                                $completedCount = $memberTasks->where('status', 'completed')->count();
+                            @endphp
+
+                            <div class="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+                                <!-- Assigned Employee Header Card on this date -->
+                                <div class="px-5 py-4 bg-gradient-to-r from-slate-50 via-indigo-50/20 to-slate-50 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                    <div class="flex items-center gap-3">
+                                        @if($isUnassigned)
+                                            <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm shadow-sm border border-amber-200">
+                                                <i data-lucide="user-x" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <h2 class="text-sm sm:text-base font-black text-amber-900">Unassigned Tasks</h2>
+                                                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                                        Needs Delegation
+                                                    </span>
+                                                </div>
+                                                <p class="text-[11px] text-amber-700/80 mt-0.5">Tasks created on {{ $dateSubtitle }} waiting to be delegated to a team member</p>
+                                            </div>
+                                        @else
+                                            <div class="relative">
+                                                @if($assignee->avatar_url)
+                                                    <img src="{{ $assignee->avatar_url }}" alt="{{ $assignee->name }}" class="w-11 h-11 rounded-2xl object-cover shadow-md shadow-indigo-600/20">
+                                                @else
+                                                    <div class="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-indigo-600/20">
+                                                        {{ strtoupper(substr($assignee->name ?? 'U', 0, 1)) }}
+                                                    </div>
+                                                @endif
+                                                @if($attStatus === 'present' || $attStatus === 'wfh')
+                                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" title="Active / Present"></span>
+                                                @elseif($attStatus === 'half_day')
+                                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full" title="Half-Day"></span>
+                                                @else
+                                                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-rose-500 border-2 border-white rounded-full" title="Absent/Leave"></span>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <h2 class="text-sm sm:text-base font-black text-slate-900">{{ $assignee->name }}</h2>
+                                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
+                                                        {{ $assignee->designation ?? 'Team Member' }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                                    <span>{{ $assignee->email }}</span>
+                                                    <span>•</span>
+                                                    <span class="font-medium text-slate-600">Username: {{ $assignee->username ?? '—' }}</span>
+                                                </div>
                                             </div>
                                         @endif
-                                        <div class="space-y-1.5 flex-1 min-w-0">
-                                            <div class="flex items-center gap-2 flex-wrap task-status-container-{{ $task->id }}">
-                                                <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">{{ $task->title }}</h3>
+                                    </div>
 
-                                                <!-- Status Badge -->
-                                                @if($task->status === 'completed')
-                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                        ✓ Completed
-                                                    </span>
-                                                @elseif($task->status === 'submitted')
-                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center gap-1">
-                                                        <i data-lucide="clock" class="w-3 h-3"></i>
-                                                        <span>Submitted • In Review</span>
-                                                    </span>
-                                                @elseif($task->status === 'in-progress')
-                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                                                        {{ $task->isReassigned() ? '⚡ Revisions Active' : '⚙️ In Progress' }}
-                                                    </span>
-                                                @else
-                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-                                                        ⏳ Pending Start
-                                                    </span>
-                                                @endif
+                                    <!-- Member's Task Status Badges & Quick Assign Task Header Action -->
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        @if(!$isUnassigned)
+                                            @if(auth()->user()->isCEO())
+                                                <button type="button" onclick="toggleMemberTasks({{ $memberId }})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 cursor-pointer" title="Select/Deselect all tasks for this member">
+                                                    <i data-lucide="check-square" class="w-3.5 h-3.5 text-slate-500"></i>
+                                                    <span>Select</span>
+                                                </button>
+                                            @endif
+                                            <button type="button" onclick="openAssignTaskForMember({{ $memberId }})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
+                                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                                <span>Assign Task</span>
+                                            </button>
+                                        @endif
 
-                                                @if($task->isReassigned())
-                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-50 text-amber-900 border border-amber-300">
-                                                        Rev #{{ $task->reassignment_count }}
-                                                    </span>
-                                                @endif
+                                        <span class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200/70">
+                                            {{ $memberTasks->count() }} {{ \Illuminate\Support\Str::plural('Task', $memberTasks->count()) }} on {{ $dateSubtitle }}
+                                        </span>
+                                        @if($submittedCount > 0)
+                                            <span class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 animate-pulse flex items-center gap-1">
+                                                <i data-lucide="bell" class="w-3 h-3"></i>
+                                                <span>{{ $submittedCount }} Needs Review</span>
+                                            </span>
+                                        @endif
+                                        @if($pendingCount > 0)
+                                            <span class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                                {{ $pendingCount }} In Progress / Pending
+                                            </span>
+                                        @endif
+                                        @if($completedCount > 0)
+                                            <span class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                                {{ $completedCount }} Completed
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
 
-                                                @if($task->isOverdue())
-                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
-                                                        ⚠️ Overdue
-                                                    </span>
-                                                @endif
-                                            </div>
+                                <!-- Tasks List Under This Employee on this Date -->
+                                <div class="divide-y divide-slate-100">
+                                    @foreach($memberTasks as $task)
+                                        <div class="p-4 sm:p-5 hover:bg-slate-50/70 transition {{ $task->isReassigned() ? 'bg-amber-50/20' : '' }}" id="task-row-{{ $task->id }}">
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                <!-- Left: Task Info & Checkbox (for CEO) -->
+                                                <div class="flex items-start gap-3 flex-1 min-w-0">
+                                                    @if(auth()->user()->isCEO())
+                                                        <div class="pt-0.5 shrink-0">
+                                                            <input type="checkbox" name="selected_task_ids[]" value="{{ $task->id }}" data-member-id="{{ $memberId }}" class="task-select-checkbox w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer" onchange="updateSelectedCount()">
+                                                        </div>
+                                                    @endif
+                                                    <div class="space-y-1.5 flex-1 min-w-0">
+                                                        <div class="flex items-center gap-2 flex-wrap task-status-container-{{ $task->id }}">
+                                                            <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">{{ $task->title }}</h3>
 
-                                            <p class="text-xs text-slate-500 line-clamp-2 max-w-2xl">{{ $task->description }}</p>
+                                                            <!-- Status Badge -->
+                                                            @if(is_null($task->assigned_to))
+                                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                                                                    <i data-lucide="user-x" class="w-3 h-3"></i>
+                                                                    <span>Unassigned</span>
+                                                                </span>
+                                                            @elseif($task->status === 'completed')
+                                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                                    ✓ Completed
+                                                                </span>
+                                                            @elseif($task->status === 'submitted')
+                                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center gap-1">
+                                                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                                                    <span>Submitted • In Review</span>
+                                                                </span>
+                                                            @elseif($task->status === 'in-progress')
+                                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                                                                    {{ $task->isReassigned() ? '⚡ Revisions Active' : '⚙️ In Progress' }}
+                                                                </span>
+                                                            @else
+                                                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                                                    ⏳ Pending Start
+                                                                </span>
+                                                            @endif
 
-                                            <!-- Meta tags: Deadline, Active Countdown, Submitted timestamp, and TL Review status -->
-                                            <div class="flex items-center gap-2.5 text-[11px] text-slate-500 flex-wrap pt-1.5 task-meta-container-{{ $task->id }}">
-                                                <!-- Deadline -->
-                                                <div class="flex items-center gap-1 font-semibold text-slate-700">
-                                                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
-                                                    <span>Deadline: {{ $task->deadline->format('d M Y, h:i A') }}</span>
+                                                            @if($task->isReassigned())
+                                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-50 text-amber-900 border border-amber-300">
+                                                                    Rev #{{ $task->reassignment_count }}
+                                                                </span>
+                                                            @endif
+
+                                                            @if($task->isOverdue())
+                                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                                                                    ⚠️ Overdue
+                                                                </span>
+                                                            @endif
+                                                        </div>
+
+                                                        <p class="text-xs text-slate-500 line-clamp-2 max-w-2xl">{{ $task->description ?: 'No description provided.' }}</p>
+
+                                                        <!-- Meta tags: Deadline, Active Countdown, Submitted timestamp, and TL Review status -->
+                                                        <div class="flex items-center gap-2.5 text-[11px] text-slate-500 flex-wrap pt-1.5 task-meta-container-{{ $task->id }}">
+                                                            <!-- Deadline -->
+                                                            <div class="flex items-center gap-1 font-semibold text-slate-700">
+                                                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                                                                <span>Deadline: {{ $task->deadline ? $task->deadline->format('d M Y, h:i A') : 'No deadline' }}</span>
+                                                            </div>
+
+                                                            @if($task->isReassigned() && $task->previous_deadline)
+                                                                <span class="text-slate-400 line-through text-[10px]">
+                                                                    Prev: {{ $task->previous_deadline->format('d M, h:i A') }}
+                                                                </span>
+                                                            @endif
+
+                                                            <!-- 1. Employee Active Countdown (Only when in progress) -->
+                                                            @if(($task->status === 'pending' || $task->status === 'in-progress') && $task->assigned_to)
+                                                                <div class="employee-timer-container inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200" data-deadline="{{ $task->deadline?->toISOString() }}">
+                                                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                                                    <span>Time Left: <span class="font-mono font-black employee-countdown-val">{{ $task->due_label }}</span></span>
+                                                                </div>
+                                                            @endif
+
+                                                            <!-- 2. Delivered Timestamp (When submitted or completed) -->
+                                                            @if($task->submitted_at)
+                                                                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold">
+                                                                    <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                                                                    <span>Delivered: <strong class="font-mono text-indigo-950 font-bold">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
+                                                                </div>
+                                                            @endif
+
+                                                            <!-- TL Review Timer (Live when submitted) / Timestamp (when completed) -->
+                                                            @if($task->status === 'submitted')
+                                                                @php
+                                                                    $tlSubAt = $task->submitted_at ?? $task->updated_at;
+                                                                    $tlElapsedSecs = $tlSubAt ? max(0, (int) now()->diffInSeconds($tlSubAt)) : 0;
+                                                                    $tlH = floor($tlElapsedSecs / 3600);
+                                                                    $tlM = floor(($tlElapsedSecs % 3600) / 60);
+                                                                    $tlS = $tlElapsedSecs % 60;
+                                                                @endphp
+                                                                <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-900 text-[11px] font-semibold" data-submitted-at="{{ $tlSubAt?->toISOString() }}">
+                                                                    <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
+                                                                    <span>Reviewing: <strong class="font-mono text-purple-950 font-bold tl-review-timer-val">{{ sprintf('%02dh %02dm %02ds', $tlH, $tlM, $tlS) }}</strong></span>
+                                                                </div>
+                                                            @elseif($task->status === 'completed' && $task->reviewed_at)
+                                                                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] font-semibold">
+                                                                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                                                                    <span>Approved: <strong class="font-mono text-emerald-950 font-bold">{{ $task->reviewed_at->format('d M Y, h:i A') }}</strong></span>
+                                                                    @if($task->review_duration)
+                                                                        <span class="text-[10px] text-emerald-700">({{ $task->review_duration }})</span>
+                                                                    @endif
+                                                                </div>
+                                                            @endif
+
+                                                            @if($task->submission_link)
+                                                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
+                                                                    <i data-lucide="link" class="w-3 h-3 text-indigo-500"></i> Link Attached
+                                                                </span>
+                                                            @endif
+
+                                                            @if($task->submission_file)
+                                                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                                                                    <i data-lucide="file" class="w-3 h-3 text-amber-600"></i> {{ strtoupper($task->submission_file_type ?? 'File') }} Attached
+                                                                </span>
+                                                            @endif
+
+                                                            @if($task->drive_url)
+                                                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                                                    <i data-lucide="cloud" class="w-3 h-3 text-emerald-600"></i> Synced to Drive
+                                                                </span>
+                                                            @endif
+
+                                                            @if($task->overdue_reminder_sent_at)
+                                                                @if($task->overdue_reminder_type === 'automatic')
+                                                                    <span id="overdue-reminder-pill-{{ $task->id }}" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300" title="Automatic reminder sent to employee at {{ $task->overdue_reminder_sent_at->format('d M Y, h:i A') }}">
+                                                                        <i data-lucide="bot" class="w-3 h-3 text-amber-700"></i>
+                                                                        <span>Automatic Reminder Sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
+                                                                        @if($task->overdue_reminder_count > 1)
+                                                                            <span class="px-1 py-0.2 bg-amber-200/80 rounded text-[9px] font-black text-amber-950">({{ $task->overdue_reminder_count }}x)</span>
+                                                                        @endif
+                                                                    </span>
+                                                                @else
+                                                                    <span id="overdue-reminder-pill-{{ $task->id }}" class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300" title="Manual reminder sent by TL at {{ $task->overdue_reminder_sent_at->format('d M Y, h:i A') }}">
+                                                                        <i data-lucide="bell" class="w-3 h-3 text-blue-700"></i>
+                                                                        <span>Reminder Sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
+                                                                        @if($task->overdue_reminder_count > 1)
+                                                                            <span class="px-1 py-0.2 bg-blue-200/80 rounded text-[9px] font-black text-blue-950">({{ $task->overdue_reminder_count }}x)</span>
+                                                                        @endif
+                                                                    </span>
+                                                                @endif
+                                                            @else
+                                                                <span id="overdue-reminder-pill-{{ $task->id }}" class="hidden inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300"></span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                @if($task->isReassigned() && $task->previous_deadline)
-                                                    <span class="text-slate-400 line-through text-[10px]">
-                                                        Prev: {{ $task->previous_deadline->format('d M, h:i A') }}
-                                                    </span>
-                                                @endif
-
-                                                <!-- 1. Employee Active Countdown (Only when in progress) -->
-                                                @if($task->status === 'pending' || $task->status === 'in-progress')
-                                                    <div class="employee-timer-container inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200" data-deadline="{{ $task->deadline?->toISOString() }}">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                                        <span>Time Left: <span class="font-mono font-black employee-countdown-val">{{ $task->due_label }}</span></span>
-                                                    </div>
-                                                @endif
-
-                                                <!-- 2. Delivered Timestamp (When submitted or completed) -->
-                                                @if($task->submitted_at)
-                                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold">
-                                                        <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
-                                                        <span>Delivered: <strong class="font-mono text-indigo-950 font-bold">{{ $task->submitted_at->format('d M Y, h:i A') }}</strong></span>
-                                                    </div>
-                                                @endif
-
-                                                <!-- TL Review Timer (Live when submitted) / Timestamp (when completed) -->
-                                                @if($task->status === 'submitted')
-                                                    @php
-                                                        $tlSubAt = $task->submitted_at ?? $task->updated_at;
-                                                        $tlElapsedSecs = $tlSubAt ? max(0, (int) now()->diffInSeconds($tlSubAt)) : 0;
-                                                        $tlH = floor($tlElapsedSecs / 3600);
-                                                        $tlM = floor(($tlElapsedSecs % 3600) / 60);
-                                                        $tlS = $tlElapsedSecs % 60;
-                                                        $tlServerElapsed = sprintf('%02dh %02dm %02ds', $tlH, $tlM, $tlS);
-                                                    @endphp
-                                                    <div class="tl-review-timer-container inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-900 text-[10px] font-extrabold border border-purple-300 task-tl-review-timer-{{ $task->id }}" data-task-id="{{ $task->id }}" data-submitted-at="{{ ($task->submitted_at ?? $task->updated_at ?? now())->toISOString() }}">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
-                                                        <span>Awaiting Your Review: <span class="font-mono font-black text-purple-950 tl-review-timer-val">{{ $tlServerElapsed }}</span></span>
-                                                    </div>
-                                                @elseif($task->status === 'completed')
-                                                    <div class="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 task-tl-reviewed-badge-{{ $task->id }}">
-                                                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
-                                                        <span>Reviewed by TL: <strong class="font-mono text-emerald-950">{{ $task->reviewed_at ? $task->reviewed_at->format('d M Y, h:i A') : ($task->updated_at ? $task->updated_at->format('d M Y, h:i A') : 'Approved') }}</strong></span>
-                                                        @if($task->review_duration)
-                                                            <span class="text-[10px] text-emerald-600 font-semibold">({{ $task->review_duration }})</span>
-                                                        @endif
-                                                    </div>
-                                                @endif
-
-                                                <!-- Deliverables indicator tags (no duplicate buttons) -->
-                                                @if($task->submission_link)
-                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
-                                                        <i data-lucide="link" class="w-3 h-3 text-indigo-500"></i> Link Attached
-                                                    </span>
-                                                @endif
-
-                                                @if($task->submission_file)
-                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
-                                                        <i data-lucide="file" class="w-3 h-3 text-amber-600"></i> {{ strtoupper($task->submission_file_type ?? 'File') }} Attached
-                                                    </span>
-                                                @endif
-
-                                                @if($task->drive_url)
-                                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                                                        <i data-lucide="cloud" class="w-3 h-3 text-emerald-600"></i> Synced to Drive
-                                                    </span>
-                                                @endif
-
-                                                @if($task->overdue_reminder_sent_at)
-                                                    @if($task->overdue_reminder_type === 'automatic')
-                                                        <span id="overdue-reminder-pill-{{ $task->id }}" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300" title="Automatic reminder sent to employee at {{ $task->overdue_reminder_sent_at->format('d M Y, h:i A') }}">
-                                                            <i data-lucide="bot" class="w-3 h-3 text-amber-700"></i>
-                                                            <span>Automatic Reminder Sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
-                                                            @if($task->overdue_reminder_count > 1)
-                                                                <span class="px-1 py-0.2 bg-amber-200/80 rounded text-[9px] font-black text-amber-950">({{ $task->overdue_reminder_count }}x)</span>
-                                                            @endif
-                                                        </span>
-                                                    @else
-                                                        <span id="overdue-reminder-pill-{{ $task->id }}" class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300" title="Manual reminder sent by TL at {{ $task->overdue_reminder_sent_at->format('d M Y, h:i A') }}">
-                                                            <i data-lucide="bell" class="w-3 h-3 text-blue-700"></i>
-                                                            <span>Reminder Sent: {{ $task->overdue_reminder_sent_at->format('d M, h:i A') }}</span>
-                                                            @if($task->overdue_reminder_count > 1)
-                                                                <span class="px-1 py-0.2 bg-blue-200/80 rounded text-[9px] font-black text-blue-950">({{ $task->overdue_reminder_count }}x)</span>
-                                                            @endif
-                                                        </span>
+                                                <!-- Right: Clean Unified Single Button Group -->
+                                                <div class="flex items-center gap-2 shrink-0 sm:self-center w-full sm:w-auto justify-end task-actions-row-{{ $task->id }}">
+                                                    @if($task->isOverdue())
+                                                        <button type="button" id="overdue-alert-btn-{{ $task->id }}" onclick="sendOverdueAlertAjax(this, {{ $task->id }})" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition shadow-2xs flex items-center gap-1.5 cursor-pointer" title="{{ $task->overdue_reminder_sent_at ? 'Resend Overdue Reminder Email to Assignee' : 'Dispatch Formal Overdue Reminder Email to Assignee' }}">
+                                                            <i data-lucide="mail-warning" class="w-3.5 h-3.5"></i>
+                                                            <span>{{ $task->overdue_reminder_sent_at ? 'Resend Alert' : 'Send Alert' }}</span>
+                                                        </button>
                                                     @endif
-                                                @else
-                                                    <span id="overdue-reminder-pill-{{ $task->id }}" class="hidden inline-flex items-center gap-1 text-[10px] font-bold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300"></span>
-                                                @endif
+
+                                                    {{-- If task is unassigned, show quick Assign Member button --}}
+                                                    @if(is_null($task->assigned_to))
+                                                        <button type="button" onclick="openAssignMemberModal({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : '' }}')" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer" title="Assign this unassigned task to a team member">
+                                                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                                                            <span>Assign Member</span>
+                                                        </button>
+                                                    @else
+                                                        {{-- Option to Unassign task (overdue or active) --}}
+                                                        @if(!in_array($task->status, ['submitted', 'completed']) && is_null($task->submitted_at))
+                                                            @if($task->isOverdue())
+                                                                <button type="button" onclick="confirmUnassignTask({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ addslashes($assignee->name ?? 'Member') }}')" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Unassign this overdue task from {{ $assignee->name ?? 'member' }}">
+                                                                    <i data-lucide="user-x" class="w-3.5 h-3.5 text-rose-600"></i>
+                                                                    <span>Unassign (Overdue)</span>
+                                                                </button>
+                                                            @else
+                                                                <button type="button" onclick="confirmUnassignTask({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ addslashes($assignee->name ?? 'Member') }}')" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Unassign task from member">
+                                                                    <i data-lucide="user-x" class="w-3.5 h-3.5 text-slate-500"></i>
+                                                                    <span>Unassign</span>
+                                                                </button>
+                                                            @endif
+                                                        @endif
+                                                    @endif
+
+                                                    @if(!in_array($task->status, ['submitted', 'completed']) && is_null($task->submitted_at))
+                                                        <button type="button" onclick="openEditTaskModal({{ json_encode([
+                                                            'id' => $task->id,
+                                                            'title' => $task->title,
+                                                            'description' => $task->description ?? '',
+                                                            'assigned_to' => $task->assigned_to,
+                                                            'deadline' => $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : '',
+                                                        ]) }})" class="task-edit-btn-{{ $task->id }} px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-slate-200 cursor-pointer" title="Edit Task Specifications (Before Employee Submission)">
+                                                            <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-600"></i>
+                                                            <span>Edit</span>
+                                                        </button>
+                                                    @endif
+
+                                                    <button type="button" onclick="openDetailsModal({{ json_encode($task->id) }})" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-indigo-200/70 cursor-pointer">
+                                                        <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                                        <span>View Details</span>
+                                                    </button>
+
+                                                    @if($task->status === 'submitted')
+                                                        <form method="POST" action="{{ route('tasks.complete', $task) }}" class="m-0" onsubmit="approveTaskAjax(event, {{ $task->id }})">
+                                                            @csrf @method('PUT')
+                                                            <button type="submit" id="approve-btn-{{ $task->id }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
+                                                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                                                <span>Approve</span>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+
+                                                    @if(auth()->user()->isCEO())
+                                                        <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="m-0" onsubmit="return confirm('Are you sure you want to permanently delete task &quot;{{ addslashes($task->title) }}&quot; from history? This action cannot be undone.');">
+                                                            @csrf @method('DELETE')
+                                                            <button type="submit" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 rounded-xl font-bold text-xs transition shadow-2xs border border-rose-200/70 flex items-center gap-1 cursor-pointer" title="Permanently Delete Task from History">
+                                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                                <span class="hidden sm:inline">Delete</span>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <!-- Right: Clean Unified Single Button Group -->
-                                    <div class="flex items-center gap-2 shrink-0 sm:self-center w-full sm:w-auto justify-end task-actions-row-{{ $task->id }}">
-                                        @if($task->isOverdue())
-                                            <button type="button" id="overdue-alert-btn-{{ $task->id }}" onclick="sendOverdueAlertAjax(this, {{ $task->id }})" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition shadow-2xs flex items-center gap-1.5 cursor-pointer" title="{{ $task->overdue_reminder_sent_at ? 'Resend Overdue Reminder Email to Assignee' : 'Dispatch Formal Overdue Reminder Email to Assignee' }}">
-                                                <i data-lucide="mail-warning" class="w-3.5 h-3.5"></i>
-                                                <span>{{ $task->overdue_reminder_sent_at ? 'Resend Alert' : 'Send Alert' }}</span>
-                                            </button>
-                                        @endif
-
-                                        @if(!in_array($task->status, ['submitted', 'completed']) && is_null($task->submitted_at))
-                                            <button type="button" onclick="openEditTaskModal({{ json_encode([
-                                                'id' => $task->id,
-                                                'title' => $task->title,
-                                                'description' => $task->description ?? '',
-                                                'assigned_to' => $task->assigned_to,
-                                                'deadline' => $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : '',
-                                            ]) }})" class="task-edit-btn-{{ $task->id }} px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-slate-200 cursor-pointer" title="Edit Task Specifications (Before Employee Submission)">
-                                                <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-600"></i>
-                                                <span>Edit</span>
-                                            </button>
-                                        @endif
-
-                                        <button type="button" onclick="openDetailsModal({{ json_encode($task->id) }})" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-indigo-200/70 cursor-pointer">
-                                            <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-600"></i>
-                                            <span>View Details</span>
-                                        </button>
-
-                                        @if($task->status === 'submitted')
-                                            <form method="POST" action="{{ route('tasks.complete', $task) }}" class="m-0" onsubmit="approveTaskAjax(event, {{ $task->id }})">
-                                                @csrf @method('PUT')
-                                                <button type="submit" id="approve-btn-{{ $task->id }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
-                                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                                    <span>Approve</span>
-                                                </button>
-                                            </form>
-                                        @endif
-
-                                        @if(auth()->user()->isCEO())
-                                            <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="m-0" onsubmit="return confirm('Are you sure you want to permanently delete task &quot;{{ addslashes($task->title) }}&quot; from history? This action cannot be undone.');">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 rounded-xl font-bold text-xs transition shadow-2xs border border-rose-200/70 flex items-center gap-1 cursor-pointer" title="Permanently Delete Task from History">
-                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                                    <span class="hidden sm:inline">Delete</span>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
+                                    @endforeach
                                 </div>
                             </div>
                         @endforeach
@@ -481,7 +577,8 @@
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Assignee <span class="text-rose-500">*</span></label>
                     <span class="text-[10px] text-emerald-600 font-bold">🟢 Present Members Only</span>
                 </div>
-                <select id="editTaskAssignee" name="assigned_to" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required>
+                <select id="editTaskAssignee" name="assigned_to" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    <option value="">-- Unassigned (No Assignee) --</option>
                     @foreach($members as $m)
                         @php
                             $att = $todayAttendances->get($m->id);
@@ -503,6 +600,104 @@
             <div class="pt-2 flex items-center justify-end gap-2">
                 <button type="button" onclick="closeEditTaskModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" id="editTaskSubmitBtn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition cursor-pointer">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Confirm Unassign Task -->
+<div id="unassignTaskModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3.5 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center font-bold">
+                    <i data-lucide="user-x" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">Unassign Task</h3>
+                    <p class="text-[11px] text-slate-400">Detach member from this deliverable</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeUnassignModal()" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">✕</button>
+        </div>
+
+        <form id="unassignTaskForm" method="POST" action="" onsubmit="unassignTaskAjax(event)" class="space-y-4">
+            @csrf
+            <input type="hidden" id="unassignTaskId" value="">
+
+            <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 leading-relaxed">
+                Are you sure you want to unassign <strong id="unassignTaskTitle" class="text-slate-950">Task</strong> from <strong id="unassignMemberName" class="text-slate-950">Member</strong>?
+                <p class="mt-2 text-[11px] text-amber-700">The task will be removed from the member's assigned workload and kept as an unassigned task that you can delegate to another member at any time.</p>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeUnassignModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" id="unassignSubmitBtn" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
+                    <span>Confirm Unassign</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Assign Member to Unassigned Task -->
+<div id="assignMemberModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3.5 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center font-bold">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">Assign Task to Member</h3>
+                    <p class="text-[11px] text-slate-400">Delegate this deliverable to an active team member</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeAssignMemberModal()" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">✕</button>
+        </div>
+
+        <form id="assignMemberForm" method="POST" action="" onsubmit="assignMemberAjax(event)" class="space-y-4">
+            @csrf
+            @method('PUT')
+            <input type="hidden" id="assignMemberTaskId" value="">
+
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                <span class="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Task Title</span>
+                <span id="assignMemberTaskTitle" class="font-bold text-slate-800 text-sm block mt-0.5">Task Title</span>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Select Team Member <span class="text-rose-500">*</span></label>
+                    <span class="text-[10px] text-emerald-600 font-bold">🟢 Present Members Only</span>
+                </div>
+                <select id="assignMemberSelect" name="assigned_to" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required>
+                    <option value="">-- Select Active Present Member --</option>
+                    @foreach($members as $m)
+                        @php
+                            $att = $todayAttendances->get($m->id);
+                            $attStatus = $att ? $att->status : 'present';
+                            $isAbsent = in_array($attStatus, ['absent', 'on_leave']);
+                        @endphp
+                        <option value="{{ $m->id }}" {{ $isAbsent ? 'disabled class=text-slate-400' : '' }}>
+                            {{ $m->name }} ({{ strtoupper($m->role) }}) {{ $isAbsent ? '- ' . strtoupper(str_replace('_', ' ', $attStatus)) : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Update Deadline (Optional)</label>
+                <input type="datetime-local" id="assignMemberDeadline" name="deadline" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeAssignMemberModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" id="assignMemberSubmitBtn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    <span>Assign Task</span>
+                </button>
             </div>
         </form>
     </div>
@@ -778,12 +973,14 @@ function openDetailsModal(taskId) {
     if (!task) return;
 
     document.getElementById('detailTaskTitle').innerText = task.title;
-    document.getElementById('detailAssigneeName').innerText = task.assigned_to_user ? task.assigned_to_user.name : (task.assigned_to ? (task.assigned_to.name || 'Member') : 'Member');
+    document.getElementById('detailAssigneeName').innerText = task.assigned_to_user ? task.assigned_to_user.name : (task.assigned_to ? (task.assigned_to.name || 'Member') : 'Unassigned (No Member)');
     document.getElementById('detailDescription').innerText = task.description || 'No instructions provided.';
 
     // Status Badge
     let badgeHtml = '';
-    if (task.status === 'completed') {
+    if (!task.assigned_to) {
+        badgeHtml = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">⚠️ Unassigned</span>';
+    } else if (task.status === 'completed') {
         badgeHtml = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">✓ Completed</span>';
     } else if (task.status === 'submitted') {
         badgeHtml = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300">Submitted • In Review</span>';
@@ -795,7 +992,7 @@ function openDetailsModal(taskId) {
     document.getElementById('detailStatusBadge').innerHTML = badgeHtml;
 
     // Deadline
-    document.getElementById('detailDeadline').innerText = new Date(task.deadline).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    document.getElementById('detailDeadline').innerText = task.deadline ? new Date(task.deadline).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'No deadline';
 
     if (task.previous_deadline) {
         document.getElementById('detailPrevDeadlineContainer').classList.remove('hidden');
@@ -813,7 +1010,7 @@ function openDetailsModal(taskId) {
             empTimerStatusEl.innerText = 'Delivered & Submitted for TL Review';
         } else {
             subTimestampEl.innerText = 'Not submitted yet';
-            empTimerStatusEl.innerText = task.status === 'completed' ? 'Marked complete' : '⏱️ Active work in progress';
+            empTimerStatusEl.innerText = task.status === 'completed' ? 'Marked complete' : (task.assigned_to ? '⏱️ Active work in progress' : 'Waiting to be assigned');
         }
     }
 
@@ -940,7 +1137,7 @@ function openDetailsModal(taskId) {
             id: task.id,
             title: task.title || '',
             description: task.description || '',
-            assigned_to: typeof task.assigned_to === 'object' ? task.assigned_to.id : task.assigned_to,
+            assigned_to: typeof task.assigned_to === 'object' ? (task.assigned_to ? task.assigned_to.id : '') : (task.assigned_to || ''),
             deadline: task.deadline ? task.deadline.substring(0, 16) : ''
         }).replace(/"/g, '&quot;');
 
@@ -966,7 +1163,31 @@ function openDetailsModal(taskId) {
         `;
     }
 
-    // 2. Assign another task to this member
+    // 2. Unassign Task button (if assigned and active)
+    if (task.assigned_to && task.status !== 'submitted' && task.status !== 'completed' && !task.submitted_at) {
+        const assignedName = (task.assigned_to_user ? task.assigned_to_user.name : (task.assigned_to ? (task.assigned_to.name || 'Member') : 'Member')).replace(/'/g, "\\'");
+        const cleanTitle = (task.title || '').replace(/'/g, "\\'");
+        buttonsHtml += `
+            <button type="button" onclick="closeDetailsModal(); confirmUnassignTask(${task.id}, '${cleanTitle}', '${assignedName}')" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Unassign this task from member">
+                <i data-lucide="user-x" class="w-3.5 h-3.5 text-rose-600"></i>
+                <span>Unassign Task</span>
+            </button>
+        `;
+    }
+
+    // 3. Assign Member button (if currently unassigned)
+    if (!task.assigned_to) {
+        const cleanTitle = (task.title || '').replace(/'/g, "\\'");
+        const deadlineIso = task.deadline ? task.deadline.substring(0, 16) : '';
+        buttonsHtml += `
+            <button type="button" onclick="closeDetailsModal(); openAssignMemberModal(${task.id}, '${cleanTitle}', '${deadlineIso}')" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                <span>Assign to Member</span>
+            </button>
+        `;
+    }
+
+    // 4. Assign another task to this member
     if (task.assigned_to) {
         const targetMemberId = typeof task.assigned_to === 'object' ? task.assigned_to.id : task.assigned_to;
         buttonsHtml += `
@@ -1410,6 +1631,113 @@ async function updateTaskAjax(event) {
             if (window.lucide) lucide.createIcons();
         } else {
             showInstantToast(data.message || 'Failed to update task specifications.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    } catch (err) {
+        showInstantToast('Connection error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// 👤 Unassign Task Modals & Handlers
+function confirmUnassignTask(taskId, taskTitle, memberName) {
+    document.getElementById('unassignTaskId').value = taskId;
+    document.getElementById('unassignTaskTitle').innerText = taskTitle;
+    document.getElementById('unassignMemberName').innerText = memberName;
+    document.getElementById('unassignTaskForm').action = `/tasks/${taskId}/unassign`;
+    document.getElementById('unassignTaskModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeUnassignModal() {
+    document.getElementById('unassignTaskModal').classList.add('hidden');
+}
+
+async function unassignTaskAjax(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById('unassignSubmitBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Unassigning...';
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Task unassigned successfully!');
+            closeUnassignModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } else {
+            showInstantToast(data.message || 'Failed to unassign task.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    } catch (err) {
+        showInstantToast('Connection error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// ➕ Assign Unassigned Task to Member
+function openAssignMemberModal(taskId, taskTitle, currentDeadline) {
+    document.getElementById('assignMemberTaskId').value = taskId;
+    document.getElementById('assignMemberTaskTitle').innerText = taskTitle;
+    if (currentDeadline) {
+        document.getElementById('assignMemberDeadline').value = currentDeadline;
+    }
+    document.getElementById('assignMemberForm').action = `/tasks/${taskId}/assign-member`;
+    document.getElementById('assignMemberModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeAssignMemberModal() {
+    document.getElementById('assignMemberModal').classList.add('hidden');
+    document.getElementById('assignMemberForm').reset();
+}
+
+async function assignMemberAjax(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById('assignMemberSubmitBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Assigning...';
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showInstantToast(data.message || 'Task successfully assigned to member!');
+            closeAssignMemberModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } else {
+            showInstantToast(data.message || 'Failed to assign task.', 'error');
             btn.disabled = false;
             btn.innerHTML = origHtml;
         }

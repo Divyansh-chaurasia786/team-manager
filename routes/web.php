@@ -161,6 +161,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/tasks/{task}/reassign', [TaskController::class, 'reassign'])->name('tasks.reassign');
     Route::put('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/tasks/{task}/unassign', [TaskController::class, 'unassign'])->name('tasks.unassign');
+    Route::put('/tasks/{task}/assign-member', [TaskController::class, 'assignMember'])->name('tasks.assign_member');
     Route::post('/tasks/{task}/send-overdue-reminder', [TaskController::class, 'sendOverdueReminder'])->name('tasks.send_overdue_reminder');
     Route::post('/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('tasks.bulk_destroy');
 
