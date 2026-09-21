@@ -830,8 +830,8 @@ class TaskController extends Controller
                 'review_duration'          => $t->review_duration,
                 'due_label'                => $t->due_label,
                 'updates_count'            => $t->updates->count(),
-                'assignee_name'            => $t->assignedTo->name ?? '',
-                'assigner_name'            => $t->assignedBy->name ?? 'Team Lead',
+                'assignee_name'            => $t->assignedTo?->name ?? 'Unassigned',
+                'assigner_name'            => $t->assignedBy?->name ?? 'Team Lead',
                 'updated_at_timestamp'     => $t->updated_at?->timestamp,
             ];
         });

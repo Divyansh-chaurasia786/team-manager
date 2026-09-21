@@ -233,4 +233,58 @@ class TaskUnassignmentAndGroupingTest extends TestCase
         $task->refresh();
         $this->assertEquals($this->member2->id, $task->assigned_to);
     }
+
+    public function test_tl_and_ceo_dashboard_render_without_error_when_tasks_are_unassigned(): void
+    {
+        // Create an unassigned task with deadline in 1 day (triggers upcoming reminders)
+        $unassignedUpcoming = Task::create([
+            'title' => 'Upcoming Unassigned Task',
+            'description' => 'Awaiting assignee',
+            'assigned_to' => null,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->addDay(),
+            'status' => 'pending',
+        ]);
+
+        // Create an unassigned overdue task
+        $unassignedOverdue = Task::create([
+            'title' => 'Overdue Unassigned Task',
+            'description' => 'Was unassigned when overdue',
+            'assigned_to' => null,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->subDays(2),
+            'status' => 'pending',
+        ]);
+
+        // TL Dashboard should load without "Attempt to read property 'name' on null"
+        $tlResponse = $this->actingAs($this->tl)->get(route('tl.dashboard'));
+        $tlResponse->assertStatus(200);
+        $tlResponse->assertSee('Upcoming Unassigned Task', false);
+        $tlResponse->assertSee('Overdue Unassigned Task', false);
+        $tlResponse->assertSee('Unassigned', false);
+
+        // CEO Dashboard should also load without error
+        $ceo = User::create([
+            'name' => 'CEO User',
+            'username' => 'ceo_user',
+            'email' => 'ceo@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'ceo',
+            'must_change_password' => false,
+        ]);
+
+        $ceoResponse = $this->actingAs($ceo)->get(route('ceo.dashboard'));
+        $ceoResponse->assertStatus(200);
+
+        // Task sync JSON endpoint should also return Unassigned gracefully
+        $syncResponse = $this->actingAs($this->tl)->getJson(route('tasks.sync'));
+        $syncResponse->assertStatus(200);
+        $syncResponse->assertJsonFragment([
+            'title' => 'Upcoming Unassigned Task',
+            'assignee_name' => 'Unassigned',
+        ]);
+
+        // BrevoMailService::sendOverdueTaskReminder should safely return false on unassigned task
+        $this->assertFalse(\App\Services\BrevoMailService::sendOverdueTaskReminder($unassignedOverdue));
+    }
 }

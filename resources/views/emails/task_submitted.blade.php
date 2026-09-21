@@ -39,7 +39,7 @@
                 Dear <strong>{{ $tl->name }}</strong>,
             </p>
             <p style="font-size: 13px; color: #475569; line-height: 1.6;">
-                <strong>{{ $task->assignedTo->name }}</strong> has completed and submitted the deliverables for task <strong>"{{ $task->title }}"</strong>. Please inspect the submission details below and proceed to your dashboard to complete or request revisions.
+                <strong>{{ $task->assignedTo?->name ?? 'Team Member' }}</strong> has completed and submitted the deliverables for task <strong>"{{ $task->title }}"</strong>. Please inspect the submission details below and proceed to your dashboard to complete or request revisions.
             </p>
 
             <div class="detail-box">
@@ -50,8 +50,8 @@
 
                 <div class="detail-item">
                     <div class="detail-label">Submitted By (Team Member)</div>
-                    <div class="detail-value">{{ $task->assignedTo->name }} &bull; {{ $task->assignedTo->email }}</div>
-                    <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-top: 2px;">{{ $task->assignedTo->designation ?? 'Team Member' }}</div>
+                    <div class="detail-value">{{ $task->assignedTo?->name ?? 'Team Member' }} &bull; {{ $task->assignedTo?->email ?? '' }}</div>
+                    <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-top: 2px;">{{ $task->assignedTo?->designation ?? 'Team Member' }}</div>
                 </div>
 
                 <div class="detail-item">

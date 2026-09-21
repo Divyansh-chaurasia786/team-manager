@@ -89,7 +89,7 @@
                  data-task-id="{{ $task->id }}"
                  data-status="{{ $task->status }}"
                  data-category="{{ $isPending ? 'active' : ($isSubmitted ? 'submitted' : 'completed') }}"
-                 data-search-text="{{ strtolower($task->title . ' ' . $task->description . ' ' . ($task->assignedBy->name ?? '')) }}">
+                 data-search-text="{{ strtolower($task->title . ' ' . $task->description . ' ' . ($task->assignedBy?->name ?? '')) }}">
 
                 <!-- Row 1: Status Badge, Assigned By, and Quick Action Button -->
                 <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -124,7 +124,7 @@
 
                         <!-- Assigned By TL Chip -->
                         <span class="text-[11px] text-slate-500 font-medium truncate">
-                            by <strong class="text-slate-800 font-bold">{{ $task->assignedBy->name ?? 'Team Lead' }}</strong>
+                            by <strong class="text-slate-800 font-bold">{{ $task->assignedBy?->name ?? 'Team Lead' }}</strong>
                         </span>
                     </div>
 

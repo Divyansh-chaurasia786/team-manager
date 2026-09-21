@@ -114,7 +114,7 @@
                             <div class="mt-2.5 space-y-1 text-xs text-slate-500">
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Assigned to: <strong class="text-slate-800">{{ $task->assignedTo->name }}</strong></span>
+                                    <span>Assigned to: <strong class="text-slate-800">{{ $task->assignedTo?->name ?? 'Unassigned' }}</strong></span>
                                 </div>
                                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
                                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -296,7 +296,7 @@
                             <div class="mt-2.5 space-y-1 text-xs text-slate-500">
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Assigned to: <strong class="text-slate-800">{{ $otask->assignedTo->name ?? 'Member' }}</strong></span>
+                                    <span>Assigned to: <strong class="text-slate-800">{{ $otask->assignedTo?->name ?? 'Unassigned' }}</strong></span>
                                 </div>
                                 <div class="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
                                     <i data-lucide="calendar-x" class="w-3.5 h-3.5 text-rose-500"></i>
@@ -639,7 +639,7 @@
                                     <div class="text-[11px] text-slate-400 truncate max-w-xs">{{ $task->description }}</div>
                                 </td>
                                 <td class="py-3">
-                                    <span class="font-semibold text-slate-700">{{ $task->assignedTo->name ?? 'Member' }}</span>
+                                    <span class="font-semibold text-slate-700">{{ $task->assignedTo?->name ?? 'Unassigned' }}</span>
                                 </td>
                                 <td class="py-3 font-medium {{ $task->isOverdue() ? 'text-rose-600 font-bold' : 'text-slate-500' }}">
                                     <div class="flex items-center gap-1">

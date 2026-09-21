@@ -39,7 +39,7 @@
             </div>
 
             <p style="font-size: 15px; line-height: 1.6; margin-top: 0;">
-                Dear <strong>{{ $task->assignedTo->name }}</strong>,
+                Dear <strong>{{ $task->assignedTo?->name ?? 'Team Member' }}</strong>,
             </p>
             <p style="font-size: 13px; color: #475569; line-height: 1.6;">
                 @if($isReassignment)
@@ -57,7 +57,7 @@
 
                 <div class="detail-item">
                     <div class="detail-label">Assigned By (Supervisor)</div>
-                    <div class="detail-value">{{ $task->assignedBy->name }} ({{ strtoupper($task->assignedBy->role) }}) &bull; {{ $task->assignedBy->email }}</div>
+                    <div class="detail-value">{{ $task->assignedBy?->name ?? 'Supervisor' }} ({{ strtoupper($task->assignedBy?->role ?? 'TL') }}) &bull; {{ $task->assignedBy?->email ?? '' }}</div>
                 </div>
 
                 <div class="detail-item">

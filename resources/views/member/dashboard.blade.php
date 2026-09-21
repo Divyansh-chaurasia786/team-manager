@@ -110,7 +110,7 @@
                             <div class="mt-2.5 space-y-1 text-xs text-slate-500">
                                 <div class="flex items-center gap-1.5">
                                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Assigned by: <strong class="text-slate-800">{{ $task->assignedBy->name }}</strong></span>
+                                    <span>Assigned by: <strong class="text-slate-800">{{ $task->assignedBy?->name ?? 'Team Lead' }}</strong></span>
                                 </div>
                                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
                                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -663,7 +663,7 @@
                             <div class="min-w-0">
                                 <h4 class="text-xs sm:text-sm font-bold text-slate-900 truncate">{{ $task->title }}</h4>
                                 <div class="flex items-center gap-2 text-[11px] mt-0.5 flex-wrap">
-                                    <span class="text-slate-500">From: {{ $task->assignedBy->name }}</span>
+                                    <span class="text-slate-500">From: {{ $task->assignedBy?->name ?? 'Team Lead' }}</span>
                                     <span class="text-slate-400">•</span>
                                     <span class="font-semibold {{ $task->isOverdue() ? 'text-rose-600' : ($task->deadline->isToday() ? 'text-rose-600' : ($task->deadline->isTomorrow() ? 'text-amber-700' : 'text-slate-600')) }}">
                                         {{ $task->due_label }}

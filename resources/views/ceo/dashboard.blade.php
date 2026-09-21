@@ -145,12 +145,12 @@
                                         <div class="text-[11px] text-slate-500 flex items-center gap-3 flex-wrap">
                                             <span class="flex items-center gap-1">
                                                 <i data-lucide="user" class="w-3 h-3"></i>
-                                                {{ $task->assignedTo->name ?? 'Unknown' }}
+                                                {{ $task->assignedTo?->name ?? 'Unassigned' }}
                                             </span>
                                             @if($task->assignedBy)
                                                 <span class="flex items-center gap-1">
                                                     <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                                                    Assigned by {{ $task->assignedBy->name }}
+                                                    Assigned by {{ $task->assignedBy?->name ?? 'Supervisor' }}
                                                 </span>
                                             @endif
                                             @if($task->submitted_at)

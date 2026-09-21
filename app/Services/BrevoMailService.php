@@ -131,6 +131,10 @@ class BrevoMailService
      */
     public static function sendOverdueTaskReminder(\App\Models\Task $task): bool
     {
+        if (!$task->assignedTo || empty($task->assignedTo->email)) {
+            return false;
+        }
+
         if (app()->environment('testing')) {
             Mail::to($task->assignedTo->email)->send(new \App\Mail\OverdueTaskReminderMail($task));
             return true;
