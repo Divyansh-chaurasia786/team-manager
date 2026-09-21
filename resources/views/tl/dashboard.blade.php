@@ -887,8 +887,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // ⚡ 2. Live Sync Polling for TL Dashboard (Zero Page Reload - Smart Conditional Polling)
     let lastTlTaskHash = '';
-    let lastTlDashboardSyncTimestamp = 0;
-    let lastTlDashboardTotalCount = -1;
+    let lastTlDashboardSyncTimestamp = {{ now()->timestamp }};
+    let lastTlDashboardTotalCount = {{ $tasks->count() }};
 
     async function syncTLDashboardLive() {
         if (document.hidden) return;

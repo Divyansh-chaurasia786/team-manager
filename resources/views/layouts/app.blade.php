@@ -773,14 +773,19 @@
             <!-- Dynamic Unread Messages Background Polling -->
             <script>
                 (function() {
+                    let lastUnreadCount = -1;
                     async function checkUnreadChatMessages() {
                         if (document.hidden) return;
                         try {
-                            const res = await fetch('{{ route("thoughts.unread_count") }}', {
+                            const res = await fetch('{{ route('thoughts.unread_count') }}', {
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
                             });
                             if (!res.ok) return;
                             const data = await res.json();
+                            if (!data.success) return;
+                            if (data.unread_count === lastUnreadCount) return;
+                            lastUnreadCount = data.unread_count;
+
                             const container = document.getElementById('floatingChatBadgeContainer');
                             const tooltipCount = document.getElementById('floatingChatTooltipCount');
                             if (!container) return;
@@ -839,6 +844,9 @@
             if (window.lucide) { lucide.createIcons(); }
         });
     </script>
+
+    <!-- ⚡ InstantPage: Zero-latency predictive page preloading on hover/touch -->
+    <script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module" defer></script>
     @stack('scripts')
 </body>
 </html>

@@ -24,6 +24,7 @@ class TeamThoughtController extends Controller
         $this->sweepExpiredMedia();
 
         $user = Auth::user();
+        Cache::forget("user_{$user->id}_unread_thoughts_count");
         $isManagement = $user->isHR() || $user->isCEO();
 
         // If user is HR or CEO, they are not allowed to view private team chats
@@ -118,6 +119,33 @@ class TeamThoughtController extends Controller
 
         $tl = $user->isTL() ? $user : ($user->creator ?? $user);
         $afterId = (int) $request->get('after_id', 0);
+        $since = (int) $request->get('since', 0);
+
+        $baseCheck = TeamThought::query();
+        if ($groupType === 'team') {
+            $baseCheck->where('group_type', 'team')
+                      ->where(function ($q) use ($tl) {
+                          $q->where('tl_id', $tl->id)->orWhereNull('tl_id');
+                      });
+        } else {
+            $baseCheck->where('group_type', 'company');
+        }
+
+        $maxId = (clone $baseCheck)->max('id') ?: 0;
+        $maxUpdatedAt = (clone $baseCheck)->max('updated_at');
+        $maxTimestamp = $maxUpdatedAt ? strtotime($maxUpdatedAt) : 0;
+        $threshold = $since > 0 ? $since : now()->subSeconds(30)->timestamp;
+
+        if ($afterId > 0 && $afterId >= $maxId && $threshold >= $maxTimestamp) {
+            return response()->json([
+                'success'          => true,
+                'changed'          => false,
+                'messages'         => [],
+                'updated_messages' => [],
+                'latest_id'        => $afterId,
+                'timestamp'        => $maxTimestamp,
+            ]);
+        }
 
         $query = TeamThought::with(['user', 'driveUploader', 'deletedBy']);
 
@@ -138,8 +166,9 @@ class TeamThoughtController extends Controller
                 ->take(50)
                 ->get();
 
+            $sinceCarbon = $since > 0 ? \Carbon\Carbon::createFromTimestamp($since) : now()->subSeconds(30);
             $updatedThoughts = (clone $query)->where('id', '<=', $afterId)
-                ->where('updated_at', '>=', now()->subSeconds(30))
+                ->where('updated_at', '>=', $sinceCarbon)
                 ->latest('updated_at')
                 ->take(20)
                 ->get();
@@ -656,6 +685,8 @@ class TeamThoughtController extends Controller
                 $thought->update(['seen_by' => $seenBy]);
             }
         }
+
+        Cache::forget("user_{$user->id}_unread_thoughts_count");
     }
 
     /**
@@ -766,9 +797,13 @@ class TeamThoughtController extends Controller
             return response()->json(['success' => false, 'unread_count' => 0]);
         }
 
+        $count = Cache::remember("user_{$user->id}_unread_thoughts_count", 15, function () use ($user) {
+            return $user->unreadThoughtsCount();
+        });
+
         return response()->json([
             'success'      => true,
-            'unread_count' => $user->unreadThoughtsCount(),
+            'unread_count' => $count,
         ]);
     }
 }

@@ -1915,8 +1915,8 @@ setInterval(updateAllTaskTimers, 1000);
 
 // ⚡ Live Sync Polling for TL Task Stream (Detect Member Submissions in Real-Time)
 let lastTLTasksSyncState = {};
-let lastTLSyncTimestamp = 0;
-let lastTLKnownCount = -1;
+let lastTLSyncTimestamp = {{ now()->timestamp }};
+let lastTLKnownCount = {{ $tasks->count() }};
 
 async function liveSyncTLTasks() {
     // Dormant when tab is inactive

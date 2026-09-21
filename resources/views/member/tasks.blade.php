@@ -726,8 +726,8 @@ setInterval(updateAllTaskTimers, 1000);
 // ⚡ Real-Time Task Live Sync (Zero Page Reload - Smart Conditional Polling)
 let lastMemberTaskState = {};
 let isFirstMemberSync = true;
-let lastMemberSyncTimestamp = 0;
-let lastKnownTaskCount = -1;
+let lastMemberSyncTimestamp = {{ now()->timestamp }};
+let lastKnownTaskCount = {{ $tasks->count() }};
 
 async function liveSyncMemberTasks() {
     // Avoid hammering backend when tab is inactive or hidden

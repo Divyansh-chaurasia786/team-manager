@@ -1697,35 +1697,42 @@ window.addEventListener('focus', () => {
     pollNewMessages();
 });
 
+let lastChatSyncTimestamp = Math.floor(Date.now() / 1000);
+
 async function pollNewMessages() {
     if (document.hidden) return;
 
     try {
-        const res = await fetch(`{{ route('thoughts.messages') }}?group=${activeGroupType}&after_id=${latestMessageId}`, {
+        const res = await fetch(`{{ route('thoughts.messages') }}?group=${activeGroupType}&after_id=${latestMessageId}&since=${lastChatSyncTimestamp}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
+        if (!res.ok) return;
         const data = await res.json();
+        if (!data.success) return;
 
-        if (res.ok && data.success) {
-            if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
-                        renderMessageBubble(msg);
-                    }
-                });
+        // Fast-path: server confirms 0 changes, 0 new items -> exit immediately
+        if (data.changed === false) return;
 
-                latestMessageId = data.latest_id;
-                scrollToBottom();
-            }
+        if (data.timestamp) lastChatSyncTimestamp = data.timestamp;
 
-            if (data.updated_messages && data.updated_messages.length > 0) {
-                data.updated_messages.forEach(msg => {
-                    updateMessageReactionsDom(msg.id, msg.reactions, msg.is_me);
-                    if (msg.is_deleted) {
-                        updateDeletedMessageBubble(msg.id, msg.is_me);
-                    }
-                });
-            }
+        if (data.messages && data.messages.length > 0) {
+            data.messages.forEach(msg => {
+                if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
+                    renderMessageBubble(msg);
+                }
+            });
+
+            latestMessageId = data.latest_id;
+            scrollToBottom();
+        }
+
+        if (data.updated_messages && data.updated_messages.length > 0) {
+            data.updated_messages.forEach(msg => {
+                updateMessageReactionsDom(msg.id, msg.reactions, msg.is_me);
+                if (msg.is_deleted) {
+                    updateDeletedMessageBubble(msg.id, msg.is_me);
+                }
+            });
         }
     } catch (err) {
         console.warn('Live sync notice:', err);
