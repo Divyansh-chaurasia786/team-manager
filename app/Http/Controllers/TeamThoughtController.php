@@ -11,6 +11,7 @@ use App\Services\DriveService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class TeamThoughtController extends Controller
 {
@@ -664,8 +665,14 @@ class TeamThoughtController extends Controller
     {
         $mediaUrl = null;
         if (!$t->is_deleted) {
-            if ($t->media_path && file_exists(public_path($t->media_path))) {
-                $mediaUrl = asset($t->media_path);
+            if ($t->media_path) {
+                $mediaUrl = Cache::remember("thought_media_url_{$t->id}", now()->addDays(30), function () use ($t) {
+                    $fullPath = public_path($t->media_path);
+                    if (file_exists($fullPath)) {
+                        return asset($t->media_path) . '?v=' . filemtime($fullPath);
+                    }
+                    return null;
+                });
             } elseif ($t->drive_url) {
                 $mediaUrl = $t->drive_url;
             }

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class SettingsController extends Controller
 {
@@ -52,6 +53,8 @@ class SettingsController extends Controller
         $user->update([
             'profile_photo_path' => $relativePath,
         ]);
+
+        Cache::forget("user_avatar_url_{$user->id}");
 
         ActivityLog::log(
             action: 'profile_photo_updated',

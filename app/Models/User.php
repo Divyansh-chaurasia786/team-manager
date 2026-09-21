@@ -4,6 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
@@ -63,17 +64,43 @@ class User extends Authenticatable
         return $this->isLocked() ? (int) ceil(now()->diffInMinutes($this->locked_until, false)) : 0;
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function ($user) {
+            if ($user->isDirty('profile_photo_path')) {
+                Cache::forget("user_avatar_url_{$user->id}");
+            }
+        });
+
+        static::deleted(function ($user) {
+            Cache::forget("user_avatar_url_{$user->id}");
+        });
+    }
+
     public function isOtpExpired(): bool
     {
         return $this->otp_expires_at !== null && $this->otp_expires_at->isPast();
     }
 
+    /**
+     * Get the cached avatar URL with file versioning to eliminate repeat DB and disk calls.
+     */
     public function getAvatarUrlAttribute(): ?string
     {
-        if ($this->profile_photo_path && file_exists(public_path($this->profile_photo_path))) {
-            return asset($this->profile_photo_path);
+        $path = $this->profile_photo_path;
+        if (empty($path)) {
+            return null;
         }
-        return null;
+
+        $userId = $this->id;
+        return Cache::remember("user_avatar_url_{$userId}", now()->addDays(30), function () use ($path) {
+            $fullPath = public_path($path);
+            if (!empty($path) && file_exists($fullPath)) {
+                $mtime = filemtime($fullPath);
+                return asset($path) . '?v=' . $mtime;
+            }
+            return null;
+        });
     }
 
     public function tasks() { return $this->hasMany(Task::class, 'assigned_to'); }

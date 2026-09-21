@@ -6,10 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class TeamThought extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::saved(function ($thought) {
+            if ($thought->isDirty('media_path') || $thought->isDirty('is_deleted')) {
+                Cache::forget("thought_media_url_{$thought->id}");
+            }
+        });
+
+        static::deleted(function ($thought) {
+            Cache::forget("thought_media_url_{$thought->id}");
+        });
+    }
 
     protected $fillable = [
         'user_id',

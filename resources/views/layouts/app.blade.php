@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>EcoFone App - @yield('title', 'Operations')</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/logo_icon.png') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo_icon.png') }}?v=1">
+
+    @if(auth()->check() && auth()->user()->avatar_url)
+    <link rel="preload" as="image" href="{{ auth()->user()->avatar_url }}" fetchpriority="high">
+    @endif
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -325,7 +326,7 @@
                         <button @click="open = !open" type="button" class="flex items-center gap-2.5 p-1 sm:pr-3 bg-white hover:bg-slate-50/80 border border-slate-200/90 rounded-full shadow-2xs hover:shadow-xs hover:border-indigo-200/80 transition-all duration-150 cursor-pointer group">
                             <div class="relative shrink-0">
                                 @if(auth()->user()->avatar_url)
-                                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/20 shadow-2xs">
+                                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" loading="eager" decoding="async" class="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/20 shadow-2xs">
                                 @else
                                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 text-white font-black text-xs flex items-center justify-center shadow-xs ring-2 ring-indigo-400/20">
                                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
@@ -419,7 +420,7 @@
                     <div class="p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/20">
                         <div class="flex items-center gap-3">
                             @if(auth()->user()->avatar_url)
-                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-10 h-10 rounded-full object-cover border border-indigo-200 shadow-xs">
+                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" loading="eager" decoding="async" class="w-10 h-10 rounded-full object-cover border border-indigo-200 shadow-xs">
                             @else
                                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-black text-sm flex items-center justify-center shadow-xs">
                                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}

@@ -249,3 +249,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/my-tasks/{personalTask}/share', [PersonalTaskController::class, 'share'])->name('my-tasks.share');
     Route::post('/my-tasks/{personalTask}/unshare', [PersonalTaskController::class, 'unshare'])->name('my-tasks.unshare');
 });
+
+// High-performance cached media & upload serving with immutable HTTP headers
+Route::get('/uploads/{type}/{filename}', [\App\Http\Controllers\MediaController::class, 'serveUpload'])
+    ->withoutMiddleware([
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+    ])
+    ->where('type', '[a-zA-Z0-9_\-]+')
+    ->where('filename', '[a-zA-Z0-9_\-\.]+');
