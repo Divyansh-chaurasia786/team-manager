@@ -101,7 +101,7 @@ class GoogleAuthController extends Controller
         return null;
     }
 
-    public static function isConnected(): bool
+    public static function hasOAuthToken(): bool
     {
         $path = self::getTokenPath();
         if (file_exists($path)) {
@@ -112,14 +112,18 @@ class GoogleAuthController extends Controller
         }
 
         if (Cache::has('google_drive_token')) {
-            return true;
-        }
-
-        if (self::getServiceAccountData() !== null) {
-            return true;
+            $cached = Cache::get('google_drive_token');
+            if (is_array($cached) && (!empty($cached['access_token']) || !empty($cached['refresh_token']))) {
+                return true;
+            }
         }
 
         return false;
+    }
+
+    public static function isConnected(): bool
+    {
+        return self::hasOAuthToken();
     }
 
     public static function getConnectedAccount(): ?array
@@ -139,14 +143,11 @@ class GoogleAuthController extends Controller
             }
         }
 
-        $sa = self::getServiceAccountData();
-        if ($sa) {
-            return [
-                'email' => $sa['client_email'],
-                'name'  => 'EcoFone Drive Bot (' . ($sa['project_id'] ?? 'Google Cloud') . ')',
-                'type'  => 'Service Account',
-                'is_service_account' => true,
-            ];
+        if (Cache::has('google_drive_token')) {
+            $tokenData = Cache::get('google_drive_token');
+            if (is_array($tokenData) && !empty($tokenData['user_info'])) {
+                return $tokenData['user_info'];
+            }
         }
 
         return null;
@@ -160,8 +161,11 @@ class GoogleAuthController extends Controller
         $clientId = !empty($cachedOauth['client_id']) ? $cachedOauth['client_id'] : config('services.google.client_id');
         $clientSecret = !empty($cachedOauth['client_secret']) ? $cachedOauth['client_secret'] : config('services.google.client_secret');
         $redirectUri = config('services.google.redirect_uri');
-        if (empty($redirectUri)) {
+        if (empty($redirectUri) || (!app()->isLocal() && (str_contains($redirectUri, '127.0.0.1') || str_contains($redirectUri, 'localhost')))) {
             $redirectUri = url('/google/callback');
+            if (request()->isSecure() || request()->header('X-Forwarded-Proto') === 'https' || str_starts_with(config('app.url'), 'https://')) {
+                $redirectUri = secure_url('/google/callback');
+            }
         }
 
         // Check if client credentials are in an oauth_credentials.json file or in .env
@@ -265,12 +269,31 @@ class GoogleAuthController extends Controller
                 entityType: 'System'
             );
 
-            // Trigger root folder auto-creation in the connected user's Drive!
+            // Trigger root folder auto-creation and sync local files to the newly connected Drive
             try {
                 $driveService = new \App\Services\DriveService();
                 $driveService->resolveRootFolderId();
+
+                $localFiles = \App\Models\DriveFile::where('drive_file_id', 'like', 'local_%')->get();
+                foreach ($localFiles as $lf) {
+                    $parsedPath = parse_url($lf->drive_url, PHP_URL_PATH);
+                    $localPath = public_path(ltrim($parsedPath, '/'));
+                    if (file_exists($localPath)) {
+                        try {
+                            $res = $driveService->uploadFromPath($localPath, $lf->original_name, $lf->uploaded_by);
+                            $lf->update([
+                                'drive_file_id' => $res['drive_file_id'],
+                                'drive_url'     => $res['drive_url'],
+                                'file_type'     => $res['file_type'],
+                                'upload_date'   => $res['upload_date'],
+                            ]);
+                        } catch (\Throwable $uploadErr) {
+                            Log::warning("Could not sync local file #{$lf->id} to Drive: " . $uploadErr->getMessage());
+                        }
+                    }
+                }
             } catch (\Exception $e) {
-                Log::info('Drive root init notice: ' . $e->getMessage());
+                Log::info('Drive root init / sync notice: ' . $e->getMessage());
             }
 
             return redirect()->route('upload.index')->with('success', "Google Drive connected successfully as {$googleUser->getEmail()}! All folders will now be created automatically.");

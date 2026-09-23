@@ -40,8 +40,6 @@ class DriveUploadLimitTest extends TestCase
 
     public function test_drive_upload_has_no_file_size_limit_validation(): void
     {
-        Storage::fake('local');
-
         // Create a 150MB fake file (153600 KB) which exceeds previous 100MB (102400 KB) limit
         $largeFile = UploadedFile::fake()->create('large_footage.mp4', 153600, 'video/mp4');
 
@@ -49,8 +47,13 @@ class DriveUploadLimitTest extends TestCase
             'file' => $largeFile,
         ]);
 
-        // It should NOT fail validation (e.g. 422 with 'The file field must not be greater than 102400 kilobytes')
+        // It should NOT fail validation and should succeed
         $response->assertSessionDoesntHaveErrors(['file']);
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('drive_files', [
+            'original_name' => 'large_footage.mp4',
+            'file_type'     => 'video',
+        ]);
     }
 
     public function test_chat_media_upload_retains_50mb_size_limit(): void

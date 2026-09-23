@@ -46,45 +46,95 @@ class UploadController extends Controller
             'file' => 'required|file', // No file size limit on Google Drive upload
         ]);
 
-        $isConfigured = \App\Http\Controllers\GoogleAuthController::isConnected() 
-            || file_exists(base_path('credentials.json'))
-            || file_exists(base_path('oauth_credentials.json'));
+        $uploadedFile = $request->file('file');
+        $originalName = $uploadedFile->getClientOriginalName();
+        $today = now()->format('Y-m-d');
 
-        if (!$isConfigured) {
-            return back()->with('error', 'Google Drive is not connected yet. Please click "Connect Google Drive" below.');
-        }
-
+        // Detect file type
+        $driveService = null;
         try {
             $driveService = new DriveService();
-            $result = $driveService->uploadFile($request->file('file'), Auth::id());
-
-            $driveFile = DriveFile::create([
-                'uploaded_by'   => Auth::id(),
-                'original_name' => $request->file('file')->getClientOriginalName(),
-                'drive_file_id' => $result['drive_file_id'],
-                'drive_url'     => $result['drive_url'],
-                'file_type'     => $result['file_type'],
-                'upload_date'   => $result['upload_date'],
-            ]);
-
-            // Audit Log
-            ActivityLog::log(
-                action: 'file_uploaded',
-                description: sprintf('%s uploaded "%s" (%s) to Google Drive folder %s', 
-                    Auth::user()->name, 
-                    $driveFile->original_name, 
-                    ucfirst($driveFile->file_type), 
-                    $driveFile->upload_date
-                ),
-                entityType: 'DriveFile',
-                entityId: $driveFile->id
-            );
-
-            return back()->with('success', 'File uploaded to Google Drive successfully! ' . ucfirst($result['file_type']) . ' saved to ' . $result['upload_date'] . ' folder.');
-        } catch (\Exception $e) {
-            Log::error('Drive upload failed: ' . $e->getMessage());
-            return back()->with('error', 'Upload failed: ' . $e->getMessage());
+            $fileType = $driveService->detectTypeFromName($originalName, $uploadedFile->getRealPath());
+        } catch (\Throwable $e) {
+            $ext = strtolower($uploadedFile->getClientOriginalExtension());
+            $fileType = 'document';
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'])) $fileType = 'photo';
+            if (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm', 'flv'])) $fileType = 'video';
         }
+
+        // 1. If Google Drive OAuth is connected, upload directly to Google Drive
+        if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
+            try {
+                if (!$driveService) {
+                    $driveService = new DriveService();
+                }
+                $result = $driveService->uploadFile($uploadedFile, Auth::id());
+
+                $driveFile = DriveFile::create([
+                    'uploaded_by'   => Auth::id(),
+                    'original_name' => $originalName,
+                    'drive_file_id' => $result['drive_file_id'],
+                    'drive_url'     => $result['drive_url'],
+                    'file_type'     => $result['file_type'],
+                    'upload_date'   => $result['upload_date'],
+                ]);
+
+                // Audit Log
+                ActivityLog::log(
+                    action: 'file_uploaded',
+                    description: sprintf('%s uploaded "%s" (%s) to Google Drive folder %s', 
+                        Auth::user()->name, 
+                        $driveFile->original_name, 
+                        ucfirst($driveFile->file_type), 
+                        $driveFile->upload_date
+                    ),
+                    entityType: 'DriveFile',
+                    entityId: $driveFile->id
+                );
+
+                return back()->with('success', 'File uploaded to Google Drive successfully! ' . ucfirst($result['file_type']) . ' saved to ' . $result['upload_date'] . ' folder.');
+            } catch (\Exception $e) {
+                Log::error('Drive upload failed, falling back to local storage pipeline: ' . $e->getMessage());
+            }
+        }
+
+        // 2. Reliable Local Storage Pipeline: Saves file immediately so no upload is ever lost
+        $destination = public_path('uploads/drive/' . $today);
+        if (!file_exists($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $safeFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $uploadedFile->move($destination, $safeFileName);
+        $localRelativePath = 'uploads/drive/' . $today . '/' . $safeFileName;
+
+        $driveFile = DriveFile::create([
+            'uploaded_by'   => Auth::id(),
+            'original_name' => $originalName,
+            'drive_file_id' => 'local_' . uniqid(),
+            'drive_url'     => url($localRelativePath),
+            'file_type'     => $fileType,
+            'upload_date'   => $today,
+        ]);
+
+        ActivityLog::log(
+            action: 'file_uploaded',
+            description: sprintf('%s uploaded "%s" (%s) to local storage (folder %s)', 
+                Auth::user()->name, 
+                $driveFile->original_name, 
+                ucfirst($driveFile->file_type), 
+                $driveFile->upload_date
+            ),
+            entityType: 'DriveFile',
+            entityId: $driveFile->id
+        );
+
+        $msg = 'File uploaded successfully and saved! ';
+        if (!\App\Http\Controllers\GoogleAuthController::isConnected()) {
+            $msg .= 'To sync directly to your Google Drive cloud, please click "Connect Google Drive" above.';
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function download(DriveFile $file)
@@ -94,7 +144,7 @@ class UploadController extends Controller
         // Audit Log Download Action
         ActivityLog::log(
             action: 'file_downloaded',
-            description: sprintf('%s downloaded "%s" (%s) from Google Drive folder %s',
+            description: sprintf('%s downloaded "%s" (%s) from folder %s',
                 $user->name,
                 $file->original_name,
                 ucfirst($file->file_type),
@@ -103,6 +153,15 @@ class UploadController extends Controller
             entityType: 'DriveFile',
             entityId: $file->id
         );
+
+        // Check if file is stored locally
+        if (str_starts_with($file->drive_file_id, 'local_') || str_contains($file->drive_url, '/uploads/drive/')) {
+            $parsedPath = parse_url($file->drive_url, PHP_URL_PATH);
+            $localPath = public_path(ltrim($parsedPath, '/'));
+            if (file_exists($localPath)) {
+                return response()->download($localPath, $file->original_name);
+            }
+        }
 
         if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
             try {
@@ -128,7 +187,16 @@ class UploadController extends Controller
         $fileName = $file->original_name;
         $folder = $file->upload_date;
 
-        if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
+        // Delete local file if present
+        if (str_starts_with($file->drive_file_id, 'local_') || str_contains($file->drive_url, '/uploads/drive/')) {
+            $parsedPath = parse_url($file->drive_url, PHP_URL_PATH);
+            $localPath = public_path(ltrim($parsedPath, '/'));
+            if (file_exists($localPath)) {
+                @unlink($localPath);
+            }
+        }
+
+        if (\App\Http\Controllers\GoogleAuthController::isConnected() && !str_starts_with($file->drive_file_id, 'local_')) {
             try {
                 $driveService = new DriveService();
                 $driveService->deleteFile($file->drive_file_id);
@@ -142,7 +210,7 @@ class UploadController extends Controller
         // Audit Log
         ActivityLog::log(
             action: 'file_deleted',
-            description: sprintf('%s deleted "%s" from Google Drive folder %s', $user->name, $fileName, $folder),
+            description: sprintf('%s deleted "%s" from folder %s', $user->name, $fileName, $folder),
             entityType: 'DriveFile',
             entityId: null
         );
