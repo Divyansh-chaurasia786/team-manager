@@ -39,8 +39,11 @@ class UploadController extends Controller
 
     public function store(Request $request)
     {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+
         $request->validate([
-            'file' => 'required|file|max:102400', // 100MB max
+            'file' => 'required|file', // No file size limit on Google Drive upload
         ]);
 
         $isConfigured = \App\Http\Controllers\GoogleAuthController::isConnected() 

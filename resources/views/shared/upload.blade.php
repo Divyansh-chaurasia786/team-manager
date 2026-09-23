@@ -110,7 +110,7 @@
                             <i data-lucide="cloud-upload" class="w-6 h-6"></i>
                         </div>
                         <h4 class="text-sm font-bold text-slate-800 mt-3 mb-1">Click or drag file to upload</h4>
-                        <p class="text-xs text-slate-400">Max file size 100MB</p>
+                        <p class="text-xs text-emerald-600 font-semibold flex items-center justify-center gap-1.5"><i data-lucide="infinity" class="w-3.5 h-3.5"></i> No upload limit &bull; Unlimited file size</p>
                         
                         <div class="flex items-center justify-center gap-1.5 mt-3 flex-wrap">
                             <span class="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-600">JPG, PNG, WEBP</span>

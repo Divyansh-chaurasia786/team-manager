@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class DriveService
 {
+    protected Client $client;
     protected Drive $drive;
     protected string $rootFolderId;
 
@@ -59,6 +60,7 @@ class DriveService
             }
         }
 
+        $this->client = $client;
         $this->drive = new Drive($client);
         $this->rootFolderId = $this->resolveRootFolderId();
     }
@@ -130,12 +132,7 @@ class DriveService
             'parents' => [$typeFolderId],
         ]);
 
-        $result = $this->drive->files->create($fileMetadata, [
-            'data'       => file_get_contents($file->getRealPath()),
-            'mimeType'   => $file->getMimeType(),
-            'uploadType' => 'multipart',
-            'fields'     => 'id, webViewLink, webContentLink',
-        ]);
+        $result = $this->executeUpload($fileMetadata, $file->getRealPath(), $file->getMimeType() ?: 'application/octet-stream');
 
         // Make file viewable and downloadable by anyone with link
         $permission = new \Google\Service\Drive\Permission([
@@ -172,12 +169,7 @@ class DriveService
             'parents' => [$typeFolderId],
         ]);
 
-        $result = $this->drive->files->create($fileMetadata, [
-            'data'       => file_get_contents($absolutePath),
-            'mimeType'   => $mimeType,
-            'uploadType' => 'multipart',
-            'fields'     => 'id, webViewLink, webContentLink',
-        ]);
+        $result = $this->executeUpload($fileMetadata, $absolutePath, $mimeType);
 
         // Make file viewable and downloadable by anyone with link
         $permission = new \Google\Service\Drive\Permission([
@@ -192,6 +184,59 @@ class DriveService
             'file_type'     => $fileType,
             'upload_date'   => $today,
         ];
+    }
+
+    /**
+     * Executes upload to Google Drive.
+     * Uses resumable chunked upload for files > 5MB to support unlimited file sizes without memory exhaustion.
+     */
+    protected function executeUpload(GoogleDriveFile $fileMetadata, string $filePath, string $mimeType)
+    {
+        $fileSize = file_exists($filePath) ? (int) filesize($filePath) : 0;
+
+        // If file is large (> 5MB), upload in resumable 5MB chunks
+        if ($fileSize > 5 * 1024 * 1024 && isset($this->client)) {
+            try {
+                $chunkSizeBytes = 5 * 1024 * 1024;
+                $this->client->setDefer(true);
+                $request = $this->drive->files->create($fileMetadata, ['fields' => 'id, webViewLink, webContentLink']);
+                $media = new \Google\Http\MediaFileUpload(
+                    $this->client,
+                    $request,
+                    $mimeType,
+                    null,
+                    true,
+                    $chunkSizeBytes
+                );
+                $media->setFileSize($fileSize);
+
+                $status = false;
+                $handle = fopen($filePath, 'rb');
+                while (!$status && !feof($handle)) {
+                    $chunk = fread($handle, $chunkSizeBytes);
+                    $status = $media->nextChunk($chunk);
+                }
+                fclose($handle);
+                $this->client->setDefer(false);
+
+                if ($status && is_object($status) && method_exists($status, 'getId')) {
+                    return $status;
+                }
+            } catch (\Throwable $e) {
+                if (isset($this->client)) {
+                    $this->client->setDefer(false);
+                }
+                Log::warning('Resumable chunked upload failed, falling back to standard upload: ' . $e->getMessage());
+            }
+        }
+
+        // Standard multipart upload
+        return $this->drive->files->create($fileMetadata, [
+            'data'       => file_get_contents($filePath),
+            'mimeType'   => $mimeType,
+            'uploadType' => 'multipart',
+            'fields'     => 'id, webViewLink, webContentLink',
+        ]);
     }
 
     public function getDirectDownloadUrl(string $fileId): string
