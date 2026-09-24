@@ -470,18 +470,34 @@
                 <i data-lucide="file" class="w-4 h-4 text-slate-400"></i>
                 <span>Files (<span x-text="filteredFiles.length"></span>)</span>
             </h3>
+            <!-- Quick Expand/Collapse indicator & action -->
+            <div class="flex items-center gap-2">
+                <span class="text-[11px] text-slate-400 font-medium" x-text="expandedGroupKey ? '1 card expanded' : 'All cards collapsed'"></span>
+                <template x-if="expandedGroupKey">
+                    <button 
+                        type="button" 
+                        @click="expandedGroupKey = null" 
+                        class="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                    >
+                        Collapse all
+                    </button>
+                </template>
+            </div>
         </div>
 
         <!-- Grouped View: Instagram / YouTube ID → Date → Uploader -->
         <template x-if="filteredFiles.length > 0">
-            <div class="space-y-5">
+            <div class="space-y-4">
                 <template x-for="group in groupedFiles" :key="group.accountKey">
-                    <!-- LEVEL 1: Instagram or YouTube ID Group -->
-                    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    <!-- LEVEL 1: Instagram or YouTube ID Group (Accordion Card) -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-200"
+                         :class="{ 'ring-2 ring-indigo-500/20 border-indigo-300': expandedGroupKey === group.accountKey }">
                         
-                        <!-- Account ID Group Header -->
-                        <div class="px-4 py-3.5 border-b flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap"
+                        <!-- Account ID Group Header (Clickable Accordion Trigger) -->
+                        <div class="px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap cursor-pointer select-none transition hover:brightness-98"
+                             @click="toggleGroup(group.accountKey)"
                              :class="{
+                                'border-b': expandedGroupKey === group.accountKey,
                                 'bg-gradient-to-r from-pink-50/90 via-purple-50/60 to-indigo-50/80 border-pink-200': group.platform === 'instagram' || group.accountKey.startsWith('@'),
                                 'bg-gradient-to-r from-red-50/90 to-slate-50 border-red-200': group.platform === 'youtube' || group.accountKey.toLowerCase().includes('youtube'),
                                 'bg-gradient-to-r from-slate-100 to-slate-50 border-slate-200': group.accountKey === 'general',
@@ -529,23 +545,44 @@
                                         <template x-if="group.shootTitle">
                                             <span class="text-indigo-600 font-bold">&bull; Shoot: <span x-text="group.shootTitle"></span></span>
                                         </template>
+                                        <span class="text-slate-400">&bull;</span>
+                                        <span class="text-slate-400 italic text-[10px]" x-text="expandedGroupKey === group.accountKey ? 'Click to collapse' : 'Click to expand'"></span>
                                     </p>
                                 </div>
                             </div>
 
-                            <button 
-                                type="button" 
-                                @click="selectedAccountHandle = (group.accountKey !== 'general' ? group.accountKey : ''); selectedShootId = (group.contentShootId || ''); selectedPlatform = group.platform; $refs.fileInput.click()"
-                                class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
-                                title="Upload more videos or images for this ID"
-                            >
-                                <i data-lucide="plus" class="w-3.5 h-3.5 text-indigo-600"></i>
-                                <span>Upload to this ID</span>
-                            </button>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button 
+                                    type="button" 
+                                    @click.stop="selectedAccountHandle = (group.accountKey !== 'general' ? group.accountKey : ''); selectedShootId = (group.contentShootId || ''); selectedPlatform = group.platform; $refs.fileInput.click()"
+                                    class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                                    title="Upload more videos or images for this ID"
+                                >
+                                    <i data-lucide="plus" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                    <span>Upload to this ID</span>
+                                </button>
+
+                                <!-- Accordion Toggle Icon Button -->
+                                <button 
+                                    type="button"
+                                    class="w-8 h-8 rounded-xl bg-white/90 border border-slate-200/90 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-all duration-200 shadow-2xs cursor-pointer"
+                                    :title="expandedGroupKey === group.accountKey ? 'Collapse card' : 'Expand card'"
+                                >
+                                    <i 
+                                        data-lucide="chevron-down" 
+                                        class="w-4 h-4 transition-transform duration-200"
+                                        :class="{ 'rotate-180 text-indigo-600': expandedGroupKey === group.accountKey }"
+                                    ></i>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- LEVEL 2: Date Sub-groups inside this task group -->
-                        <div class="divide-y divide-slate-100">
+                        <!-- LEVEL 2: Date Sub-groups inside this task group (Accordion Body) -->
+                        <div 
+                            x-show="expandedGroupKey === group.accountKey" 
+                            x-cloak
+                            class="divide-y divide-slate-100"
+                        >
                             <template x-for="dateGroup in group.dateGroups" :key="dateGroup.date">
                                 <div class="px-4 py-3">
                                     
@@ -1432,6 +1469,20 @@ function driveApp() {
         assignTargetShootId: '',
         assignTargetPlatform: '',
 
+        // Collapsible Account Cards Accordion State
+        expandedGroupKey: null, // Cards are collapsed by default; opening one card automatically collapses all other cards!
+
+        toggleGroup(key) {
+            if (this.expandedGroupKey === key) {
+                this.expandedGroupKey = null; // Collapse if clicking the currently open card
+            } else {
+                this.expandedGroupKey = key; // Open this card and automatically collapse any other open card!
+            }
+            this.$nextTick(() => {
+                if (window.lucide) lucide.createIcons();
+            });
+        },
+
         // Dynamic upload progress drawer
         uploads: [],
         uploadDrawerOpen: false,
@@ -1689,6 +1740,16 @@ function driveApp() {
             this.$watch('filteredFolders', () => {
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
+            this.$watch('searchQuery', (val) => {
+                if (val && val.trim().length > 0 && this.groupedFiles.length > 0) {
+                    this.expandedGroupKey = this.groupedFiles[0].accountKey;
+                }
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            });
+
+            if (this.selectedAccountHandle) {
+                this.expandedGroupKey = this.selectedAccountHandle.trim().toLowerCase();
+            }
 
             // Tab visibility change: restore tab title & refresh icons when tab is focused
             document.addEventListener('visibilitychange', () => {
@@ -1822,6 +1883,8 @@ function driveApp() {
                             this.showToast(res.message || 'File uploaded successfully!');
                             if (res.file) {
                                 this.files.unshift(res.file);
+                                const acc = res.file.account_handle ? res.file.account_handle.trim().toLowerCase() : (res.file.target_account && res.file.target_account !== 'General / No Account' ? res.file.target_account.trim().toLowerCase() : 'general');
+                                this.expandedGroupKey = acc;
                             } else if (res.files && res.files.length) {
                                 res.files.forEach(f => this.files.unshift(f));
                             }
