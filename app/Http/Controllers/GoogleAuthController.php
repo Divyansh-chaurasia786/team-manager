@@ -296,10 +296,17 @@ class GoogleAuthController extends Controller
                 Log::info('Drive root init / sync notice: ' . $e->getMessage());
             }
 
-            return redirect()->route('upload.index')->with('success', "Google Drive connected successfully as {$googleUser->getEmail()}! All folders will now be created automatically.");
+            if (Auth::check()) {
+                return redirect()->route('upload.index')->with('success', "Google Drive connected successfully as {$googleUser->getEmail()}! All folders will now be created automatically in your 5 TB storage.");
+            }
+
+            return response("<!DOCTYPE html><html><head><meta charset='utf-8'><title>Google Drive Connected</title><meta name='viewport' content='width=device-width, initial-scale=1'><style>body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1.5rem;box-sizing:border-box;}.box{background:#1e293b;border:1px solid #334155;border-radius:1rem;padding:2.5rem;max-width:440px;width:100%;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);}.badge{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:rgba(16,185,129,0.15);color:#10b981;margin-bottom:1.25rem;font-size:32px;font-weight:bold;}h1{font-size:1.5rem;margin:0 0 0.75rem;color:#f8fafc;}p{color:#94a3b8;font-size:0.95rem;line-height:1.5;margin:0 0 1.5rem;}a{display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;padding:0.75rem 1.75rem;border-radius:0.5rem;transition:background 0.2s;}a:hover{background:#1d4ed8;}</style></head><body><div class='box'><div class='badge'>✓</div><h1>5 TB Google Drive Connected!</h1><p>Successfully authorized <strong>" . htmlspecialchars($googleUser->getEmail()) . "</strong>.<br>EcoFone Team Manager is now permanently configured in the background.</p><a href='/upload'>Open Upload Portal</a></div></body></html>", 200, ['Content-Type' => 'text/html']);
         } catch (\Throwable $e) {
             Log::error('Google OAuth callback failed: ' . $e->getMessage());
-            return redirect()->route('upload.index')->with('error', 'Connection failed: ' . $e->getMessage());
+            if (Auth::check()) {
+                return redirect()->route('upload.index')->with('error', 'Connection failed: ' . $e->getMessage());
+            }
+            return response("<!DOCTYPE html><html><head><meta charset='utf-8'><title>Connection Error</title><meta name='viewport' content='width=device-width, initial-scale=1'><style>body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1.5rem;box-sizing:border-box;}.box{background:#1e293b;border:1px solid #ef4444;border-radius:1rem;padding:2.5rem;max-width:440px;width:100%;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);}.badge{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:rgba(239,68,68,0.15);color:#ef4444;margin-bottom:1.25rem;font-size:32px;font-weight:bold;}h1{font-size:1.5rem;margin:0 0 0.75rem;color:#f8fafc;}p{color:#94a3b8;font-size:0.95rem;line-height:1.5;margin:0 0 1.5rem;}a{display:inline-block;background:#334155;color:#ffffff;text-decoration:none;font-weight:600;padding:0.75rem 1.75rem;border-radius:0.5rem;}</style></head><body><div class='box'><div class='badge'>✕</div><h1>Connection Failed</h1><p>" . htmlspecialchars($e->getMessage()) . "</p><a href='/google/connect'>Try Again</a></div></body></html>", 500, ['Content-Type' => 'text/html']);
         }
     }
 

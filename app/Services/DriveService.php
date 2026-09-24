@@ -47,6 +47,7 @@ class DriveService
                     if (!isset($newToken['error'])) {
                         $updatedPayload = array_merge($tokenData, $newToken);
                         file_put_contents($tokenPath, json_encode($updatedPayload, JSON_PRETTY_PRINT));
+                        \Illuminate\Support\Facades\Cache::forever('google_drive_token', $updatedPayload);
                         $client->setAccessToken($updatedPayload);
                     }
                 } catch (\Exception $e) {

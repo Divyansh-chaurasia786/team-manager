@@ -116,6 +116,10 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Google Drive 1-Click OAuth Integration (Accessible for initial authorization)
+Route::get('/google/connect', [\App\Http\Controllers\GoogleAuthController::class, 'connect'])->name('google.connect');
+Route::get('/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
+
 // TL-only routes
 Route::middleware(['auth', 'role:tl'])->prefix('tl')->name('tl.')->group(function () {
     Route::get('/dashboard', [TLDashboardController::class, 'index'])->name('dashboard');
@@ -195,9 +199,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/drive/stream/{file}', [UploadController::class, 'stream'])->name('drive.stream');
     Route::delete('/drive/files/{file}', [UploadController::class, 'destroy'])->name('drive.destroy');
 
-    // Google Drive 1-Click OAuth Integration
-    Route::get('/google/connect', [\App\Http\Controllers\GoogleAuthController::class, 'connect'])->name('google.connect');
-    Route::get('/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
+    // Google Drive Credentials Configuration
     Route::post('/google/disconnect', [\App\Http\Controllers\GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
     Route::post('/google/configure', [\App\Http\Controllers\GoogleAuthController::class, 'configureCredentials'])->name('google.configure');
 
