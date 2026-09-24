@@ -921,7 +921,7 @@
                                 :src="previewItem?.stream_url || previewItem?.drive_url" 
                                 class="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl mx-auto" 
                                 alt="Preview"
-                                @error="previewMediaError = true"
+                                x-on:error="previewMediaError = true"
                             >
                         </template>
 
@@ -936,7 +936,7 @@
                                     playsinline 
                                     preload="auto" 
                                     class="max-h-[76vh] w-full max-w-4xl rounded-2xl shadow-2xl bg-black mx-auto"
-                                    @error="previewMediaError = true"
+                                    x-on:error="previewMediaError = true"
                                 ></video>
                             </div>
                         </template>
