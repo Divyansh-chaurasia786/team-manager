@@ -25,6 +25,7 @@ class SendOverdueTaskReminders extends Command
         // 2. status is not 'submitted' or 'completed'
         $force = (bool) $this->option('force');
         $query = \App\Models\Task::with(['assignedTo', 'assignedBy'])
+            ->whereNotNull('assigned_to')
             ->where('deadline', '<', $now)
             ->whereNotIn('status', ['submitted', 'completed']);
 

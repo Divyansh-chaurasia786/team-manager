@@ -171,4 +171,23 @@ class OverdueTaskReminderTest extends TestCase
         $this->assertStringContainsString('Please include CSV export check as well.', $rendered);
         $this->assertStringContainsString('View & Submit Deliverable', $rendered);
     }
+
+    public function test_unassigned_tasks_past_deadline_do_not_trigger_overdue_reminders(): void
+    {
+        Mail::fake();
+
+        Task::create([
+            'title' => 'Unassigned Project Awaiting Delegation',
+            'description' => 'Has no assigned team member',
+            'assigned_to' => null,
+            'assigned_by' => $this->tl->id,
+            'deadline' => now()->subDays(3),
+            'status' => 'pending',
+        ]);
+
+        $this->artisan('tasks:send-overdue-reminders')
+            ->assertExitCode(0);
+
+        Mail::assertNothingSent();
+    }
 }

@@ -25,6 +25,19 @@ class TaskController extends Controller
             // CEO sees all tasks
             $tasks = $tasksQuery->latest()->get();
 
+            // 1. Live Tasks: ONLY actively assigned deliverables currently in progress, pending, or submitted
+            $liveTasks = $tasks->filter(function($task) {
+                return !empty($task->assigned_to) && $task->status !== 'completed';
+            })->values();
+
+            // 2. History Tasks: ALL historical records (Completed tasks, Unassigned tasks, past archives)
+            $historyTasks = $tasks->filter(function($task) {
+                return empty($task->assigned_to) || $task->status === 'completed';
+            })->values();
+
+            $completedTasks = $tasks->where('status', 'completed')->values();
+            $unassignedTasks = $tasks->whereNull('assigned_to')->values();
+
             $members = $user->isTL()
                 ? User::where('created_by', $user->id)->get()
                 : User::whereIn('role', ['member', 'tl', 'hr'])->get(); // CEO can assign to anyone
@@ -35,7 +48,10 @@ class TaskController extends Controller
                 ->get()
                 ->keyBy('user_id');
 
-            return view('tl.tasks', compact('tasks', 'members', 'todayAttendances', 'today'));
+            return view('tl.tasks', compact(
+                'tasks', 'liveTasks', 'historyTasks', 'completedTasks', 'unassignedTasks',
+                'members', 'todayAttendances', 'today'
+            ));
         }
 
         $tasks = Task::with(['assignedBy', 'updates'])->where('assigned_to', $user->id)->latest()->get();

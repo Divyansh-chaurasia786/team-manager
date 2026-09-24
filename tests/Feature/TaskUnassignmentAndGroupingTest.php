@@ -256,12 +256,19 @@ class TaskUnassignmentAndGroupingTest extends TestCase
             'status' => 'pending',
         ]);
 
-        // TL Dashboard should load without "Attempt to read property 'name' on null"
+        // TL Dashboard should load cleanly, and unassigned tasks must NOT show as overdue on the dashboard
         $tlResponse = $this->actingAs($this->tl)->get(route('tl.dashboard'));
         $tlResponse->assertStatus(200);
-        $tlResponse->assertSee('Upcoming Unassigned Task', false);
-        $tlResponse->assertSee('Overdue Unassigned Task', false);
-        $tlResponse->assertSee('Unassigned', false);
+        $tlResponse->assertDontSee('Overdue Unassigned Task');
+
+        // Unassigned task must not be flagged as overdue
+        $this->assertFalse($unassignedOverdue->isOverdue());
+
+        // Task History tab shows unassigned tasks awaiting delegation
+        $tasksHistoryResponse = $this->actingAs($this->tl)->get(route('tasks.index', ['tab' => 'history']));
+        $tasksHistoryResponse->assertStatus(200);
+        $tasksHistoryResponse->assertSee('Overdue Unassigned Task', false);
+        $tasksHistoryResponse->assertSee('Unassigned', false);
 
         // CEO Dashboard should also load without error
         $ceo = User::create([

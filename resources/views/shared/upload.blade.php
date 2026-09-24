@@ -154,6 +154,39 @@
                 <i data-lucide="infinity" class="w-3.5 h-3.5"></i>
                 <span>No upload limit &bull; Unlimited file size</span>
             </div>
+
+            <!-- Dedicated Upload Progress Drawer Trigger Button (Always accessible) -->
+            <button 
+                type="button" 
+                @click="openUploadDrawer()"
+                class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border shadow-2xs"
+                :class="activeUploadsCount > 0 
+                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-600/20' 
+                    : (uploads.length > 0 
+                        ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' 
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50')"
+                title="View upload progress drawer"
+            >
+                <template x-if="activeUploadsCount > 0">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="cloud-upload" class="w-4 h-4 animate-bounce"></i>
+                        <span x-text="`Uploading (${activeUploadsCount})`"></span>
+                        <span class="px-1.5 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-mono font-bold" x-text="overallProgress + '%'"></span>
+                    </span>
+                </template>
+                <template x-if="activeUploadsCount === 0 && uploads.length > 0">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        <span x-text="`Uploads (${uploads.length})`"></span>
+                    </span>
+                </template>
+                <template x-if="uploads.length === 0">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="cloud-upload" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>Uploads</span>
+                    </span>
+                </template>
+            </button>
         </div>
 
         <!-- Right: Search, Filter Tabs & View Toggle -->
@@ -576,35 +609,110 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- GOOGLE DRIVE-STYLE FLOATING UPLOAD PROGRESS DRAWER (BOTTOM-RIGHT) -->
+    <!-- PERSISTENT FLOATING REOPEN PILL (Shown when drawer is closed but uploads exist) -->
+    <!-- ============================================================ -->
+    <div 
+        x-show="!uploadDrawerOpen && uploads.length > 0" 
+        x-cloak 
+        class="fixed left-4 sm:left-auto sm:right-24 bottom-20 sm:bottom-6 z-40 animate-in fade-in slide-in-from-bottom-3 duration-200"
+    >
+        <button 
+            type="button" 
+            @click="openUploadDrawer()"
+            class="group flex items-center gap-2.5 px-4 py-2.5 rounded-full shadow-xl border transition-all duration-200 cursor-pointer text-xs font-bold"
+            :class="activeUploadsCount > 0 
+                ? 'bg-slate-900 text-white border-slate-700 hover:bg-slate-800 ring-2 ring-indigo-500/30' 
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 shadow-md'"
+        >
+            <template x-if="activeUploadsCount > 0">
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                    </span>
+                    <i data-lucide="cloud-upload" class="w-4 h-4 text-indigo-400 animate-pulse"></i>
+                    <span x-text="`Uploading ${activeUploadsCount} item${activeUploadsCount > 1 ? 's' : ''}...`"></span>
+                    <span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-black" x-text="overallProgress + '%'"></span>
+                </div>
+            </template>
+
+            <template x-if="activeUploadsCount === 0">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span x-text="`${uploads.length} upload${uploads.length > 1 ? 's' : ''} finished`"></span>
+                </div>
+            </template>
+
+            <span class="text-[11px] underline opacity-80 group-hover:opacity-100 flex items-center gap-0.5 text-indigo-400">
+                <span>View</span>
+                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+            </span>
+        </button>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GOOGLE DRIVE-STYLE FLOATING UPLOAD PROGRESS DRAWER -->
     <!-- ============================================================ -->
     <div 
         x-show="uploadDrawerOpen" 
         x-cloak 
-        class="fixed right-4 bottom-4 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transition-all duration-300"
+        class="fixed right-3 sm:right-6 bottom-20 sm:bottom-24 z-50 w-[calc(100vw-24px)] sm:w-96 max-w-sm sm:max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transition-all duration-300"
     >
         <!-- Drawer Header -->
-        <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i data-lucide="cloud-upload" class="w-4 h-4 text-indigo-400 animate-pulse"></i>
-                <span class="text-xs font-bold" x-text="uploadDrawerTitle"></span>
+        <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between select-none">
+            <div class="flex items-center gap-2 min-w-0">
+                <template x-if="activeUploadsCount > 0">
+                    <i data-lucide="cloud-upload" class="w-4 h-4 text-indigo-400 animate-pulse shrink-0"></i>
+                </template>
+                <template x-if="activeUploadsCount === 0">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                </template>
+                <span class="text-xs font-bold truncate" x-text="uploadDrawerTitle"></span>
             </div>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1 shrink-0">
+                <template x-if="activeUploadsCount === 0 && uploads.length > 0">
+                    <button 
+                        type="button" 
+                        @click="clearCompletedUploads()" 
+                        class="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                        title="Clear finished items"
+                    >
+                        Clear
+                    </button>
+                </template>
                 <button 
                     type="button" 
                     @click="uploadDrawerMinimized = !uploadDrawerMinimized" 
                     class="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer"
+                    :title="uploadDrawerMinimized ? 'Expand drawer' : 'Minimize drawer'"
                 >
-                    <i :data-lucide="uploadDrawerMinimized ? 'chevron-up' : 'minus'" class="w-3.5 h-3.5"></i>
+                    <i x-show="uploadDrawerMinimized" data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+                    <i x-show="!uploadDrawerMinimized" data-lucide="minus" class="w-3.5 h-3.5"></i>
                 </button>
                 <button 
                     type="button" 
                     @click="uploadDrawerOpen = false" 
                     class="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer"
+                    title="Close drawer (you can reopen it anytime)"
                 >
                     <i data-lucide="x" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
+        </div>
+
+        <!-- Minimized Quick Progress Bar (When Minimized) -->
+        <div 
+            x-show="uploadDrawerMinimized" 
+            @click="uploadDrawerMinimized = false"
+            class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 text-slate-600 text-xs font-bold flex items-center justify-between cursor-pointer hover:bg-slate-100 transition"
+        >
+            <div class="flex items-center gap-2">
+                <span class="text-[11px]" x-text="activeUploadsCount > 0 ? (overallProgress + '% uploaded') : 'All uploads complete'"></span>
+            </div>
+            <span class="text-[10px] text-indigo-600 font-extrabold flex items-center gap-1">
+                <span>Expand</span>
+                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+            </span>
         </div>
 
         <!-- Drawer Body (Uploads Queue) -->
@@ -637,13 +745,21 @@
                     <div class="flex items-center justify-between text-[10px] text-slate-400">
                         <span x-text="item.status === 'syncing' ? 'Connecting with Google Drive cloud...' : (item.status === 'completed' ? 'Saved to Google Drive' : (item.sizeFormatted + ' &bull; ' + item.speed))"></span>
                         <template x-if="item.status === 'uploading'">
-                            <button type="button" @click="cancelUpload(item)" class="text-rose-500 hover:underline">Cancel</button>
+                            <button type="button" @click="cancelUpload(item)" class="text-rose-500 hover:underline cursor-pointer">Cancel</button>
+                        </template>
+                        <template x-if="item.status === 'failed'">
+                            <button type="button" @click="removeUpload(item)" class="text-slate-400 hover:text-slate-600 cursor-pointer">Dismiss</button>
                         </template>
                     </div>
 
                     <template x-if="item.error">
                         <div class="text-[10px] text-rose-600 font-bold" x-text="item.error"></div>
                     </template>
+                </div>
+            </template>
+            <template x-if="uploads.length === 0">
+                <div class="py-6 text-center text-slate-400 text-xs">
+                    No active or recent uploads
                 </div>
             </template>
         </div>
@@ -1032,13 +1148,126 @@ function driveApp() {
         uploads: [],
         uploadDrawerOpen: false,
         uploadDrawerMinimized: false,
+        originalPageTitle: document.title,
+
+        get activeUploadsCount() {
+            return this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing').length;
+        },
+
+        get overallProgress() {
+            const active = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing');
+            if (active.length === 0) return 100;
+            const sum = active.reduce((acc, u) => acc + (u.progress || 0), 0);
+            return Math.round(sum / active.length);
+        },
 
         get uploadDrawerTitle() {
-            const active = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing').length;
+            const active = this.activeUploadsCount;
             if (active > 0) {
-                return `Uploading ${active} item${active > 1 ? 's' : ''}...`;
+                return `Uploading ${active} item${active > 1 ? 's' : ''}... (${this.overallProgress}%)`;
             }
-            return `${this.uploads.length} upload${this.uploads.length > 1 ? 's' : ''} complete`;
+            if (this.uploads.length > 0) {
+                return `${this.uploads.length} upload${this.uploads.length > 1 ? 's' : ''} complete`;
+            }
+            return 'Upload Queue';
+        },
+
+        openUploadDrawer() {
+            this.uploadDrawerOpen = true;
+            this.uploadDrawerMinimized = false;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        closeUploadDrawer() {
+            this.uploadDrawerOpen = false;
+        },
+
+        clearCompletedUploads() {
+            this.uploads = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing');
+            this.saveUploadsToStorage();
+            if (this.uploads.length === 0) {
+                this.uploadDrawerOpen = false;
+            }
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        removeUpload(item) {
+            this.uploads = this.uploads.filter(u => u.id !== item.id);
+            this.saveUploadsToStorage();
+            if (this.uploads.length === 0) {
+                this.uploadDrawerOpen = false;
+            }
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        updateTabTitle() {
+            const active = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing');
+            if (active.length > 0) {
+                const totalProgress = Math.round(active.reduce((acc, u) => acc + (u.progress || 0), 0) / active.length);
+                document.title = `(${totalProgress}%) Uploading ${active.length} item${active.length > 1 ? 's' : ''} - Google Drive`;
+            } else if (this.uploads.length > 0 && this.uploads.every(u => u.status === 'completed')) {
+                document.title = `✓ Uploads Complete - Google Drive`;
+                setTimeout(() => {
+                    document.title = this.originalPageTitle;
+                }, 4000);
+            } else {
+                document.title = this.originalPageTitle;
+            }
+        },
+
+        saveUploadsToStorage() {
+            try {
+                const serializable = this.uploads.map(u => ({
+                    id: u.id,
+                    name: u.name,
+                    size: u.size,
+                    sizeFormatted: u.sizeFormatted,
+                    progress: u.progress,
+                    speed: u.speed,
+                    status: u.status,
+                    error: u.error
+                }));
+                sessionStorage.setItem('drive_uploads_history', JSON.stringify(serializable));
+            } catch (e) {}
+        },
+
+        loadUploadsFromStorage() {
+            try {
+                const stored = sessionStorage.getItem('drive_uploads_history');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        this.uploads = parsed.map(u => {
+                            if (u.status === 'uploading' || u.status === 'syncing') {
+                                u.status = 'failed';
+                                u.error = 'Upload interrupted by navigation/refresh';
+                            }
+                            return u;
+                        });
+                    }
+                }
+            } catch (e) {}
+        },
+
+        refreshFilesList() {
+            const url = new URL(window.location.href);
+            fetch(url.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.files && Array.isArray(data.files)) {
+                    this.files = data.files;
+                }
+                if (data.folders && Array.isArray(data.folders)) {
+                    this.folders = data.folders;
+                }
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            })
+            .catch(() => {});
         },
 
         get filteredFolders() {
@@ -1063,6 +1292,9 @@ function driveApp() {
         },
 
         init() {
+            this.originalPageTitle = document.title;
+            this.loadUploadsFromStorage();
+
             this.$watch('viewMode', (val) => {
                 localStorage.setItem('drive_view_mode', val);
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
@@ -1073,6 +1305,27 @@ function driveApp() {
             this.$watch('filteredFolders', () => {
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
+
+            // Tab visibility change: restore tab title & refresh icons when tab is focused
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    this.updateTabTitle();
+                    this.$nextTick(() => {
+                        if (window.lucide) lucide.createIcons();
+                    });
+                }
+            });
+
+            // Prevent accidental page navigation or tab closure while upload is in progress
+            window.addEventListener('beforeunload', (e) => {
+                const active = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing');
+                if (active.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = 'You have uploads in progress. If you leave this page, your upload will be cancelled.';
+                    return e.returnValue;
+                }
+            });
+
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
@@ -1102,7 +1355,7 @@ function driveApp() {
                     size: file.size,
                     sizeFormatted: this.formatBytes(file.size),
                     progress: 0,
-                    speed: 'Calculating...',
+                    speed: 'Starting...',
                     status: 'uploading',
                     error: null,
                     xhr: null
@@ -1110,6 +1363,8 @@ function driveApp() {
                 this.uploads.unshift(uploadItem);
                 this.performUpload(file, uploadItem);
             });
+            this.updateTabTitle();
+            this.saveUploadsToStorage();
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
@@ -1139,6 +1394,8 @@ function driveApp() {
                     if (item.progress >= 99) {
                         item.status = 'syncing';
                     }
+                    this.updateTabTitle();
+                    this.saveUploadsToStorage();
                 }
             });
 
@@ -1163,7 +1420,7 @@ function driveApp() {
                         item.progress = 100;
                         item.status = 'completed';
                         this.showToast('Upload finished!');
-                        setTimeout(() => location.reload(), 1200);
+                        this.refreshFilesList();
                     }
                 } else {
                     item.status = 'failed';
@@ -1174,12 +1431,24 @@ function driveApp() {
                         item.error = 'Upload failed (' + xhr.status + ')';
                     }
                 }
+                this.updateTabTitle();
+                this.saveUploadsToStorage();
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
 
             xhr.addEventListener('error', () => {
                 item.status = 'failed';
                 item.error = 'Network connection lost during upload';
+                this.updateTabTitle();
+                this.saveUploadsToStorage();
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            });
+
+            xhr.addEventListener('abort', () => {
+                item.status = 'failed';
+                item.error = 'Upload cancelled';
+                this.updateTabTitle();
+                this.saveUploadsToStorage();
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
 
@@ -1195,6 +1464,8 @@ function driveApp() {
             }
             item.status = 'failed';
             item.error = 'Upload cancelled';
+            this.updateTabTitle();
+            this.saveUploadsToStorage();
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 

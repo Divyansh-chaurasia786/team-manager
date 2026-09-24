@@ -2,7 +2,11 @@
 @section('title', 'Task Management')
 @section('content')
 
-<div class="space-y-6">
+<div x-data="{
+    activeTab: '{{ request('tab', 'live') }}',
+    historyFilter: '{{ request('filter', 'all') }}',
+    historySearch: ''
+}" class="space-y-6">
 
     <!-- Header Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -23,66 +27,153 @@
         </div>
     </div>
 
-    <!-- Grouped Tasks by Assigned Date & Member -->
+    <!-- Main Navigation Tabs: Live Tasks vs Task History -->
+    <div class="bg-white rounded-2xl border border-slate-200/90 p-2 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+            <button type="button"
+                @click="activeTab = 'live'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                :class="activeTab === 'live' ? 'bg-white text-indigo-700 shadow-sm font-black' : 'text-slate-600 hover:text-slate-900 font-bold'"
+                class="px-4 py-2 rounded-lg text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer">
+                <i data-lucide="zap" class="w-4 h-4" :class="activeTab === 'live' ? 'text-indigo-600' : 'text-slate-400'"></i>
+                <span>Live Tasks</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
+                    :class="activeTab === 'live' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'">
+                    {{ $liveTasks->count() }}
+                </span>
+            </button>
+
+            <button type="button"
+                @click="activeTab = 'history'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                :class="activeTab === 'history' ? 'bg-white text-indigo-700 shadow-sm font-black' : 'text-slate-600 hover:text-slate-900 font-bold'"
+                class="px-4 py-2 rounded-lg text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer">
+                <i data-lucide="history" class="w-4 h-4" :class="activeTab === 'history' ? 'text-indigo-600' : 'text-slate-400'"></i>
+                <span>Task History</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
+                    :class="activeTab === 'history' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'">
+                    {{ $historyTasks->count() }}
+                </span>
+                @if($unassignedTasks->count() > 0)
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="{{ $unassignedTasks->count() }} Unassigned Tasks Awaiting Delegation"></span>
+                @endif
+            </button>
+        </div>
+
+        <!-- History Sub-filters: visible when activeTab === 'history' -->
+        <div x-show="activeTab === 'history'" x-cloak class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-bold text-slate-400 hidden md:inline mr-1">Filter:</span>
+            <button type="button"
+                @click="historyFilter = 'all'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                :class="historyFilter === 'all' ? 'bg-slate-900 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium'"
+                class="px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5">
+                <span>All History</span>
+                <span class="text-[10px] opacity-80 font-bold">({{ $historyTasks->count() }})</span>
+            </button>
+
+            <button type="button"
+                @click="historyFilter = 'unassigned'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                :class="historyFilter === 'unassigned' ? 'bg-amber-600 text-white font-bold shadow-sm' : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-medium'"
+                class="px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5">
+                <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
+                <span>Unassigned</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-200/70 font-black">({{ $unassignedTasks->count() }})</span>
+            </button>
+
+            <button type="button"
+                @click="historyFilter = 'completed'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                :class="historyFilter === 'completed' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-medium'"
+                class="px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                <span>Completed</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-200/70 font-black">({{ $completedTasks->count() }})</span>
+            </button>
+
+            <button type="button"
+                @click="historyFilter = 'all_tasks'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                :class="historyFilter === 'all_tasks' ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium'"
+                class="px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
+                title="View all tasks across the entire system">
+                <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                <span>All Tasks</span>
+                <span class="text-[10px] opacity-80 font-bold">({{ $tasks->count() }})</span>
+            </button>
+        </div>
+    </div>
+
+    @if(auth()->user()->isCEO())
+        <!-- CEO Task Management Toolbar -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-4 sm:p-5 shadow-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black tracking-tight">CEO Task History Management</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">CEO Only</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">Select individual tasks or all tasks at once to permanently delete from task history records.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Select All Checkbox Control -->
+                <label class="inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700/80 rounded-xl border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer select-none transition shadow-xs">
+                    <input type="checkbox" id="selectAllTasksCheckbox" onchange="toggleSelectAll(this)" class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-600 bg-slate-700 cursor-pointer">
+                    <span id="selectAllLabel">Select All ({{ $tasks->count() }})</span>
+                </label>
+
+                <!-- Bulk Delete Trigger Button -->
+                <button type="button" id="bulkDeleteBtn" onclick="confirmBulkDelete()" disabled class="px-4 py-2 bg-slate-800 text-slate-500 cursor-not-allowed text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span id="bulkDeleteBtnText">Delete Selected (0)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Hidden Bulk Delete Form -->
+        <form id="bulkDeleteForm" method="POST" action="{{ route('tasks.bulk_destroy') }}" class="hidden">
+            @csrf
+            <div id="bulkDeleteInputsContainer"></div>
+        </form>
+    @endif
+
     @php
-        $tasksByDate = $tasks->groupBy(function($task) {
+        $liveTasksByDate = $liveTasks->groupBy(function($task) {
             return $task->created_at ? $task->created_at->format('Y-m-d') : now()->format('Y-m-d');
         })->sortKeysDesc();
     @endphp
 
-    @if($tasks->isEmpty())
-        <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
-            <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
-                <i data-lucide="list-checks" class="w-8 h-8"></i>
-            </div>
-            <h3 class="text-base font-black text-slate-800">No Tasks Assigned Yet</h3>
-            <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">Start delegating deliverables and projects to present team members.</p>
-            <button type="button" onclick="document.getElementById('assignTaskModal').classList.remove('hidden')" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition inline-flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                <span>Assign First Task</span>
-            </button>
-        </div>
-    @else
-        @if(auth()->user()->isCEO())
-            <!-- CEO Task Management Toolbar -->
-            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-4 sm:p-5 shadow-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
-                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-black tracking-tight">CEO Task History Management</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">CEO Only</span>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-0.5">Select individual tasks or all tasks at once to permanently delete from task history records.</p>
-                    </div>
+    <!-- TAB 1: LIVE TASKS (Active, Pending, In-Progress Deliverables) -->
+    <div x-show="activeTab === 'live'" class="space-y-6">
+        @if($liveTasks->isEmpty())
+            <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+                <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="check-circle" class="w-8 h-8 text-emerald-600"></i>
                 </div>
-
-                <div class="flex items-center gap-3 flex-wrap">
-                    <!-- Select All Checkbox Control -->
-                    <label class="inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700/80 rounded-xl border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer select-none transition shadow-xs">
-                        <input type="checkbox" id="selectAllTasksCheckbox" onchange="toggleSelectAll(this)" class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-600 bg-slate-700 cursor-pointer">
-                        <span id="selectAllLabel">Select All ({{ $tasks->count() }})</span>
-                    </label>
-
-                    <!-- Bulk Delete Trigger Button -->
-                    <button type="button" id="bulkDeleteBtn" onclick="confirmBulkDelete()" disabled class="px-4 py-2 bg-slate-800 text-slate-500 cursor-not-allowed text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-2">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        <span id="bulkDeleteBtnText">Delete Selected (0)</span>
+                <h3 class="text-base font-black text-slate-800">No Live Tasks In Progress</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
+                    @if($historyTasks->count() > 0)
+                        All tasks are completed or awaiting delegation in <button type="button" @click="activeTab = 'history'" class="text-indigo-600 font-bold hover:underline">Task History</button>.
+                    @else
+                        Start delegating deliverables and projects to present team members.
+                    @endif
+                </p>
+                <div class="flex items-center justify-center gap-3">
+                    <button type="button" onclick="document.getElementById('assignTaskModal').classList.remove('hidden')" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition inline-flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Assign New Task</span>
                     </button>
+                    @if($unassignedTasks->count() > 0)
+                        <button type="button" @click="activeTab = 'history'; historyFilter = 'unassigned'" class="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold rounded-xl transition inline-flex items-center gap-2">
+                            <i data-lucide="user-x" class="w-4 h-4"></i>
+                            <span>View {{ $unassignedTasks->count() }} Unassigned</span>
+                        </button>
+                    @endif
                 </div>
             </div>
-
-            <!-- Hidden Bulk Delete Form -->
-            <form id="bulkDeleteForm" method="POST" action="{{ route('tasks.bulk_destroy') }}" class="hidden">
-                @csrf
-                <div id="bulkDeleteInputsContainer"></div>
-            </form>
-        @endif
-
-        <div class="space-y-8">
-            @foreach($tasksByDate as $dateStr => $dateTasks)
+        @else
+            <div class="space-y-8">
+                @foreach($liveTasksByDate as $dateStr => $dateTasks)
                 @php
                     $dateCarbon = \Carbon\Carbon::parse($dateStr);
                     $isToday = $dateCarbon->isToday();
@@ -458,7 +549,223 @@
                 </div>
             @endforeach
         </div>
-    @endif
+        @endif
+    </div>
+    <!-- END TAB 1: LIVE TASKS -->
+
+    <!-- TAB 2: TASK HISTORY (Completed, Unassigned, All History) -->
+    <div x-show="activeTab === 'history'" x-cloak class="space-y-6">
+        @if($tasks->isEmpty())
+            <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+                <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="archive" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-base font-black text-slate-800">Task History is Empty</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">Completed tasks and unassigned tasks awaiting delegation will appear here.</p>
+            </div>
+        @else
+            <!-- Unassigned Tasks Alert Banner (if any) -->
+            @if($unassignedTasks->count() > 0)
+                <div class="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/80 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/20">
+                            <i data-lucide="user-x" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="text-sm font-black text-amber-950">{{ $unassignedTasks->count() }} Unassigned {{ \Illuminate\Support\Str::plural('Task', $unassignedTasks->count()) }} Awaiting Delegation</h4>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-900 border border-amber-300">Action Required</span>
+                            </div>
+                            <p class="text-xs text-amber-800/90 mt-0.5">These tasks are saved in history and do not show as overdue on the dashboard until delegated to an active member.</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="historyFilter = 'unassigned'; $nextTick(() => { if (window.lucide) lucide.createIcons(); })" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shrink-0 self-start sm:self-auto shadow-xs flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                        <span>View {{ $unassignedTasks->count() }} Unassigned</span>
+                    </button>
+                </div>
+            @endif
+
+            <!-- History Tasks List Grouped by Date -->
+            @php
+                $allTasksByDate = $tasks->groupBy(function($task) {
+                    return $task->created_at ? $task->created_at->format('Y-m-d') : now()->format('Y-m-d');
+                })->sortKeysDesc();
+            @endphp
+
+            <div class="space-y-6">
+                @foreach($allTasksByDate as $dateStr => $dateTasks)
+                    @php
+                        $dateCarbon = \Carbon\Carbon::parse($dateStr);
+                        $isToday = $dateCarbon->isToday();
+                        $isYesterday = $dateCarbon->isYesterday();
+                        $dateTitle = $isToday ? 'Today' : ($isYesterday ? 'Yesterday' : $dateCarbon->format('l'));
+                        $dateSubtitle = $dateCarbon->format('d M Y');
+                        
+                        $dateHistoryTasks = $dateTasks->filter(function($t) {
+                            return is_null($t->assigned_to) || $t->status === 'completed';
+                        });
+                    @endphp
+
+                    @if($dateTasks->count() > 0)
+                        <div class="space-y-3"
+                             x-show="(historyFilter === 'all' && {{ $dateHistoryTasks->count() > 0 ? 'true' : 'false' }}) ||
+                                     (historyFilter === 'unassigned' && {{ $dateTasks->whereNull('assigned_to')->count() > 0 ? 'true' : 'false' }}) ||
+                                     (historyFilter === 'completed' && {{ $dateTasks->where('status', 'completed')->count() > 0 ? 'true' : 'false' }}) ||
+                                     (historyFilter === 'all_tasks')">
+                            
+                            <!-- Date Header -->
+                            <div class="flex items-center justify-between px-4 py-2.5 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
+                                    <span>{{ $dateSubtitle }} ({{ $dateTitle }})</span>
+                                </div>
+                                <span class="text-[11px] text-slate-500">
+                                    {{ $dateTasks->count() }} {{ \Illuminate\Support\Str::plural('Task', $dateTasks->count()) }} Recorded
+                                </span>
+                            </div>
+
+                            <!-- Tasks on this Date -->
+                            <div class="space-y-3">
+                                @foreach($dateTasks as $task)
+                                    @php
+                                        $isUnassigned = is_null($task->assigned_to);
+                                        $isCompleted = $task->status === 'completed';
+                                        $assignee = $task->assignedTo;
+                                    @endphp
+
+                                    <div x-show="(historyFilter === 'all' && ({{ $isUnassigned ? 'true' : 'false' }} || {{ $isCompleted ? 'true' : 'false' }})) ||
+                                                (historyFilter === 'unassigned' && {{ $isUnassigned ? 'true' : 'false' }}) ||
+                                                (historyFilter === 'completed' && {{ $isCompleted ? 'true' : 'false' }}) ||
+                                                (historyFilter === 'all_tasks')"
+                                         class="bg-white rounded-2xl border {{ $isUnassigned ? 'border-amber-300 bg-amber-50/20' : ($isCompleted ? 'border-emerald-200/80 bg-emerald-50/10' : 'border-slate-200') }} p-4 sm:p-5 shadow-xs hover:shadow-sm transition"
+                                         id="history-task-row-{{ $task->id }}">
+                                        
+                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                            <!-- Left: Checkbox (CEO) & Task Details -->
+                                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                                @if(auth()->user()->isCEO())
+                                                    <div class="pt-0.5 shrink-0">
+                                                        <input type="checkbox" name="selected_task_ids[]" value="{{ $task->id }}" class="task-select-checkbox w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer" onchange="updateSelectedCount()">
+                                                    </div>
+                                                @endif
+
+                                                <div class="space-y-1.5 flex-1 min-w-0">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">{{ $task->title }}</h3>
+
+                                                        @if($isUnassigned)
+                                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                                                                <i data-lucide="user-x" class="w-3 h-3"></i>
+                                                                <span>Unassigned • Awaiting Delegation</span>
+                                                            </span>
+                                                        @elseif($isCompleted)
+                                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                                                <i data-lucide="check" class="w-3 h-3"></i>
+                                                                <span>Completed</span>
+                                                            </span>
+                                                        @elseif($task->status === 'submitted')
+                                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center gap-1">
+                                                                <i data-lucide="clock" class="w-3 h-3"></i>
+                                                                <span>Submitted • In Review</span>
+                                                            </span>
+                                                        @elseif($task->status === 'in-progress')
+                                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                                                                ⚙️ In Progress
+                                                            </span>
+                                                        @else
+                                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                                                ⏳ Pending Start
+                                                            </span>
+                                                        @endif
+
+                                                        @if($task->isOverdue())
+                                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                                                                ⚠️ Overdue
+                                                            </span>
+                                                        @endif
+                                                    </div>
+
+                                                    <p class="text-xs text-slate-500 line-clamp-2 max-w-2xl">{{ $task->description ?: 'No instructions provided.' }}</p>
+
+                                                    <div class="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap pt-1">
+                                                        @if($isUnassigned)
+                                                            <span class="px-2 py-0.5 rounded-md font-bold text-amber-800 bg-amber-100/70 border border-amber-200 flex items-center gap-1">
+                                                                <i data-lucide="user-x" class="w-3 h-3"></i>
+                                                                <span>Unassigned (Not Overdue)</span>
+                                                            </span>
+                                                        @elseif($assignee)
+                                                            <span class="font-bold text-slate-700 flex items-center gap-1">
+                                                                <i data-lucide="user" class="w-3 h-3 text-slate-400"></i>
+                                                                <span>Assignee: {{ $assignee->name }} ({{ strtoupper($assignee->role) }})</span>
+                                                            </span>
+                                                        @endif
+
+                                                        <span class="flex items-center gap-1 font-semibold text-slate-700">
+                                                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                                                            <span>Deadline: {{ $task->deadline ? $task->deadline->format('d M Y, h:i A') : 'No deadline' }}</span>
+                                                        </span>
+
+                                                        @if($task->completed_at)
+                                                            <span class="text-emerald-700 font-semibold flex items-center gap-1">
+                                                                <i data-lucide="check-circle" class="w-3 h-3 text-emerald-600"></i>
+                                                                <span>Completed: {{ \Carbon\Carbon::parse($task->completed_at)->format('d M Y, h:i A') }}</span>
+                                                            </span>
+                                                        @elseif($task->submitted_at)
+                                                            <span class="text-indigo-700 font-semibold flex items-center gap-1">
+                                                                <i data-lucide="send" class="w-3 h-3 text-indigo-600"></i>
+                                                                <span>Submitted: {{ \Carbon\Carbon::parse($task->submitted_at)->format('d M Y, h:i A') }}</span>
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Right: Action Buttons -->
+                                            <div class="flex items-center gap-2 shrink-0 sm:self-center w-full sm:w-auto justify-end">
+                                                @if($isUnassigned)
+                                                    <button type="button" onclick="openAssignMemberModal({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : '' }}')" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer" title="Assign this unassigned task to a team member">
+                                                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                                                        <span>Assign Member</span>
+                                                    </button>
+                                                    <button type="button" onclick="openEditTaskModal({{ json_encode([
+                                                        'id' => $task->id,
+                                                        'title' => $task->title,
+                                                        'description' => $task->description ?? '',
+                                                        'assigned_to' => $task->assigned_to,
+                                                        'deadline' => $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : '',
+                                                    ]) }})" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 border border-slate-200 cursor-pointer">
+                                                        <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-600"></i>
+                                                        <span>Edit</span>
+                                                    </button>
+                                                @endif
+
+                                                <button type="button" onclick="openDetailsModal({{ json_encode($task->id) }})" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-2xs border border-indigo-200/70 cursor-pointer">
+                                                    <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                                    <span>View Details</span>
+                                                </button>
+
+                                                @if(auth()->user()->isCEO())
+                                                    <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="m-0" onsubmit="return confirm('Are you sure you want to permanently delete task &quot;{{ addslashes($task->title) }}&quot; from history?');">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs transition shadow-2xs border border-rose-200/70 flex items-center gap-1 cursor-pointer" title="Delete Task">
+                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                            <span class="hidden sm:inline">Delete</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        @endif
+    </div>
+    <!-- END TAB 2: TASK HISTORY -->
 
 </div>
 
@@ -1678,7 +1985,7 @@ async function unassignTaskAjax(event) {
             showInstantToast(data.message || 'Task unassigned successfully!');
             closeUnassignModal();
             setTimeout(() => {
-                window.location.reload();
+                window.location.href = '{{ route('tasks.index') }}?tab=history&filter=unassigned';
             }, 500);
         } else {
             showInstantToast(data.message || 'Failed to unassign task.', 'error');
@@ -1734,7 +2041,7 @@ async function assignMemberAjax(event) {
             showInstantToast(data.message || 'Task successfully assigned to member!');
             closeAssignMemberModal();
             setTimeout(() => {
-                window.location.reload();
+                window.location.href = '{{ route('tasks.index') }}?tab=live';
             }, 500);
         } else {
             showInstantToast(data.message || 'Failed to assign task.', 'error');

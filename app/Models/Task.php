@@ -57,11 +57,11 @@ class Task extends Model
     }
 
     public function isOverdue(): bool {
-        return !in_array($this->status, ['completed', 'submitted']) && $this->deadline && $this->deadline->isPast();
+        return !empty($this->assigned_to) && !in_array($this->status, ['completed', 'submitted']) && $this->deadline && $this->deadline->isPast();
     }
 
     public function isDueSoon(int $days = 2): bool {
-        return !in_array($this->status, ['completed', 'submitted']) && $this->deadline && $this->deadline->isFuture() && $this->deadline->lte(now()->addDays($days));
+        return !empty($this->assigned_to) && !in_array($this->status, ['completed', 'submitted']) && $this->deadline && $this->deadline->isFuture() && $this->deadline->lte(now()->addDays($days));
     }
 
     public function getSubmissionFormattedAttribute(): ?string
@@ -113,6 +113,10 @@ class Task extends Model
         }
         if ($this->status === 'submitted') {
             return 'Submitted (' . ($this->submitted_at ? $this->submitted_at->format('d M, h:i A') : 'Under Review') . ')';
+        }
+
+        if (empty($this->assigned_to)) {
+            return 'Unassigned (Awaiting Delegation)';
         }
 
         if (!$this->deadline) {
@@ -183,6 +187,15 @@ class Task extends Model
      */
     public function getDeadlineReminderAttribute(): array
     {
+        if (empty($this->assigned_to)) {
+            return [
+                'label'     => 'Unassigned — Awaiting Delegation',
+                'class'     => 'bg-amber-50 text-amber-700 border-amber-200',
+                'badge'     => 'Unassigned',
+                'is_urgent' => false,
+            ];
+        }
+
         $label    = $this->due_label;
         $deadline = $this->deadline;
         $now      = now();

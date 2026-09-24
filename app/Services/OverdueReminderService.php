@@ -26,6 +26,7 @@ class OverdueReminderService
 
         $now = now();
         $tasks = Task::with(['assignedTo', 'assignedBy'])
+            ->whereNotNull('assigned_to')
             ->where('deadline', '<', $now)
             ->whereNotIn('status', ['submitted', 'completed'])
             ->where(function ($q) use ($now) {

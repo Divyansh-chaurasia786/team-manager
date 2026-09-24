@@ -33,16 +33,17 @@ class TLDashboardController extends Controller
             ->latest()
             ->get();
 
-        // Overdue tasks calculation
-        $overdueTasks = $tasks->filter(fn($t) => $t->isOverdue())->values();
+        // Overdue tasks calculation (Only assigned tasks can be overdue)
+        $overdueTasks = $tasks->whereNotNull('assigned_to')->filter(fn($t) => $t->isOverdue())->values();
         $overdueCount = $overdueTasks->count();
 
-        // ⏰ 2-Day Scheduled Task Reminders (Tasks due within 2 days or overdue, actionable only)
+        // ⏰ 2-Day Scheduled Task Reminders (Tasks due within 2 days or overdue, actionable assigned only)
         $upcomingTaskReminders = Task::with(['assignedTo'])
             ->where(function ($q) use ($tl, $memberIds) {
                 $q->where('assigned_by', $tl->id)
                   ->orWhereIn('assigned_to', $memberIds);
             })
+            ->whereNotNull('assigned_to')
             ->whereNotIn('status', ['completed', 'submitted'])
             ->where('deadline', '<=', now()->addDays(2))
             ->orderBy('deadline', 'asc')
@@ -58,8 +59,8 @@ class TLDashboardController extends Controller
 
         // Chart Data
         $statusCounts = [
-            'pending'     => $tasks->where('status', 'pending')->count(),
-            'in-progress' => $tasks->where('status', 'in-progress')->count(),
+            'pending'     => $tasks->whereNotNull('assigned_to')->where('status', 'pending')->count(),
+            'in-progress' => $tasks->whereNotNull('assigned_to')->where('status', 'in-progress')->count(),
             'submitted'   => $tasks->where('status', 'submitted')->count(),
             'completed'   => $tasks->where('status', 'completed')->count(),
             'overdue'     => $overdueCount,
