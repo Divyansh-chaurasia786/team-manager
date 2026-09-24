@@ -476,18 +476,23 @@
                     <!-- Visual Thumbnail / Preview Area -->
                     <div 
                         @click="openPreview(file)"
-                        class="w-full h-32 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer mb-3 relative group/thumb"
+                        class="w-full h-36 rounded-xl bg-slate-900 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer mb-3 relative group/thumb"
                     >
                         <template x-if="file.is_image">
-                            <img :src="file.drive_url" class="w-full h-full object-cover group-hover/thumb:scale-105 transition duration-200" alt="thumbnail" loading="lazy">
+                            <img :src="file.thumbnail_url || file.drive_url" class="w-full h-full object-cover group-hover/thumb:scale-105 transition duration-200" alt="thumbnail" loading="lazy">
                         </template>
 
                         <template x-if="file.is_video">
-                            <div class="flex flex-col items-center justify-center text-rose-500">
-                                <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center group-hover/thumb:scale-110 transition">
-                                    <i data-lucide="play" class="w-5 h-5 fill-rose-600 ml-0.5"></i>
+                            <div class="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
+                                <template x-if="file.thumbnail_url && file.is_google_drive">
+                                    <img :src="file.thumbnail_url" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover/thumb:opacity-80 group-hover/thumb:scale-105 transition duration-200" alt="video thumbnail">
+                                </template>
+                                <div class="relative z-10 w-11 h-11 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center group-hover/thumb:scale-110 group-hover/thumb:bg-rose-600 transition shadow-lg">
+                                    <i data-lucide="play" class="w-5 h-5 fill-white ml-0.5"></i>
                                 </div>
-                                <span class="text-[10px] text-slate-400 mt-1.5 font-bold">Watch Video</span>
+                                <span class="absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="video" class="w-3 h-3 text-rose-400"></i> Video
+                                </span>
                             </div>
                         </template>
 
@@ -499,7 +504,7 @@
                         </template>
 
                         <!-- Quick Hover Action Overlay -->
-                        <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center gap-2">
+                        <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center gap-2 pointer-events-none">
                             <span class="px-2.5 py-1 rounded-lg bg-white/90 text-slate-900 text-[10px] font-bold shadow-sm">Click to Preview</span>
                         </div>
                     </div>
@@ -876,67 +881,132 @@
         </div>
     </div>
 
-    <!-- 5. Interactive Full Preview Lightbox Modal -->
-    <div x-show="previewModalOpen" x-cloak class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div @click.outside="previewModalOpen = false" class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-150">
+    <!-- 5. Professional Cinema-Grade Preview Lightbox Modal -->
+    <div 
+        x-show="previewModalOpen" 
+        x-cloak 
+        class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6"
+        @keydown.window.escape="closePreview()"
+    >
+        <div 
+            @click.outside="closePreview()" 
+            class="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-5xl w-full h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        >
             
             <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="min-w-0 pr-4">
-                    <h3 class="text-sm font-black text-slate-900 truncate" x-text="previewItem?.original_name"></h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5" x-text="(previewItem?.formatted_size || '') + ' • ' + (previewItem?.upload_date || '')"></p>
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/95 shrink-0">
+                <div class="flex items-center gap-3 min-w-0 pr-4">
+                    <div 
+                        class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold"
+                        :class="previewItem?.file_type === 'photo' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : (previewItem?.file_type === 'video' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30')"
+                    >
+                        <i :data-lucide="previewItem?.file_type === 'photo' ? 'image' : (previewItem?.file_type === 'video' ? 'video' : 'file-text')" class="w-4 h-4"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="text-sm sm:text-base font-black text-white truncate" :title="previewItem?.original_name" x-text="previewItem?.original_name"></h3>
+                        <p class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span class="capitalize font-bold text-slate-300" x-text="previewItem?.file_type"></span>
+                            <span class="text-slate-600">&bull;</span>
+                            <span x-text="previewItem?.formatted_size || ''"></span>
+                            <span class="text-slate-600">&bull;</span>
+                            <span class="font-mono text-slate-400" x-text="previewItem?.upload_date || ''"></span>
+                            <span class="text-slate-600">&bull;</span>
+                            <span>By: <strong class="text-slate-300" x-text="previewItem?.uploader_name || 'Member'"></strong></span>
+                        </p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <!-- Direct Download -->
                     <a 
                         :href="previewItem?.download_url" 
-                        class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition"
+                        class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                        title="Download to computer"
                     >
                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                        <span>Download</span>
+                        <span class="hidden sm:inline">Download</span>
                     </a>
+
+                    <!-- Open in Drive -->
                     <a 
                         :href="previewItem?.drive_url" 
                         target="_blank" 
-                        class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition border border-slate-700 cursor-pointer"
+                        title="Open in Google Drive"
                     >
-                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                        <span>Open Drive</span>
+                        <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span class="hidden sm:inline">Open Drive</span>
                     </a>
+
+                    <!-- Close Button -->
                     <button 
                         type="button" 
-                        @click="previewModalOpen = false" 
-                        class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                        @click="closePreview()" 
+                        class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                        title="Close preview (Esc)"
                     >
-                        ✕
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Modal Body Content -->
-            <div class="py-4 flex-1 overflow-auto flex items-center justify-center min-h-[300px]">
-                <template x-if="previewItem?.is_image">
-                    <img :src="previewItem.drive_url" class="max-h-[70vh] max-w-full object-contain rounded-xl shadow-xs" alt="preview">
-                </template>
-
-                <template x-if="previewItem?.is_video">
-                    <video :src="previewItem.drive_url" controls autoplay class="max-h-[70vh] max-w-full rounded-xl shadow-xs bg-black"></video>
-                </template>
-
-                <template x-if="!previewItem?.is_image && !previewItem?.is_video">
-                    <div class="text-center p-8">
-                        <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
-                            <i data-lucide="file-text" class="w-8 h-8"></i>
-                        </div>
-                        <h4 class="text-sm font-bold text-slate-800" x-text="previewItem?.original_name"></h4>
-                        <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">This document is stored securely in Google Drive. You can open it directly in Google Drive or download it to your device.</p>
-                        <div class="mt-4 flex items-center justify-center gap-3">
-                            <a :href="previewItem?.drive_url" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-indigo-700 transition">
-                                Open Document in Drive
-                            </a>
-                        </div>
+            <!-- Modal Stage: Displays Video / Image / Document with 100% Reliability -->
+            <div class="flex-1 w-full h-full bg-black flex items-center justify-center overflow-hidden p-1 sm:p-3 relative">
+                
+                <!-- 1. Google Drive Cloud Media (Videos, Photos, PDFs, Docs) via Native Drive Player -->
+                <template x-if="previewItem?.is_google_drive">
+                    <div class="w-full h-full rounded-2xl overflow-hidden relative bg-black flex items-center justify-center">
+                        <iframe 
+                            :src="previewItem.preview_embed_url" 
+                            class="w-full h-full rounded-2xl border-0 shadow-2xl bg-black" 
+                            allow="autoplay; fullscreen; encrypted-media" 
+                            allowfullscreen
+                        ></iframe>
                     </div>
                 </template>
+
+                <!-- 2. Local Storage Pipeline Fallback -->
+                <template x-if="!previewItem?.is_google_drive">
+                    <div class="w-full h-full flex items-center justify-center">
+                        <!-- Local Image -->
+                        <template x-if="previewItem?.is_image">
+                            <img :src="previewItem.drive_url" class="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl mx-auto" alt="Preview">
+                        </template>
+
+                        <!-- Local Video -->
+                        <template x-if="previewItem?.is_video">
+                            <video :src="previewItem.drive_url" controls autoplay class="max-h-[76vh] w-full max-w-4xl rounded-2xl shadow-2xl bg-black mx-auto"></video>
+                        </template>
+
+                        <!-- Local Document / Text Note -->
+                        <template x-if="!previewItem?.is_image && !previewItem?.is_video">
+                            <div class="text-center p-8 max-w-md mx-auto">
+                                <div class="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-3 border border-amber-500/30">
+                                    <i data-lucide="file-text" class="w-8 h-8"></i>
+                                </div>
+                                <h4 class="text-base font-bold text-white mb-2" x-text="previewItem?.original_name"></h4>
+                                <p class="text-xs text-slate-400 leading-relaxed">Document is stored in your local pipeline. You can download or view it directly.</p>
+                                <div class="mt-5 flex items-center justify-center gap-3">
+                                    <a :href="previewItem?.download_url" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md transition">
+                                        Download Document
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
             </div>
+
+            <!-- Modal Footer Status Bar -->
+            <div class="px-5 py-2 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full" :class="previewItem?.is_google_drive ? 'bg-emerald-400' : 'bg-amber-400'"></span>
+                    <span x-text="previewItem?.is_google_drive ? 'Google Drive High-Definition Player' : 'Local Storage Player'"></span>
+                </span>
+                <span class="text-slate-500">Press <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px]">ESC</kbd> to exit preview</span>
+            </div>
+
         </div>
     </div>
 
@@ -1371,6 +1441,11 @@ function driveApp() {
             this.previewItem = file;
             this.previewModalOpen = true;
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        closePreview() {
+            this.previewModalOpen = false;
+            this.previewItem = null;
         },
 
         formatBytes(bytes) {

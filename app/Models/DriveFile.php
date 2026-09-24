@@ -23,6 +23,9 @@ class DriveFile extends Model
         'formatted_size',
         'is_image',
         'is_video',
+        'is_google_drive',
+        'preview_embed_url',
+        'thumbnail_url',
     ];
 
     public function uploader(): BelongsTo
@@ -62,6 +65,27 @@ class DriveFile extends Model
             return true;
         }
         $ext = strtolower(pathinfo($this->original_name, PATHINFO_EXTENSION));
-        return in_array($ext, ['mp4', 'mov', 'webm', 'ogg', 'mkv']);
+        return in_array($ext, ['mp4', 'mov', 'webm', 'ogg', 'mkv', 'avi', 'flv']);
+    }
+
+    public function getIsGoogleDriveAttribute(): bool
+    {
+        return !empty($this->drive_file_id) && !str_starts_with($this->drive_file_id, 'local_');
+    }
+
+    public function getPreviewEmbedUrlAttribute(): string
+    {
+        if ($this->is_google_drive) {
+            return "https://drive.google.com/file/d/{$this->drive_file_id}/preview";
+        }
+        return $this->drive_url;
+    }
+
+    public function getThumbnailUrlAttribute(): string
+    {
+        if ($this->is_google_drive) {
+            return "https://drive.google.com/thumbnail?id={$this->drive_file_id}&sz=w500";
+        }
+        return $this->drive_url;
     }
 }
