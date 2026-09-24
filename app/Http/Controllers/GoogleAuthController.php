@@ -214,6 +214,7 @@ class GoogleAuthController extends Controller
                 ->with('info', 'Please configure your Google OAuth Client ID & Secret to connect your personal Google Drive, or use the active cloud Service Account.');
         }
 
+        $client->setState(bin2hex(random_bytes(16)));
         $authUrl = $client->createAuthUrl();
         return redirect()->away($authUrl);
     }
