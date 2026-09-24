@@ -74,7 +74,12 @@ class DriveService
 
         try {
             $query = "name='EcoFone Operations Drive' and mimeType='application/vnd.google-apps.folder' and trashed=false";
-            $res = $this->drive->files->listFiles(['q' => $query, 'fields' => 'files(id, name)']);
+            $res = $this->drive->files->listFiles([
+                'q'                         => $query, 
+                'fields'                    => 'files(id, name)',
+                'supportsAllDrives'         => true,
+                'includeItemsFromAllDrives' => true,
+            ]);
             if (count($res->getFiles()) > 0) {
                 return $res->getFiles()[0]->getId();
             }
@@ -83,7 +88,10 @@ class DriveService
                 'name'     => 'EcoFone Operations Drive',
                 'mimeType' => 'application/vnd.google-apps.folder',
             ]);
-            $created = $this->drive->files->create($folderMetadata, ['fields' => 'id']);
+            $created = $this->drive->files->create($folderMetadata, [
+                'fields'            => 'id',
+                'supportsAllDrives' => true,
+            ]);
             $rootId = $created->getId();
 
             try {
@@ -92,7 +100,10 @@ class DriveService
                     'role'         => 'writer',
                     'emailAddress' => 'divyanshecofone@gmail.com',
                 ]);
-                $this->drive->permissions->create($rootId, $userPermission, ['sendNotificationEmail' => false]);
+                $this->drive->permissions->create($rootId, $userPermission, [
+                    'sendNotificationEmail' => false,
+                    'supportsAllDrives'     => true,
+                ]);
             } catch (\Exception $e) {
                 Log::info('Drive auto-share user notice: ' . $e->getMessage());
             }
@@ -102,7 +113,9 @@ class DriveService
                     'type' => 'anyone',
                     'role' => 'reader',
                 ]);
-                $this->drive->permissions->create($rootId, $linkPermission);
+                $this->drive->permissions->create($rootId, $linkPermission, [
+                    'supportsAllDrives' => true,
+                ]);
             } catch (\Exception $e) {
                 Log::info('Drive auto-share link notice: ' . $e->getMessage());
             }
@@ -127,7 +140,10 @@ class DriveService
             'parents'  => !empty($targetParent) ? [$targetParent] : [],
         ]);
 
-        $folder = $this->drive->files->create($folderMetadata, ['fields' => 'id']);
+        $folder = $this->drive->files->create($folderMetadata, [
+            'fields'            => 'id',
+            'supportsAllDrives' => true,
+        ]);
         $folderId = $folder->getId();
 
         try {
@@ -135,7 +151,9 @@ class DriveService
                 'type' => 'anyone',
                 'role' => 'reader',
             ]);
-            $this->drive->permissions->create($folderId, $permission);
+            $this->drive->permissions->create($folderId, $permission, [
+                'supportsAllDrives' => true,
+            ]);
         } catch (\Exception $e) {
             Log::info('Drive folder share permission notice: ' . $e->getMessage());
         }
@@ -300,7 +318,10 @@ class DriveService
             try {
                 $chunkSizeBytes = 16 * 1024 * 1024; // 16MB per chunk for high network throughput
                 $this->client->setDefer(true);
-                $request = $this->drive->files->create($fileMetadata, ['fields' => 'id, webViewLink, webContentLink']);
+                $request = $this->drive->files->create($fileMetadata, [
+                    'fields'            => 'id, webViewLink, webContentLink',
+                    'supportsAllDrives' => true,
+                ]);
                 $media = new \Google\Http\MediaFileUpload(
                     $this->client,
                     $request,
@@ -333,10 +354,11 @@ class DriveService
 
         // Standard multipart upload
         return $this->drive->files->create($fileMetadata, [
-            'data'       => file_get_contents($filePath),
-            'mimeType'   => $mimeType,
-            'uploadType' => 'multipart',
-            'fields'     => 'id, webViewLink, webContentLink',
+            'data'              => file_get_contents($filePath),
+            'mimeType'          => $mimeType,
+            'uploadType'        => 'multipart',
+            'fields'            => 'id, webViewLink, webContentLink',
+            'supportsAllDrives' => true,
         ]);
     }
 
@@ -347,14 +369,19 @@ class DriveService
 
     public function downloadContent(string $fileId)
     {
-        $response = $this->drive->files->get($fileId, ['alt' => 'media']);
+        $response = $this->drive->files->get($fileId, [
+            'alt'               => 'media',
+            'supportsAllDrives' => true,
+        ]);
         return $response->getBody()->getContents();
     }
 
     public function deleteFile(string $fileId): bool
     {
         try {
-            $this->drive->files->delete($fileId);
+            $this->drive->files->delete($fileId, [
+                'supportsAllDrives' => true,
+            ]);
             return true;
         } catch (\Exception $e) {
             Log::warning("Drive delete file failed: " . $e->getMessage());
@@ -371,8 +398,10 @@ class DriveService
         );
 
         $results = $this->drive->files->listFiles([
-            'q'      => $query,
-            'fields' => 'files(id, name)',
+            'q'                         => $query,
+            'fields'                    => 'files(id, name)',
+            'supportsAllDrives'         => true,
+            'includeItemsFromAllDrives' => true,
         ]);
 
         if (count($results->getFiles()) > 0) {
@@ -385,7 +414,10 @@ class DriveService
             'parents'  => [$parentId],
         ]);
 
-        $folder = $this->drive->files->create($folderMetadata, ['fields' => 'id']);
+        $folder = $this->drive->files->create($folderMetadata, [
+            'fields'            => 'id',
+            'supportsAllDrives' => true,
+        ]);
         return $folder->getId();
     }
 
