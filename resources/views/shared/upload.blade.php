@@ -843,50 +843,111 @@
         </div>
 
         <!-- Drawer Body (Uploads Queue) -->
-        <div x-show="!uploadDrawerMinimized" class="max-h-72 overflow-y-auto divide-y divide-slate-100 p-2 space-y-2">
+        <div x-show="!uploadDrawerMinimized" class="max-h-80 overflow-y-auto divide-y divide-slate-100 p-2.5 space-y-2.5">
             <template x-for="item in uploads" :key="item.id">
-                <div class="p-2.5 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col gap-1.5">
+                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2 transition shadow-2xs">
                     
+                    <!-- File Title & Status Badge -->
                     <div class="flex items-center justify-between gap-2 min-w-0">
                         <div class="flex items-center gap-2 min-w-0">
-                            <i data-lucide="file" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                            <div class="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="file-up" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            </div>
                             <span class="text-xs font-bold text-slate-800 truncate" :title="item.name" x-text="item.name"></span>
                         </div>
                         <span 
-                            class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase"
-                            :class="item.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : (item.status === 'syncing' ? 'bg-indigo-100 text-indigo-700 animate-pulse' : (item.status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'))"
-                            x-text="item.status === 'syncing' ? 'Syncing...' : (item.status === 'completed' ? 'Done' : item.progress + '%')"
+                            class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 tracking-wide uppercase font-mono"
+                            :class="item.status === 'completed' 
+                                ? 'bg-emerald-100 text-emerald-700' 
+                                : (item.status === 'syncing' 
+                                    ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 animate-pulse' 
+                                    : (item.status === 'failed' 
+                                        ? 'bg-rose-100 text-rose-700' 
+                                        : 'bg-indigo-50 text-indigo-600 border border-indigo-200'))"
+                            x-text="item.status === 'syncing' ? 'Syncing...' : (item.status === 'completed' ? 'Done 100%' : item.progress + '%')"
                         ></span>
                     </div>
 
-                    <!-- Progress Bar -->
-                    <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <!-- Progress Bar (Dynamic Width & Color) -->
+                    <div class="w-full bg-slate-200/90 rounded-full h-2 overflow-hidden relative">
                         <div 
-                            class="h-1.5 rounded-full transition-all duration-200"
-                            :class="item.status === 'completed' ? 'bg-emerald-500' : (item.status === 'failed' ? 'bg-rose-500' : 'bg-indigo-600')"
-                            :style="'width: ' + item.progress + '%'"
+                            class="h-2 rounded-full transition-all duration-150 ease-out"
+                            :class="item.status === 'completed' 
+                                ? 'bg-emerald-500' 
+                                : (item.status === 'failed' 
+                                    ? 'bg-rose-500' 
+                                    : (item.status === 'syncing' 
+                                        ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_100%] animate-pulse' 
+                                        : 'bg-indigo-600'))"
+                            :style="'width: ' + (item.status === 'syncing' || item.status === 'completed' ? '100%' : Math.max(item.progress, 3) + '%')"
                         ></div>
                     </div>
 
-                    <!-- Subtext Info & Speed -->
-                    <div class="flex items-center justify-between text-[10px] text-slate-400">
-                        <span x-text="item.status === 'syncing' ? 'Connecting with Google Drive cloud...' : (item.status === 'completed' ? 'Saved to Google Drive' : (item.sizeFormatted + ' &bull; ' + item.speed))"></span>
+                    <!-- Live Byte Progress & Speed Indicator -->
+                    <div class="flex items-center justify-between text-[11px] font-medium">
+                        
+                        <!-- Uploading state: Loaded MB / Total MB (XX%) • Speed -->
                         <template x-if="item.status === 'uploading'">
-                            <button type="button" @click="cancelUpload(item)" class="text-rose-500 hover:underline cursor-pointer">Cancel</button>
+                            <div class="flex items-center justify-between w-full">
+                                <span class="flex items-center gap-1.5 text-slate-600 font-mono text-[11px]">
+                                    <span class="font-bold text-slate-800" x-text="item.loadedBytesFormatted || '0 B'"></span>
+                                    <span class="text-slate-400">/</span>
+                                    <span class="text-slate-500" x-text="item.sizeFormatted"></span>
+                                    <span class="text-slate-300">&bull;</span>
+                                    <span class="text-indigo-600 font-bold" x-text="item.speed"></span>
+                                </span>
+                                <button 
+                                    type="button" 
+                                    @click="cancelUpload(item)" 
+                                    class="text-rose-500 hover:text-rose-700 text-[10px] font-bold hover:underline cursor-pointer ml-2"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </template>
+
+                        <!-- Syncing state: Upload complete -> Syncing to Google Drive cloud -->
+                        <template x-if="item.status === 'syncing'">
+                            <div class="flex items-center justify-between w-full text-indigo-700">
+                                <span class="flex items-center gap-1.5 animate-pulse text-[11px] font-semibold">
+                                    <i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i>
+                                    <span>Syncing to Google Drive cloud...</span>
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-mono" x-text="item.sizeFormatted"></span>
+                            </div>
+                        </template>
+
+                        <!-- Completed state: Saved to Google Drive -->
+                        <template x-if="item.status === 'completed'">
+                            <div class="flex items-center justify-between w-full text-emerald-700">
+                                <span class="flex items-center gap-1.5 text-[11px] font-bold">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                    <span>Saved to Google Drive</span>
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-mono" x-text="item.sizeFormatted"></span>
+                            </div>
+                        </template>
+
+                        <!-- Failed state -->
                         <template x-if="item.status === 'failed'">
-                            <button type="button" @click="removeUpload(item)" class="text-slate-400 hover:text-slate-600 cursor-pointer">Dismiss</button>
+                            <div class="flex items-center justify-between w-full text-rose-600">
+                                <span class="truncate text-[11px] font-semibold" :title="item.error" x-text="item.error || 'Upload failed'"></span>
+                                <button 
+                                    type="button" 
+                                    @click="removeUpload(item)" 
+                                    class="text-slate-400 hover:text-slate-600 text-[10px] font-bold cursor-pointer shrink-0 ml-2"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
                         </template>
                     </div>
-
-                    <template x-if="item.error">
-                        <div class="text-[10px] text-rose-600 font-bold" x-text="item.error"></div>
-                    </template>
                 </div>
             </template>
             <template x-if="uploads.length === 0">
-                <div class="py-6 text-center text-slate-400 text-xs">
-                    No active or recent uploads
+                <div class="py-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                    <i data-lucide="inbox" class="w-6 h-6 text-slate-300"></i>
+                    <span>No active or recent uploads</span>
                 </div>
             </template>
         </div>
@@ -1376,6 +1437,8 @@ function driveApp() {
         uploadDrawerOpen: false,
         uploadDrawerMinimized: false,
         originalPageTitle: document.title,
+        activeXhrs: {},
+        _lastUploadTrigger: 0,
 
         get activeUploadsCount() {
             return this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing').length;
@@ -1384,8 +1447,13 @@ function driveApp() {
         get overallProgress() {
             const active = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing');
             if (active.length === 0) return 100;
+            const totalBytes = active.reduce((acc, u) => acc + (u.size || 0), 0);
+            const loadedBytes = active.reduce((acc, u) => acc + (u.loadedBytes || 0), 0);
+            if (totalBytes > 0) {
+                return Math.min(Math.round((loadedBytes / totalBytes) * 100), 99);
+            }
             const sum = active.reduce((acc, u) => acc + (u.progress || 0), 0);
-            return Math.round(sum / active.length);
+            return Math.min(Math.round(sum / active.length), 99);
         },
 
         get uploadDrawerTitle() {
@@ -1397,6 +1465,18 @@ function driveApp() {
                 return `${this.uploads.length} upload${this.uploads.length > 1 ? 's' : ''} complete`;
             }
             return 'Upload Queue';
+        },
+
+        updateUpload(id, patch) {
+            const idx = this.uploads.findIndex(u => u.id === id);
+            if (idx !== -1) {
+                Object.assign(this.uploads[idx], patch);
+                const now = Date.now();
+                if (!this._lastUploadTrigger || now - this._lastUploadTrigger > 60 || patch.status === 'completed' || patch.status === 'syncing' || patch.status === 'failed') {
+                    this._lastUploadTrigger = now;
+                    this.uploads = [...this.uploads];
+                }
+            }
         },
 
         openUploadDrawer() {
@@ -1419,6 +1499,10 @@ function driveApp() {
         },
 
         removeUpload(item) {
+            if (this.activeXhrs && this.activeXhrs[item.id]) {
+                try { this.activeXhrs[item.id].abort(); } catch(e) {}
+                delete this.activeXhrs[item.id];
+            }
             this.uploads = this.uploads.filter(u => u.id !== item.id);
             this.saveUploadsToStorage();
             if (this.uploads.length === 0) {
@@ -1430,7 +1514,7 @@ function driveApp() {
         updateTabTitle() {
             const active = this.uploads.filter(u => u.status === 'uploading' || u.status === 'syncing');
             if (active.length > 0) {
-                const totalProgress = Math.round(active.reduce((acc, u) => acc + (u.progress || 0), 0) / active.length);
+                const totalProgress = this.overallProgress;
                 document.title = `(${totalProgress}%) Uploading ${active.length} item${active.length > 1 ? 's' : ''} - Google Drive`;
             } else if (this.uploads.length > 0 && this.uploads.every(u => u.status === 'completed')) {
                 document.title = `✓ Uploads Complete - Google Drive`;
@@ -1449,6 +1533,8 @@ function driveApp() {
                     name: u.name,
                     size: u.size,
                     sizeFormatted: u.sizeFormatted,
+                    loadedBytes: u.loadedBytes || 0,
+                    loadedBytesFormatted: u.loadedBytesFormatted || '0 B',
                     progress: u.progress,
                     speed: u.speed,
                     status: u.status,
@@ -1647,26 +1733,28 @@ function driveApp() {
             this.uploadDrawerMinimized = false;
 
             Array.from(fileList).forEach(file => {
+                const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
                 const uploadItem = {
-                    id: 'up_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                    id: uploadId,
                     name: file.name,
                     size: file.size,
                     sizeFormatted: this.formatBytes(file.size),
+                    loadedBytes: 0,
+                    loadedBytesFormatted: '0 B',
                     progress: 0,
                     speed: 'Starting...',
                     status: 'uploading',
-                    error: null,
-                    xhr: null
+                    error: null
                 };
                 this.uploads.unshift(uploadItem);
-                this.performUpload(file, uploadItem);
+                this.performUpload(file, uploadId);
             });
             this.updateTabTitle();
             this.saveUploadsToStorage();
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        performUpload(file, item) {
+        performUpload(file, uploadId) {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('_token', '{{ csrf_token() }}');
@@ -1684,35 +1772,53 @@ function driveApp() {
             }
 
             const xhr = new XMLHttpRequest();
-            item.xhr = xhr;
+            this.activeXhrs[uploadId] = xhr;
             let startTime = Date.now();
 
             xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    item.progress = Math.min(percent, 99);
-
+                if (e.lengthComputable && e.total > 0) {
+                    const percent = Math.min(Math.round((e.loaded / e.total) * 100), 99);
                     const elapsedSec = (Date.now() - startTime) / 1000;
-                    if (elapsedSec > 0.3) {
+                    let speedStr = 'Calculating...';
+                    if (elapsedSec > 0.2) {
                         const bytesPerSec = e.loaded / elapsedSec;
-                        item.speed = (bytesPerSec / (1024 * 1024)).toFixed(1) + ' MB/s';
+                        if (bytesPerSec >= 1024 * 1024) {
+                            speedStr = (bytesPerSec / (1024 * 1024)).toFixed(1) + ' MB/s';
+                        } else {
+                            speedStr = (bytesPerSec / 1024).toFixed(0) + ' KB/s';
+                        }
                     }
 
-                    if (item.progress >= 99) {
-                        item.status = 'syncing';
-                    }
+                    const loadedFormatted = this.formatBytes(e.loaded);
+                    const totalFormatted = this.formatBytes(e.total);
+                    const isAllBytesSent = e.loaded >= e.total;
+
+                    this.updateUpload(uploadId, {
+                        loadedBytes: e.loaded,
+                        loadedBytesFormatted: loadedFormatted,
+                        sizeFormatted: totalFormatted,
+                        progress: percent,
+                        speed: isAllBytesSent ? 'Syncing to Drive' : speedStr,
+                        status: isAllBytesSent ? 'syncing' : 'uploading'
+                    });
                     this.updateTabTitle();
-                    this.saveUploadsToStorage();
                 }
             });
 
             xhr.addEventListener('load', () => {
+                delete this.activeXhrs[uploadId];
+
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const res = JSON.parse(xhr.responseText);
                         if (res.success) {
-                            item.progress = 100;
-                            item.status = 'completed';
+                            this.updateUpload(uploadId, {
+                                loadedBytes: file.size,
+                                loadedBytesFormatted: this.formatBytes(file.size),
+                                progress: 100,
+                                status: 'completed',
+                                speed: 'Saved'
+                            });
                             this.showToast(res.message || 'File uploaded successfully!');
                             if (res.file) {
                                 this.files.unshift(res.file);
@@ -1720,23 +1826,32 @@ function driveApp() {
                                 res.files.forEach(f => this.files.unshift(f));
                             }
                         } else {
-                            item.status = 'failed';
-                            item.error = res.error || 'Upload error';
+                            this.updateUpload(uploadId, {
+                                status: 'failed',
+                                error: res.error || 'Upload error'
+                            });
                         }
                     } catch (err) {
-                        item.progress = 100;
-                        item.status = 'completed';
+                        this.updateUpload(uploadId, {
+                            loadedBytes: file.size,
+                            loadedBytesFormatted: this.formatBytes(file.size),
+                            progress: 100,
+                            status: 'completed',
+                            speed: 'Saved'
+                        });
                         this.showToast('Upload finished!');
                         this.refreshFilesList();
                     }
                 } else {
-                    item.status = 'failed';
+                    let errMsg = 'Upload failed (' + xhr.status + ')';
                     try {
                         const errRes = JSON.parse(xhr.responseText);
-                        item.error = errRes.message || ('Server error ' + xhr.status);
-                    } catch (e) {
-                        item.error = 'Upload failed (' + xhr.status + ')';
-                    }
+                        if (errRes.message) errMsg = errRes.message;
+                    } catch (e) {}
+                    this.updateUpload(uploadId, {
+                        status: 'failed',
+                        error: errMsg
+                    });
                 }
                 this.updateTabTitle();
                 this.saveUploadsToStorage();
@@ -1744,16 +1859,22 @@ function driveApp() {
             });
 
             xhr.addEventListener('error', () => {
-                item.status = 'failed';
-                item.error = 'Network connection lost during upload';
+                delete this.activeXhrs[uploadId];
+                this.updateUpload(uploadId, {
+                    status: 'failed',
+                    error: 'Network connection lost during upload'
+                });
                 this.updateTabTitle();
                 this.saveUploadsToStorage();
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
 
             xhr.addEventListener('abort', () => {
-                item.status = 'failed';
-                item.error = 'Upload cancelled';
+                delete this.activeXhrs[uploadId];
+                this.updateUpload(uploadId, {
+                    status: 'failed',
+                    error: 'Upload cancelled'
+                });
                 this.updateTabTitle();
                 this.saveUploadsToStorage();
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
@@ -1766,11 +1887,16 @@ function driveApp() {
         },
 
         cancelUpload(item) {
-            if (item.xhr) {
-                item.xhr.abort();
+            if (this.activeXhrs && this.activeXhrs[item.id]) {
+                try {
+                    this.activeXhrs[item.id].abort();
+                } catch(e) {}
+                delete this.activeXhrs[item.id];
             }
-            item.status = 'failed';
-            item.error = 'Upload cancelled';
+            this.updateUpload(item.id, {
+                status: 'failed',
+                error: 'Upload cancelled'
+            });
             this.updateTabTitle();
             this.saveUploadsToStorage();
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
