@@ -114,90 +114,191 @@ class DriveService
         }
     }
 
-    public function uploadFile(UploadedFile $file, int $userId): array
+    /**
+     * Create a folder in Google Drive.
+     */
+    public function createDriveFolder(string $name, ?string $parentDriveId = null): string
+    {
+        $targetParent = !empty($parentDriveId) ? $parentDriveId : $this->rootFolderId;
+
+        $folderMetadata = new GoogleDriveFile([
+            'name'     => $name,
+            'mimeType' => 'application/vnd.google-apps.folder',
+            'parents'  => !empty($targetParent) ? [$targetParent] : [],
+        ]);
+
+        $folder = $this->drive->files->create($folderMetadata, ['fields' => 'id']);
+        $folderId = $folder->getId();
+
+        try {
+            $permission = new \Google\Service\Drive\Permission([
+                'type' => 'anyone',
+                'role' => 'reader',
+            ]);
+            $this->drive->permissions->create($folderId, $permission);
+        } catch (\Exception $e) {
+            Log::info('Drive folder share permission notice: ' . $e->getMessage());
+        }
+
+        return $folderId;
+    }
+
+    /**
+     * Upload an UploadedFile into Google Drive.
+     * Optionally places into a specific Google Drive target folder.
+     */
+    public function uploadFile(UploadedFile $file, int $userId, ?string $targetDriveFolderId = null): array
     {
         $today = now()->format('Y-m-d');
         $fileType = $this->detectFileType($file);
-        $typeFolderName = ucfirst($fileType) . 's'; // Photos, Videos, Documents
+        $fileSize = $file->getSize() ?: 0;
+        $mimeType = $file->getMimeType() ?: 'application/octet-stream';
 
-        // Get or create date folder
-        $dateFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
+        if (!empty($targetDriveFolderId)) {
+            $destinationFolderId = $targetDriveFolderId;
+        } else {
+            $typeFolderName = ucfirst($fileType) . 's'; // Photos, Videos, Documents
+            $dateFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
+            $destinationFolderId = $this->getOrCreateFolder($typeFolderName, $dateFolderId);
+        }
 
-        // Get or create type subfolder inside date folder
-        $typeFolderId = $this->getOrCreateFolder($typeFolderName, $dateFolderId);
-
-        // Upload file to type folder
         $fileMetadata = new GoogleDriveFile([
             'name'    => $file->getClientOriginalName(),
-            'parents' => [$typeFolderId],
+            'parents' => !empty($destinationFolderId) ? [$destinationFolderId] : [],
         ]);
 
-        $result = $this->executeUpload($fileMetadata, $file->getRealPath(), $file->getMimeType() ?: 'application/octet-stream');
+        $result = $this->executeUpload($fileMetadata, $file->getRealPath(), $mimeType);
 
-        // Make file viewable and downloadable by anyone with link
-        $permission = new \Google\Service\Drive\Permission([
-            'type' => 'anyone',
-            'role' => 'reader',
-        ]);
-        $this->drive->permissions->create($result->getId(), $permission);
+        try {
+            $permission = new \Google\Service\Drive\Permission([
+                'type' => 'anyone',
+                'role' => 'reader',
+            ]);
+            $this->drive->permissions->create($result->getId(), $permission);
+        } catch (\Exception $e) {
+            Log::info('Drive file share permission notice: ' . $e->getMessage());
+        }
 
         return [
             'drive_file_id' => $result->getId(),
             'drive_url'     => $result->getWebViewLink() ?? "https://drive.google.com/file/d/{$result->getId()}/view",
             'file_type'     => $fileType,
-            'upload_date'   => $today,
-        ];
-    }
-
-    public function uploadFromPath(string $absolutePath, string $originalName, int $userId): array
-    {
-        $today = now()->format('Y-m-d');
-        $fileType = $this->detectTypeFromName($originalName, $absolutePath);
-        $typeFolderName = ucfirst($fileType) . 's'; // Photos, Videos, Documents
-
-        // Get or create date folder
-        $dateFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
-
-        // Get or create type subfolder inside date folder
-        $typeFolderId = $this->getOrCreateFolder($typeFolderName, $dateFolderId);
-
-        $mimeType = mime_content_type($absolutePath) ?: 'application/octet-stream';
-
-        // Upload file to type folder
-        $fileMetadata = new GoogleDriveFile([
-            'name'    => $originalName,
-            'parents' => [$typeFolderId],
-        ]);
-
-        $result = $this->executeUpload($fileMetadata, $absolutePath, $mimeType);
-
-        // Make file viewable and downloadable by anyone with link
-        $permission = new \Google\Service\Drive\Permission([
-            'type' => 'anyone',
-            'role' => 'reader',
-        ]);
-        $this->drive->permissions->create($result->getId(), $permission);
-
-        return [
-            'drive_file_id' => $result->getId(),
-            'drive_url'     => $result->getWebViewLink() ?? "https://drive.google.com/file/d/{$result->getId()}/view",
-            'file_type'     => $fileType,
+            'file_size'     => $fileSize,
+            'mime_type'     => $mimeType,
             'upload_date'   => $today,
         ];
     }
 
     /**
+     * Upload an existing file from a local filesystem path.
+     */
+    public function uploadFromPath(string $absolutePath, string $originalName, int $userId, ?string $targetDriveFolderId = null): array
+    {
+        $today = now()->format('Y-m-d');
+        $fileType = $this->detectTypeFromName($originalName, $absolutePath);
+        $fileSize = file_exists($absolutePath) ? (int) filesize($absolutePath) : 0;
+        $mimeType = mime_content_type($absolutePath) ?: 'application/octet-stream';
+
+        if (!empty($targetDriveFolderId)) {
+            $destinationFolderId = $targetDriveFolderId;
+        } else {
+            $typeFolderName = ucfirst($fileType) . 's';
+            $dateFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
+            $destinationFolderId = $this->getOrCreateFolder($typeFolderName, $dateFolderId);
+        }
+
+        $fileMetadata = new GoogleDriveFile([
+            'name'    => $originalName,
+            'parents' => !empty($destinationFolderId) ? [$destinationFolderId] : [],
+        ]);
+
+        $result = $this->executeUpload($fileMetadata, $absolutePath, $mimeType);
+
+        try {
+            $permission = new \Google\Service\Drive\Permission([
+                'type' => 'anyone',
+                'role' => 'reader',
+            ]);
+            $this->drive->permissions->create($result->getId(), $permission);
+        } catch (\Exception $e) {
+            Log::info('Drive file share permission notice: ' . $e->getMessage());
+        }
+
+        return [
+            'drive_file_id' => $result->getId(),
+            'drive_url'     => $result->getWebViewLink() ?? "https://drive.google.com/file/d/{$result->getId()}/view",
+            'file_type'     => $fileType,
+            'file_size'     => $fileSize,
+            'mime_type'     => $mimeType,
+            'upload_date'   => $today,
+        ];
+    }
+
+    /**
+     * Create a file with direct content (e.g. Note / Document) in Google Drive.
+     */
+    public function createDocFile(string $originalName, string $content, int $userId, ?string $targetDriveFolderId = null): array
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'drive_doc_');
+        file_put_contents($tempPath, $content);
+
+        try {
+            $result = $this->uploadFromPath($tempPath, $originalName, $userId, $targetDriveFolderId);
+            @unlink($tempPath);
+            return $result;
+        } catch (\Throwable $e) {
+            @unlink($tempPath);
+            throw $e;
+        }
+    }
+
+    /**
+     * Rename file or folder in Google Drive.
+     */
+    public function renameItem(string $driveId, string $newName): bool
+    {
+        try {
+            $fileMetadata = new GoogleDriveFile(['name' => $newName]);
+            $this->drive->files->update($driveId, $fileMetadata);
+            return true;
+        } catch (\Exception $e) {
+            Log::warning('Drive rename failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Move a file or folder in Google Drive to a new parent folder.
+     */
+    public function moveItem(string $driveId, string $newParentDriveId): bool
+    {
+        try {
+            $file = $this->drive->files->get($driveId, ['fields' => 'parents']);
+            $previousParents = join(',', $file->getParents() ?? []);
+            $this->drive->files->update($driveId, new GoogleDriveFile(), [
+                'addParents'    => $newParentDriveId,
+                'removeParents' => $previousParents,
+                'fields'        => 'id, parents',
+            ]);
+            return true;
+        } catch (\Exception $e) {
+            Log::warning('Drive move item failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Executes upload to Google Drive.
-     * Uses resumable chunked upload for files > 5MB to support unlimited file sizes without memory exhaustion.
+     * Uses optimized 16MB resumable chunks for large files (> 5MB) to drastically reduce roundtrips.
      */
     protected function executeUpload(GoogleDriveFile $fileMetadata, string $filePath, string $mimeType)
     {
         $fileSize = file_exists($filePath) ? (int) filesize($filePath) : 0;
 
-        // If file is large (> 5MB), upload in resumable 5MB chunks
+        // If file is large (> 5MB), upload in resumable 16MB chunks (multiple of 256KB)
         if ($fileSize > 5 * 1024 * 1024 && isset($this->client)) {
             try {
-                $chunkSizeBytes = 5 * 1024 * 1024;
+                $chunkSizeBytes = 16 * 1024 * 1024; // 16MB per chunk for high network throughput
                 $this->client->setDefer(true);
                 $request = $this->drive->files->create($fileMetadata, ['fields' => 'id, webViewLink, webContentLink']);
                 $media = new \Google\Http\MediaFileUpload(
@@ -261,9 +362,8 @@ class DriveService
         }
     }
 
-    protected function getOrCreateFolder(string $name, string $parentId): string
+    public function getOrCreateFolder(string $name, string $parentId): string
     {
-        // Check if folder already exists
         $query = sprintf(
             "name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false",
             addslashes($name),
@@ -279,7 +379,6 @@ class DriveService
             return $results->getFiles()[0]->getId();
         }
 
-        // Create new folder
         $folderMetadata = new GoogleDriveFile([
             'name'     => $name,
             'mimeType' => 'application/vnd.google-apps.folder',

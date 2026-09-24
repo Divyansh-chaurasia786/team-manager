@@ -182,9 +182,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/leaves/{leave}/approve', [LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('/leaves/{leave}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
 
-    // Drive upload, download & deletion
+    // Drive cloud management: uploads, folders, documents, rename, move & deletion
     Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
     Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
+    Route::post('/drive/folders', [UploadController::class, 'createFolder'])->name('drive.folders.store');
+    Route::put('/drive/folders/{folder}/rename', [UploadController::class, 'renameFolder'])->name('drive.folders.rename');
+    Route::delete('/drive/folders/{folder}', [UploadController::class, 'destroyFolder'])->name('drive.folders.destroy');
+    Route::post('/drive/create-file', [UploadController::class, 'createFile'])->name('drive.files.create');
+    Route::put('/drive/files/{file}/rename', [UploadController::class, 'rename'])->name('drive.files.rename');
+    Route::put('/drive/files/{file}/move', [UploadController::class, 'moveFile'])->name('drive.files.move');
     Route::get('/drive/download/{file}', [UploadController::class, 'download'])->name('drive.download');
     Route::delete('/drive/files/{file}', [UploadController::class, 'destroy'])->name('drive.destroy');
 
