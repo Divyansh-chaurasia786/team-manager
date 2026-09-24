@@ -46,6 +46,12 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, $request) {
+            if ($e->getStatusCode() === 419) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['message' => 'Session expired. Please retry.'], 419);
+                }
+                return redirect()->route('login')->with('warning', 'Your session expired. Please enter your credentials to sign in.');
+            }
             if ($e->getStatusCode() === 403) {
                 if (app()->environment('testing')) {
                     return false;
