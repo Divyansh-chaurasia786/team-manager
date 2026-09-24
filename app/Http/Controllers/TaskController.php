@@ -432,6 +432,7 @@ class TaskController extends Controller
                         // Save in DriveFile table
                         $driveFile = \App\Models\DriveFile::create([
                             'uploaded_by'   => $uploaderId,
+                            'task_id'       => $task->id,
                             'original_name' => $originalName,
                             'drive_file_id' => $uploadResult['drive_file_id'],
                             'drive_url'     => $uploadResult['drive_url'],

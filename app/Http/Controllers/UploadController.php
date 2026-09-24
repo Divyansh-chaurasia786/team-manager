@@ -35,7 +35,7 @@ class UploadController extends Controller
             ->where('parent_id', $currentFolderId);
 
         // Files in current scope
-        $filesQuery = DriveFile::with('uploader')
+        $filesQuery = DriveFile::with(['uploader', 'task'])
             ->where(function ($q) use ($tl) {
                 $q->where('uploaded_by', $tl->id)
                   ->orWhereHas('uploader', function ($uq) use ($tl) {
@@ -87,6 +87,8 @@ class UploadController extends Controller
                 'upload_date'       => $f->upload_date,
                 'uploader_name'     => $f->uploader?->name ?? 'Member',
                 'folder_id'         => $f->folder_id,
+                'task_id'           => $f->task_id,
+                'task_title'        => $f->task?->title ?? null,
                 'is_image'          => $f->is_image,
                 'is_video'          => $f->is_video,
             ];
@@ -116,9 +118,11 @@ class UploadController extends Controller
             'file'      => 'nullable|file', // No file size limit on Google Drive upload
             'files.*'   => 'nullable|file',
             'folder_id' => 'nullable|exists:drive_folders,id',
+            'task_id'   => 'nullable|exists:tasks,id',
         ]);
 
         $folderId = $request->filled('folder_id') ? (int) $request->folder_id : null;
+        $taskId   = $request->filled('task_id')   ? (int) $request->task_id   : null;
         $filesToUpload = [];
 
         if ($request->hasFile('files')) {
@@ -192,6 +196,7 @@ class UploadController extends Controller
                     $driveFile = DriveFile::create([
                         'uploaded_by'   => Auth::id(),
                         'folder_id'     => $folderId,
+                        'task_id'       => $taskId,
                         'original_name' => $originalName,
                         'drive_file_id' => $result['drive_file_id'],
                         'drive_url'     => $result['drive_url'],
@@ -231,6 +236,7 @@ class UploadController extends Controller
                 $driveFile = DriveFile::create([
                     'uploaded_by'   => Auth::id(),
                     'folder_id'     => $folderId,
+                    'task_id'       => $taskId,
                     'original_name' => $originalName,
                     'drive_file_id' => 'local_' . uniqid(),
                     'drive_url'     => url($localRelativePath),
@@ -273,6 +279,8 @@ class UploadController extends Controller
                     'upload_date'       => $f->upload_date,
                     'uploader_name'     => Auth::user()->name,
                     'folder_id'         => $f->folder_id,
+                    'task_id'           => $f->task_id,
+                    'task_title'        => $f->task?->title ?? null,
                     'is_image'          => $f->is_image,
                     'is_video'          => $f->is_video,
                 ];

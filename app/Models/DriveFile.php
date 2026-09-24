@@ -10,6 +10,7 @@ class DriveFile extends Model
     protected $fillable = [
         'uploaded_by',
         'folder_id',
+        'task_id',
         'original_name',
         'drive_file_id',
         'drive_url',
@@ -37,6 +38,11 @@ class DriveFile extends Model
     public function folder(): BelongsTo
     {
         return $this->belongsTo(DriveFolder::class, 'folder_id');
+    }
+
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'task_id');
     }
 
     public function getFormattedSizeAttribute(): string

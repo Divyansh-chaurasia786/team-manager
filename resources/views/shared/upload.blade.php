@@ -350,7 +350,7 @@
         </div>
     </div>
 
-    <!-- Files Section -->
+    <!-- Files Section - Grouped by Task → Date → Uploader -->
     <div class="space-y-3">
         <div class="flex items-center justify-between">
             <h3 class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -359,244 +359,203 @@
             </h3>
         </div>
 
-        <!-- 1. Grid View Mode -->
-        <div x-show="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <template x-for="file in filteredFiles" :key="file.id">
-                <div class="bg-white border border-slate-200 hover:border-indigo-400 rounded-2xl p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between group">
-                    
-                    <!-- File Card Header -->
-                    <div class="flex items-start justify-between gap-2 mb-3">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div 
-                                class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
-                                :class="file.file_type === 'photo' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : (file.file_type === 'video' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-amber-50 text-amber-600 border border-amber-100')"
-                            >
-                                <i 
-                                    :data-lucide="file.file_type === 'photo' ? 'image' : (file.file_type === 'video' ? 'video' : 'file-text')" 
-                                    class="w-5 h-5"
-                                ></i>
+        <!-- Grouped View: Task → Date → Uploader -->
+        <template x-if="filteredFiles.length > 0">
+            <div class="space-y-5">
+                <template x-for="group in groupedFiles" :key="group.taskKey">
+                    <!-- LEVEL 1: Task / Reference Group -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                        
+                        <!-- Task Group Header -->
+                        <div class="px-4 py-3 bg-gradient-to-r from-indigo-50 to-slate-50 border-b border-indigo-100 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" 
+                                 :class="group.taskId ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'">
+                                <i :data-lucide="group.taskId ? 'clipboard-list' : 'folder-open'" class="w-4 h-4"></i>
                             </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-900 truncate" :title="file.original_name" x-text="file.original_name"></h4>
-                                <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                                    <span class="capitalize font-bold text-slate-600" x-text="file.file_type"></span>
-                                    <span>&bull;</span>
-                                    <span x-text="file.formatted_size || file.upload_date"></span>
-                                </div>
+                            <div class="min-w-0 flex-1">
+                                <h4 class="text-sm font-black text-slate-900 truncate" 
+                                    x-text="group.taskId ? ('Task #' + group.taskId + ': ' + group.taskTitle) : 'General Uploads'"></h4>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    <span x-text="group.totalFiles + ' file' + (group.totalFiles > 1 ? 's' : '')"></span>
+                                    <span x-show="group.taskId" class="text-indigo-500 font-bold ml-1">— Task Deliverable</span>
+                                    <span x-show="!group.taskId" class="text-slate-400 ml-1">— Manually uploaded</span>
+                                </p>
                             </div>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0"
+                                  :class="group.taskId ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'"
+                                  x-text="group.taskId ? 'Task Ref' : 'No Ref'"></span>
                         </div>
 
-                        <!-- Card Dropdown Menu -->
-                        <div class="relative" x-data="{ cardMenuOpen: false }" @click.outside="cardMenuOpen = false">
-                            <button 
-                                type="button" 
-                                @click.stop="cardMenuOpen = !cardMenuOpen"
-                                class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                            >
-                                <i data-lucide="more-vertical" class="w-4 h-4"></i>
-                            </button>
-                            <div 
-                                x-show="cardMenuOpen" 
-                                x-cloak 
-                                class="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-20"
-                            >
-                                <button 
-                                    type="button" 
-                                    @click="openPreview(file); cardMenuOpen = false" 
-                                    class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                                >
-                                    <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Quick Preview</span>
-                                </button>
-                                <a 
-                                    :href="file.download_url" 
-                                    class="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                >
-                                    <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Download</span>
-                                </a>
-                                <a 
-                                    :href="file.drive_url" 
-                                    target="_blank" 
-                                    class="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                >
-                                    <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Open in Drive</span>
-                                </a>
-                                <button 
-                                    type="button" 
-                                    @click="openMoveModal(file.id, file.original_name); cardMenuOpen = false" 
-                                    class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                                >
-                                    <i data-lucide="folder-input" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Move to Folder</span>
-                                </button>
-                                <button 
-                                    type="button" 
-                                    @click="openRenameModal('file', file.id, file.original_name); cardMenuOpen = false" 
-                                    class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                                >
-                                    <i data-lucide="edit-2" class="w-3.5 h-3.5 text-slate-400"></i>
-                                    <span>Rename</span>
-                                </button>
-                                <div class="my-1 border-t border-slate-100"></div>
-                                <button 
-                                    type="button" 
-                                    @click="deleteFile(file.id, file.original_name); cardMenuOpen = false" 
-                                    class="w-full text-left px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
-                                >
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500"></i>
-                                    <span>Delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Visual Thumbnail / Preview Area -->
-                    <div 
-                        @click="openPreview(file)"
-                        class="w-full h-36 rounded-xl bg-slate-900 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer mb-3 relative group/thumb"
-                    >
-                        <template x-if="file.is_image">
-                            <img :src="file.thumbnail_url || file.drive_url" class="w-full h-full object-cover group-hover/thumb:scale-105 transition duration-200" alt="thumbnail" loading="lazy">
-                        </template>
-
-                        <template x-if="file.is_video">
-                            <div class="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
-                                <template x-if="file.thumbnail_url && file.is_google_drive">
-                                    <img :src="file.thumbnail_url" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover/thumb:opacity-80 group-hover/thumb:scale-105 transition duration-200" alt="video thumbnail">
-                                </template>
-                                <div class="relative z-10 w-11 h-11 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center group-hover/thumb:scale-110 group-hover/thumb:bg-rose-600 transition shadow-lg">
-                                    <i data-lucide="play" class="w-5 h-5 fill-white ml-0.5"></i>
-                                </div>
-                                <span class="absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
-                                    <i data-lucide="video" class="w-3 h-3 text-rose-400"></i> Video
-                                </span>
-                            </div>
-                        </template>
-
-                        <template x-if="!file.is_image && !file.is_video">
-                            <div class="flex flex-col items-center justify-center text-amber-500">
-                                <i data-lucide="file-text" class="w-8 h-8 text-amber-400"></i>
-                                <span class="text-[10px] text-slate-400 mt-1 font-bold">Document Note</span>
-                            </div>
-                        </template>
-
-                        <!-- Quick Hover Action Overlay -->
-                        <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center gap-2 pointer-events-none">
-                            <span class="px-2.5 py-1 rounded-lg bg-white/90 text-slate-900 text-[10px] font-bold shadow-sm">Click to Preview</span>
-                        </div>
-                    </div>
-
-                    <!-- Footer Info & Quick Download -->
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] text-slate-400">
-                        <span class="truncate max-w-[120px]" x-text="'By: ' + (file.uploader_name || 'Member')"></span>
-                        <div class="flex items-center gap-1.5">
-                            <a 
-                                :href="file.download_url" 
-                                class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
-                                title="Download"
-                            >
-                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                            </a>
-                            <a 
-                                :href="file.drive_url" 
-                                target="_blank" 
-                                class="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 transition"
-                                title="Open Drive Link"
-                            >
-                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                </div>
-            </template>
-        </div>
-
-        <!-- 2. List View Mode -->
-        <div x-show="viewMode === 'list'" class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-            <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase">
-                    <tr>
-                        <th class="py-3 px-4">Name</th>
-                        <th class="py-3 px-4">Type</th>
-                        <th class="py-3 px-4">Size</th>
-                        <th class="py-3 px-4">Uploaded By</th>
-                        <th class="py-3 px-4">Date</th>
-                        <th class="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <template x-for="file in filteredFiles" :key="file.id">
-                        <tr class="hover:bg-slate-50/70 transition group">
-                            <td class="py-3 px-4">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    <div 
-                                        class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                                        :class="file.file_type === 'photo' ? 'bg-indigo-50 text-indigo-600' : (file.file_type === 'video' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600')"
-                                    >
-                                        <i :data-lucide="file.file_type === 'photo' ? 'image' : (file.file_type === 'video' ? 'video' : 'file-text')" class="w-4 h-4"></i>
+                        <!-- LEVEL 2: Date Sub-groups inside this task group -->
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="dateGroup in group.dateGroups" :key="dateGroup.date">
+                                <div class="px-4 py-3">
+                                    
+                                    <!-- Date Row Header -->
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                                        <span class="text-[11px] font-black uppercase tracking-wider text-slate-500" x-text="dateGroup.date"></span>
+                                        <div class="flex-1 h-px bg-slate-100"></div>
+                                        <span class="text-[10px] text-slate-400 font-mono" x-text="dateGroup.files.length + ' file' + (dateGroup.files.length > 1 ? 's' : '')"></span>
                                     </div>
-                                    <span 
-                                        @click="openPreview(file)"
-                                        class="font-bold text-slate-800 hover:text-indigo-600 cursor-pointer truncate max-w-xs" 
-                                        x-text="file.original_name"
-                                    ></span>
+
+                                    <!-- LEVEL 3: Uploader sub-groups within this date -->
+                                    <div class="space-y-3">
+                                        <template x-for="uploaderGroup in dateGroup.uploaderGroups" :key="uploaderGroup.uploaderName">
+                                            <div>
+                                                <!-- Uploader badge -->
+                                                <div class="flex items-center gap-1.5 mb-2">
+                                                    <div class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-black shrink-0"
+                                                         x-text="uploaderGroup.uploaderName.charAt(0).toUpperCase()"></div>
+                                                    <span class="text-[11px] font-bold text-slate-700" x-text="uploaderGroup.uploaderName"></span>
+                                                    <span class="text-[10px] text-slate-400" x-text="'(' + uploaderGroup.files.length + ')'"></span>
+                                                </div>
+
+                                                <!-- Grid View: files under this uploader -->
+                                                <div x-show="viewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                                                    <template x-for="file in uploaderGroup.files" :key="file.id">
+                                                        <div class="bg-slate-50 border border-slate-200 hover:border-indigo-400 rounded-xl p-3 shadow-xs hover:shadow-md transition flex flex-col justify-between group">
+                                                            
+                                                            <!-- File Card Header -->
+                                                            <div class="flex items-start justify-between gap-1 mb-2">
+                                                                <div 
+                                                                    class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold"
+                                                                    :class="file.file_type === 'photo' ? 'bg-indigo-100 text-indigo-600' : (file.file_type === 'video' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600')"
+                                                                >
+                                                                    <i :data-lucide="file.file_type === 'photo' ? 'image' : (file.file_type === 'video' ? 'video' : 'file-text')" class="w-4 h-4"></i>
+                                                                </div>
+
+                                                                <!-- Compact Card Menu -->
+                                                                <div class="relative" x-data="{ cardMenuOpen: false }" @click.outside="cardMenuOpen = false">
+                                                                    <button 
+                                                                        type="button" 
+                                                                        @click.stop="cardMenuOpen = !cardMenuOpen"
+                                                                        class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                                                                    >
+                                                                        <i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>
+                                                                    </button>
+                                                                    <div 
+                                                                        x-show="cardMenuOpen" 
+                                                                        x-cloak 
+                                                                        class="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-20"
+                                                                    >
+                                                                        <button type="button" @click="openPreview(file); cardMenuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
+                                                                            <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400"></i><span>Quick Preview</span>
+                                                                        </button>
+                                                                        <a :href="file.download_url" class="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                                                            <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i><span>Download</span>
+                                                                        </a>
+                                                                        <a :href="file.drive_url" target="_blank" class="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                                                            <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i><span>Open in Drive</span>
+                                                                        </a>
+                                                                        <button type="button" @click="openMoveModal(file.id, file.original_name); cardMenuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
+                                                                            <i data-lucide="folder-input" class="w-3.5 h-3.5 text-slate-400"></i><span>Move to Folder</span>
+                                                                        </button>
+                                                                        <button type="button" @click="openRenameModal('file', file.id, file.original_name); cardMenuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
+                                                                            <i data-lucide="edit-2" class="w-3.5 h-3.5 text-slate-400"></i><span>Rename</span>
+                                                                        </button>
+                                                                        <div class="my-1 border-t border-slate-100"></div>
+                                                                        <button type="button" @click="deleteFile(file.id, file.original_name); cardMenuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer">
+                                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500"></i><span>Delete</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Thumbnail -->
+                                                            <div 
+                                                                @click="openPreview(file)"
+                                                                class="w-full h-24 rounded-lg bg-slate-900 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer mb-2 relative group/thumb"
+                                                            >
+                                                                <template x-if="file.is_image">
+                                                                    <img :src="file.thumbnail_url || file.drive_url" class="w-full h-full object-cover group-hover/thumb:scale-105 transition duration-200" alt="thumbnail" loading="lazy">
+                                                                </template>
+                                                                <template x-if="file.is_video">
+                                                                    <div class="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
+                                                                        <template x-if="file.thumbnail_url && file.is_google_drive">
+                                                                            <img :src="file.thumbnail_url" class="absolute inset-0 w-full h-full object-cover opacity-60" alt="video thumbnail">
+                                                                        </template>
+                                                                        <div class="relative z-10 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center group-hover/thumb:bg-rose-600 transition">
+                                                                            <i data-lucide="play" class="w-4 h-4 fill-white ml-0.5"></i>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                                <template x-if="!file.is_image && !file.is_video">
+                                                                    <div class="flex flex-col items-center justify-center text-amber-500">
+                                                                        <i data-lucide="file-text" class="w-6 h-6 text-amber-400"></i>
+                                                                    </div>
+                                                                </template>
+                                                                <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center pointer-events-none">
+                                                                    <span class="px-2 py-0.5 rounded-lg bg-white/90 text-slate-900 text-[9px] font-bold shadow-sm">Preview</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- File name + size -->
+                                                            <div>
+                                                                <h5 class="text-[11px] font-bold text-slate-800 truncate" :title="file.original_name" x-text="file.original_name"></h5>
+                                                                <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                                                    <span class="capitalize text-slate-500 font-semibold" x-text="file.file_type"></span>
+                                                                    <span x-show="file.formatted_size">• <span x-text="file.formatted_size"></span></span>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Quick actions -->
+                                                            <div class="flex items-center justify-end gap-1 mt-2 pt-1.5 border-t border-slate-200">
+                                                                <a :href="file.download_url" class="p-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition cursor-pointer" title="Download">
+                                                                    <i data-lucide="download" class="w-3 h-3"></i>
+                                                                </a>
+                                                                <a :href="file.drive_url" target="_blank" class="p-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition" title="Open Drive Link">
+                                                                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+
+                                                <!-- List View: files under this uploader -->
+                                                <div x-show="viewMode === 'list'" class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                                                    <table class="w-full text-left text-xs">
+                                                        <tbody class="divide-y divide-slate-50">
+                                                            <template x-for="file in uploaderGroup.files" :key="file.id">
+                                                                <tr class="hover:bg-slate-50/70 transition group">
+                                                                    <td class="py-2.5 px-3">
+                                                                        <div class="flex items-center gap-2 min-w-0">
+                                                                            <div class="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                                                                                 :class="file.file_type === 'photo' ? 'bg-indigo-50 text-indigo-600' : (file.file_type === 'video' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600')">
+                                                                                <i :data-lucide="file.file_type === 'photo' ? 'image' : (file.file_type === 'video' ? 'video' : 'file-text')" class="w-3.5 h-3.5"></i>
+                                                                            </div>
+                                                                            <span @click="openPreview(file)" class="font-bold text-slate-800 hover:text-indigo-600 cursor-pointer truncate max-w-xs" x-text="file.original_name"></span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td class="py-2.5 px-3 capitalize text-slate-500 font-semibold" x-text="file.file_type"></td>
+                                                                    <td class="py-2.5 px-3 text-slate-400 font-mono text-[10px]" x-text="file.formatted_size || '—'"></td>
+                                                                    <td class="py-2.5 px-3 text-right">
+                                                                        <div class="flex items-center justify-end gap-1">
+                                                                            <button type="button" @click="openPreview(file)" class="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer" title="Preview"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>
+                                                                            <a :href="file.download_url" class="p-1 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Download"><i data-lucide="download" class="w-3.5 h-3.5"></i></a>
+                                                                            <button type="button" @click="openMoveModal(file.id, file.original_name)" class="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer" title="Move"><i data-lucide="folder-input" class="w-3.5 h-3.5"></i></button>
+                                                                            <button type="button" @click="openRenameModal('file', file.id, file.original_name)" class="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer" title="Rename"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
+                                                                            <button type="button" @click="deleteFile(file.id, file.original_name)" class="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </template>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                            </div>
+                                        </template>
+                                    </div><!-- end uploader groups -->
+
                                 </div>
-                            </td>
-                            <td class="py-3 px-4 capitalize text-slate-600 font-semibold" x-text="file.file_type"></td>
-                            <td class="py-3 px-4 text-slate-500" x-text="file.formatted_size || '—'"></td>
-                            <td class="py-3 px-4 text-slate-600 font-semibold" x-text="file.uploader_name || 'Member'"></td>
-                            <td class="py-3 px-4 text-slate-400 font-mono text-[11px]" x-text="file.upload_date"></td>
-                            <td class="py-3 px-4 text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <button 
-                                        type="button" 
-                                        @click="openPreview(file)" 
-                                        class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                                        title="Preview"
-                                    >
-                                        <i data-lucide="eye" class="w-4 h-4"></i>
-                                    </button>
-                                    <a 
-                                        :href="file.download_url" 
-                                        class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
-                                        title="Download"
-                                    >
-                                        <i data-lucide="download" class="w-4 h-4"></i>
-                                    </a>
-                                    <button 
-                                        type="button" 
-                                        @click="openMoveModal(file.id, file.original_name)" 
-                                        class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                                        title="Move"
-                                    >
-                                        <i data-lucide="folder-input" class="w-4 h-4"></i>
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="openRenameModal('file', file.id, file.original_name)" 
-                                        class="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
-                                        title="Rename"
-                                    >
-                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="deleteFile(file.id, file.original_name)" 
-                                        class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                        title="Delete"
-                                    >
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
-        </div>
+                            </template>
+                        </div><!-- end date groups -->
+
+                    </div>
+                </template>
+            </div>
+        </template>
 
         <!-- Empty State -->
         <div x-show="filteredFiles.length === 0 && filteredFolders.length === 0" class="bg-white rounded-2xl border border-slate-200 py-16 text-center text-slate-400">
@@ -607,6 +566,11 @@
             <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Drop files here, click "+ New" above to create a folder, or upload files directly into this directory.</p>
         </div>
     </div>
+
+
+
+
+
 
     <!-- ============================================================ -->
     <!-- PERSISTENT FLOATING REOPEN PILL (Shown when drawer is closed but uploads exist) -->
@@ -1289,6 +1253,67 @@ function driveApp() {
                 list = list.filter(f => f.original_name.toLowerCase().includes(q) || (f.upload_date && f.upload_date.includes(q)));
             }
             return list;
+        },
+
+        // groupedFiles: Task → Upload Date → Uploader
+        get groupedFiles() {
+            const list = this.filteredFiles;
+            const taskMap = {};
+
+            list.forEach(file => {
+                // Level 1: Task key
+                const taskKey = file.task_id ? `task_${file.task_id}` : 'general';
+                if (!taskMap[taskKey]) {
+                    taskMap[taskKey] = {
+                        taskKey,
+                        taskId: file.task_id || null,
+                        taskTitle: file.task_title || 'General Uploads',
+                        dateMap: {},
+                        totalFiles: 0,
+                    };
+                }
+                taskMap[taskKey].totalFiles++;
+
+                // Level 2: Date key
+                const date = file.upload_date || 'Unknown Date';
+                if (!taskMap[taskKey].dateMap[date]) {
+                    taskMap[taskKey].dateMap[date] = {
+                        date,
+                        uploaderMap: {},
+                        files: [],
+                    };
+                }
+                taskMap[taskKey].dateMap[date].files.push(file);
+
+                // Level 3: Uploader key
+                const uploader = file.uploader_name || 'Member';
+                if (!taskMap[taskKey].dateMap[date].uploaderMap[uploader]) {
+                    taskMap[taskKey].dateMap[date].uploaderMap[uploader] = {
+                        uploaderName: uploader,
+                        files: [],
+                    };
+                }
+                taskMap[taskKey].dateMap[date].uploaderMap[uploader].files.push(file);
+            });
+
+            // Convert maps to sorted arrays
+            // Task groups: task uploads first, then general
+            return Object.values(taskMap)
+                .sort((a, b) => {
+                    if (a.taskId && !b.taskId) return -1;
+                    if (!a.taskId && b.taskId) return 1;
+                    return (a.taskId || 0) - (b.taskId || 0);
+                })
+                .map(tg => ({
+                    ...tg,
+                    dateGroups: Object.values(tg.dateMap)
+                        .sort((a, b) => b.date.localeCompare(a.date)) // newest date first
+                        .map(dg => ({
+                            ...dg,
+                            uploaderGroups: Object.values(dg.uploaderMap)
+                                .sort((a, b) => a.uploaderName.localeCompare(b.uploaderName)),
+                        })),
+                }));
         },
 
         init() {
