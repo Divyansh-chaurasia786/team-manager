@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DriveFile;
 use App\Models\DriveFolder;
+use App\Models\ContentShoot;
 use App\Models\ActivityLog;
 use App\Services\DriveService;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class UploadController extends Controller
             ->where('parent_id', $currentFolderId);
 
         // Files in current scope
-        $filesQuery = DriveFile::with(['uploader', 'task'])
+        $filesQuery = DriveFile::with(['uploader', 'task', 'contentShoot'])
             ->where(function ($q) use ($tl) {
                 $q->where('uploaded_by', $tl->id)
                   ->orWhereHas('uploader', function ($uq) use ($tl) {
@@ -61,7 +62,13 @@ class UploadController extends Controller
             $term = $request->search;
             $filesQuery->where(function ($q) use ($term) {
                 $q->where('original_name', 'like', "%{$term}%")
-                  ->orWhere('upload_date', 'like', "%{$term}%");
+                  ->orWhere('upload_date', 'like', "%{$term}%")
+                  ->orWhere('account_handle', 'like', "%{$term}%")
+                  ->orWhereHas('contentShoot', function ($sq) use ($term) {
+                      $sq->where('title', 'like', "%{$term}%")
+                        ->orWhere('instagram_handle', 'like', "%{$term}%")
+                        ->orWhere('youtube_channel', 'like', "%{$term}%");
+                  });
             });
 
             $foldersQuery->where('name', 'like', "%{$term}%");
@@ -89,6 +96,11 @@ class UploadController extends Controller
                 'folder_id'         => $f->folder_id,
                 'task_id'           => $f->task_id,
                 'task_title'        => $f->task?->title ?? null,
+                'content_shoot_id'  => $f->content_shoot_id,
+                'shoot_title'       => $f->contentShoot?->title ?? null,
+                'account_handle'    => $f->account_handle,
+                'platform'          => $f->platform ?: ($f->contentShoot?->platform ?: 'other'),
+                'target_account'    => $f->target_account,
                 'is_image'          => $f->is_image,
                 'is_video'          => $f->is_video,
             ];
@@ -97,16 +109,42 @@ class UploadController extends Controller
         // All folders for Move modal
         $allFolders = DriveFolder::orderBy('name')->get();
 
+        // Recent content shoots for upload selector
+        $recentShoots = ContentShoot::orderByDesc('id')
+            ->take(50)
+            ->get(['id', 'title', 'platform', 'instagram_handle', 'youtube_channel']);
+
+        // Distinct list of known Instagram / YouTube account handles
+        $availableHandles = ContentShoot::whereNotNull('instagram_handle')
+            ->pluck('instagram_handle')
+            ->merge(ContentShoot::whereNotNull('youtube_channel')->pluck('youtube_channel'))
+            ->merge(DriveFile::whereNotNull('account_handle')->pluck('account_handle'))
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
-                'currentFolder' => $currentFolder,
-                'breadcrumbs'   => $breadcrumbs,
-                'folders'       => $folders,
-                'files'         => $formattedFiles,
+                'currentFolder'    => $currentFolder,
+                'breadcrumbs'      => $breadcrumbs,
+                'folders'          => $folders,
+                'files'            => $formattedFiles,
+                'recentShoots'     => $recentShoots,
+                'availableHandles' => $availableHandles,
             ]);
         }
 
-        return view('shared.upload', compact('recentFiles', 'folders', 'currentFolder', 'breadcrumbs', 'allFolders', 'formattedFiles'));
+        return view('shared.upload', compact(
+            'recentFiles', 
+            'folders', 
+            'currentFolder', 
+            'breadcrumbs', 
+            'allFolders', 
+            'formattedFiles',
+            'recentShoots',
+            'availableHandles'
+        ));
     }
 
     public function store(Request $request)
@@ -115,14 +153,41 @@ class UploadController extends Controller
         @ini_set('memory_limit', '2048M');
 
         $request->validate([
-            'file'      => 'nullable|file', // No file size limit on Google Drive upload
-            'files.*'   => 'nullable|file',
-            'folder_id' => 'nullable|exists:drive_folders,id',
-            'task_id'   => 'nullable|exists:tasks,id',
+            'file'             => 'nullable|file', // No file size limit on Google Drive upload
+            'files.*'          => 'nullable|file',
+            'folder_id'        => 'nullable|exists:drive_folders,id',
+            'task_id'          => 'nullable|exists:tasks,id',
+            'content_shoot_id' => 'nullable|exists:content_shoots,id',
+            'account_handle'   => 'nullable|string|max:150',
+            'platform'         => 'nullable|string|max:50',
         ]);
 
-        $folderId = $request->filled('folder_id') ? (int) $request->folder_id : null;
-        $taskId   = $request->filled('task_id')   ? (int) $request->task_id   : null;
+        $folderId       = $request->filled('folder_id') ? (int) $request->folder_id : null;
+        $taskId         = $request->filled('task_id') ? (int) $request->task_id : null;
+        $contentShootId = $request->filled('content_shoot_id') ? (int) $request->content_shoot_id : null;
+        $accountHandle  = $request->filled('account_handle') ? trim($request->account_handle) : null;
+        $platform       = $request->filled('platform') ? trim($request->platform) : null;
+
+        if ($contentShootId) {
+            $shoot = ContentShoot::find($contentShootId);
+            if ($shoot) {
+                if (empty($accountHandle)) {
+                    $accountHandle = $shoot->instagram_handle ?: ($shoot->youtube_channel ?: ('Reel #' . $shoot->id));
+                }
+                if (empty($platform)) {
+                    $platform = $shoot->platform;
+                }
+            }
+        } elseif (!empty($accountHandle)) {
+            if (empty($platform)) {
+                if (str_starts_with($accountHandle, '@')) {
+                    $platform = 'instagram';
+                } elseif (stripos($accountHandle, 'youtube') !== false || stripos($accountHandle, 'yt') !== false) {
+                    $platform = 'youtube';
+                }
+            }
+        }
+
         $filesToUpload = [];
 
         if ($request->hasFile('files')) {
@@ -194,25 +259,29 @@ class UploadController extends Controller
                     $result = $driveService->uploadFile($uploadedFile, Auth::id(), $targetDriveFolderId);
 
                     $driveFile = DriveFile::create([
-                        'uploaded_by'   => Auth::id(),
-                        'folder_id'     => $folderId,
-                        'task_id'       => $taskId,
-                        'original_name' => $originalName,
-                        'drive_file_id' => $result['drive_file_id'],
-                        'drive_url'     => $result['drive_url'],
-                        'file_type'     => $result['file_type'],
-                        'file_size'     => $fileSize,
-                        'mime_type'     => $mimeType,
-                        'upload_date'   => $result['upload_date'],
+                        'uploaded_by'      => Auth::id(),
+                        'folder_id'        => $folderId,
+                        'task_id'          => $taskId,
+                        'content_shoot_id' => $contentShootId,
+                        'account_handle'   => $accountHandle,
+                        'platform'         => $platform,
+                        'original_name'    => $originalName,
+                        'drive_file_id'    => $result['drive_file_id'],
+                        'drive_url'        => $result['drive_url'],
+                        'file_type'        => $result['file_type'],
+                        'file_size'        => $fileSize,
+                        'mime_type'        => $mimeType,
+                        'upload_date'      => $result['upload_date'],
                     ]);
 
                     ActivityLog::log(
                         action: 'file_uploaded',
-                        description: sprintf('%s uploaded "%s" (%s) to Google Drive%s',
+                        description: sprintf('%s uploaded "%s" (%s) to Google Drive%s%s',
                             Auth::user()->name,
                             $driveFile->original_name,
                             ucfirst($driveFile->file_type),
-                            $folderId ? ' folder' : ' cloud'
+                            $accountHandle ? " for {$accountHandle}" : '',
+                            $folderId ? ' in folder' : ' in cloud'
                         ),
                         entityType: 'DriveFile',
                         entityId: $driveFile->id
@@ -234,24 +303,28 @@ class UploadController extends Controller
                 $localRelativePath = 'uploads/drive/' . $today . '/' . $safeFileName;
 
                 $driveFile = DriveFile::create([
-                    'uploaded_by'   => Auth::id(),
-                    'folder_id'     => $folderId,
-                    'task_id'       => $taskId,
-                    'original_name' => $originalName,
-                    'drive_file_id' => 'local_' . uniqid(),
-                    'drive_url'     => url($localRelativePath),
-                    'file_type'     => $fileType,
-                    'file_size'     => $fileSize,
-                    'mime_type'     => $mimeType,
-                    'upload_date'   => $today,
+                    'uploaded_by'      => Auth::id(),
+                    'folder_id'        => $folderId,
+                    'task_id'          => $taskId,
+                    'content_shoot_id' => $contentShootId,
+                    'account_handle'   => $accountHandle,
+                    'platform'         => $platform,
+                    'original_name'    => $originalName,
+                    'drive_file_id'    => 'local_' . uniqid(),
+                    'drive_url'        => url($localRelativePath),
+                    'file_type'        => $fileType,
+                    'file_size'        => $fileSize,
+                    'mime_type'        => $mimeType,
+                    'upload_date'      => $today,
                 ]);
 
                 ActivityLog::log(
                     action: 'file_uploaded',
-                    description: sprintf('%s uploaded "%s" (%s) to local storage pipeline',
+                    description: sprintf('%s uploaded "%s" (%s) to local storage pipeline%s',
                         Auth::user()->name,
                         $driveFile->original_name,
-                        ucfirst($driveFile->file_type)
+                        ucfirst($driveFile->file_type),
+                        $accountHandle ? " for {$accountHandle}" : ''
                     ),
                     entityType: 'DriveFile',
                     entityId: $driveFile->id
@@ -281,6 +354,11 @@ class UploadController extends Controller
                     'folder_id'         => $f->folder_id,
                     'task_id'           => $f->task_id,
                     'task_title'        => $f->task?->title ?? null,
+                    'content_shoot_id'  => $f->content_shoot_id,
+                    'shoot_title'       => $f->contentShoot?->title ?? null,
+                    'account_handle'    => $f->account_handle,
+                    'platform'          => $f->platform ?: ($f->contentShoot?->platform ?: 'other'),
+                    'target_account'    => $f->target_account,
                     'is_image'          => $f->is_image,
                     'is_video'          => $f->is_video,
                 ];
@@ -301,6 +379,65 @@ class UploadController extends Controller
             : count($uploadedRecords) . ' files uploaded to Google Drive successfully!';
 
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Update social account / handle / shoot reference for an existing file
+     */
+    public function updateSocialAccount(Request $request, DriveFile $file)
+    {
+        $request->validate([
+            'account_handle'   => 'nullable|string|max:150',
+            'content_shoot_id' => 'nullable|exists:content_shoots,id',
+            'platform'         => 'nullable|string|max:50',
+        ]);
+
+        $contentShootId = $request->filled('content_shoot_id') ? (int) $request->content_shoot_id : null;
+        $accountHandle  = $request->filled('account_handle') ? trim($request->account_handle) : null;
+        $platform       = $request->filled('platform') ? trim($request->platform) : null;
+
+        if ($contentShootId) {
+            $shoot = ContentShoot::find($contentShootId);
+            if ($shoot) {
+                if (empty($accountHandle)) {
+                    $accountHandle = $shoot->instagram_handle ?: ($shoot->youtube_channel ?: ('Reel #' . $shoot->id));
+                }
+                if (empty($platform)) {
+                    $platform = $shoot->platform;
+                }
+            }
+        } elseif (!empty($accountHandle)) {
+            if (empty($platform)) {
+                if (str_starts_with($accountHandle, '@')) {
+                    $platform = 'instagram';
+                } elseif (stripos($accountHandle, 'youtube') !== false || stripos($accountHandle, 'yt') !== false) {
+                    $platform = 'youtube';
+                }
+            }
+        }
+
+        $file->update([
+            'content_shoot_id' => $contentShootId,
+            'account_handle'   => $accountHandle,
+            'platform'         => $platform,
+        ]);
+
+        ActivityLog::log(
+            action: 'file_account_updated',
+            description: sprintf('%s assigned file "%s" to account: %s', Auth::user()->name, $file->original_name, $accountHandle ?: 'General'),
+            entityType: 'DriveFile',
+            entityId: $file->id
+        );
+
+        return response()->json([
+            'success'          => true,
+            'message'          => 'File assigned to account successfully!',
+            'content_shoot_id' => $file->content_shoot_id,
+            'account_handle'   => $file->account_handle,
+            'platform'         => $file->platform ?: 'other',
+            'target_account'   => $file->target_account,
+            'shoot_title'      => $file->contentShoot?->title ?? null,
+        ]);
     }
 
     /**

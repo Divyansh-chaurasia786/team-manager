@@ -81,6 +81,18 @@
                     </button>
                 @endif
 
+                <a href="{{ route('upload.index', [
+                        'shoot_id' => $shoot->id, 
+                        'account'  => $shoot->instagram_handle ?: $shoot->youtube_channel, 
+                        'platform' => $shoot->platform
+                    ]) }}" 
+                   class="px-3 py-2 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm shadow-indigo-600/20 cursor-pointer"
+                   title="Open Google Drive pre-tagged with this Shoot & Social ID">
+                    <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Drive Footage</span>
+                    <span class="sm:hidden">Drive</span>
+                </a>
+
                 @if(auth()->user()->isTL() || auth()->user()->isCEO() || auth()->user()->isHR())
                     <button type="button" 
                             @click="showCrewAssignModal = true; $nextTick(() => lucide.createIcons())" 

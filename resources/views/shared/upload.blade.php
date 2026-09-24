@@ -107,6 +107,114 @@
                 </div>
             </div>
 
+            <!-- Active Target Account / Social ID Selector Dropdown -->
+            <div class="relative" x-data="{ openAccountMenu: false }" @click.outside="openAccountMenu = false">
+                <button 
+                    type="button" 
+                    @click="openAccountMenu = !openAccountMenu; $nextTick(() => { if (window.lucide) lucide.createIcons(); })"
+                    class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border shadow-2xs"
+                    :class="selectedAccountHandle 
+                        ? 'bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 border-pink-300 text-slate-800' 
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'"
+                    title="Tag uploads with Instagram handle, YouTube channel, or Shoot ID"
+                >
+                    <template x-if="selectedPlatform === 'instagram' || (selectedAccountHandle && selectedAccountHandle.startsWith('@'))">
+                        <i data-lucide="instagram" class="w-4 h-4 text-pink-600 shrink-0"></i>
+                    </template>
+                    <template x-if="selectedPlatform === 'youtube' || (selectedAccountHandle && selectedAccountHandle.toLowerCase().includes('youtube'))">
+                        <i data-lucide="youtube" class="w-4 h-4 text-red-600 shrink-0"></i>
+                    </template>
+                    <template x-if="!selectedAccountHandle || (!selectedAccountHandle.startsWith('@') && !selectedAccountHandle.toLowerCase().includes('youtube') && selectedPlatform !== 'instagram' && selectedPlatform !== 'youtube')">
+                        <i data-lucide="tag" class="w-4 h-4 text-indigo-500 shrink-0"></i>
+                    </template>
+
+                    <div class="text-left leading-tight">
+                        <span class="text-[9px] uppercase tracking-wider text-slate-400 block font-black">For Account</span>
+                        <span class="text-xs font-black text-slate-900 truncate max-w-[130px] block" x-text="selectedAccountHandle || 'General (No ID)'"></span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="openAccountMenu ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Dropdown Menu to Choose or Type Account ID -->
+                <div 
+                    x-show="openAccountMenu" 
+                    x-cloak 
+                    class="absolute left-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3.5 z-30 animate-in fade-in zoom-in-95 duration-100 space-y-3"
+                >
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-black text-slate-900">Tag Uploads For Account</span>
+                            <button 
+                                type="button" 
+                                @click="selectedAccountHandle = ''; selectedShootId = ''; selectedPlatform = ''; openAccountMenu = false"
+                                class="text-[10px] text-slate-400 hover:text-slate-600 underline font-bold cursor-pointer"
+                            >Clear (General)</button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 leading-tight">Uploaded videos/images will be grouped under this Instagram/YouTube ID</p>
+                    </div>
+
+                    <!-- Custom Handle / Channel Input -->
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom ID or Channel</label>
+                        <div class="flex items-center gap-1.5">
+                            <input 
+                                type="text" 
+                                x-model="customHandleInput"
+                                @keydown.enter.prevent="if(customHandleInput.trim()){ selectedAccountHandle = customHandleInput.trim(); selectedShootId = ''; selectedPlatform = customHandleInput.startsWith('@') ? 'instagram' : ''; customHandleInput = ''; openAccountMenu = false; }"
+                                placeholder="e.g. @ecofone_official or EcoFone India"
+                                class="flex-1 px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            >
+                            <button 
+                                type="button" 
+                                @click="if(customHandleInput.trim()){ selectedAccountHandle = customHandleInput.trim(); selectedShootId = ''; selectedPlatform = customHandleInput.startsWith('@') ? 'instagram' : ''; customHandleInput = ''; openAccountMenu = false; }"
+                                class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                            >Set</button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Pick from Known Handles -->
+                    <template x-if="availableHandles && availableHandles.length > 0">
+                        <div class="space-y-1 pt-1 border-t border-slate-100">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Known Handles & Channels</label>
+                            <div class="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                                <template x-for="h in availableHandles" :key="h">
+                                    <button 
+                                        type="button" 
+                                        @click="selectedAccountHandle = h; selectedShootId = ''; selectedPlatform = h.startsWith('@') ? 'instagram' : ''; openAccountMenu = false"
+                                        class="px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer"
+                                        :class="selectedAccountHandle === h ? 'bg-pink-100 text-pink-700 border-pink-300' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                        x-text="h"
+                                    ></button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Link to a Content Shoot -->
+                    <template x-if="recentShoots && recentShoots.length > 0">
+                        <div class="space-y-1 pt-1 border-t border-slate-100">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Or Select Content Shoot</label>
+                            <div class="max-h-36 overflow-y-auto space-y-1 pr-1">
+                                <template x-for="s in recentShoots" :key="s.id">
+                                    <button 
+                                        type="button" 
+                                        @click="selectedShootId = s.id; selectedAccountHandle = s.instagram_handle || s.youtube_channel || ('Reel #' + s.id); selectedPlatform = s.platform || ''; openAccountMenu = false"
+                                        class="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-indigo-50 transition cursor-pointer flex items-center justify-between gap-2"
+                                        :class="selectedShootId === s.id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700'"
+                                    >
+                                        <div class="min-w-0">
+                                            <div class="truncate text-[11px] font-bold" x-text="'Reel #' + s.id + ': ' + s.title"></div>
+                                            <div class="text-[10px] text-slate-400 truncate" x-text="s.instagram_handle || s.youtube_channel"></div>
+                                        </div>
+                                        <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono shrink-0" x-text="s.platform"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- Hidden File Input for Multiple Uploads -->
             <input 
                 type="file" 
@@ -281,9 +389,14 @@
         <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition">
             <i data-lucide="cloud-upload" class="w-5 h-5"></i>
         </div>
-        <div class="text-left">
-            <div class="text-xs font-bold text-slate-800">Drag & drop files here or click to browse</div>
-            <div class="text-[11px] text-slate-400">Uploads are streamed dynamically with live byte progress &bull; Unlimited file size &bull; No page freeze</div>
+        <div class="text-left flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-bold text-slate-800">Drag & drop files here or click to browse</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-md"
+                      :class="selectedAccountHandle ? 'bg-pink-100 text-pink-700' : 'bg-slate-100 text-slate-600'"
+                      x-text="'Uploading for: ' + (selectedAccountHandle || 'General / No Account')"></span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Streamed dynamically with live byte progress &bull; Auto-grouped by Account ID &bull; Unlimited file size</div>
         </div>
     </div>
 
@@ -350,7 +463,7 @@
         </div>
     </div>
 
-    <!-- Files Section - Grouped by Task → Date → Uploader -->
+    <!-- Files Section - Grouped by Instagram / YouTube ID → Date → Uploader -->
     <div class="space-y-3">
         <div class="flex items-center justify-between">
             <h3 class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -359,31 +472,76 @@
             </h3>
         </div>
 
-        <!-- Grouped View: Task → Date → Uploader -->
+        <!-- Grouped View: Instagram / YouTube ID → Date → Uploader -->
         <template x-if="filteredFiles.length > 0">
             <div class="space-y-5">
-                <template x-for="group in groupedFiles" :key="group.taskKey">
-                    <!-- LEVEL 1: Task / Reference Group -->
+                <template x-for="group in groupedFiles" :key="group.accountKey">
+                    <!-- LEVEL 1: Instagram or YouTube ID Group -->
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                         
-                        <!-- Task Group Header -->
-                        <div class="px-4 py-3 bg-gradient-to-r from-indigo-50 to-slate-50 border-b border-indigo-100 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" 
-                                 :class="group.taskId ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'">
-                                <i :data-lucide="group.taskId ? 'clipboard-list' : 'folder-open'" class="w-4 h-4"></i>
+                        <!-- Account ID Group Header -->
+                        <div class="px-4 py-3.5 border-b flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap"
+                             :class="{
+                                'bg-gradient-to-r from-pink-50/90 via-purple-50/60 to-indigo-50/80 border-pink-200': group.platform === 'instagram' || group.accountKey.startsWith('@'),
+                                'bg-gradient-to-r from-red-50/90 to-slate-50 border-red-200': group.platform === 'youtube' || group.accountKey.toLowerCase().includes('youtube'),
+                                'bg-gradient-to-r from-slate-100 to-slate-50 border-slate-200': group.accountKey === 'general',
+                                'bg-gradient-to-r from-indigo-50 to-slate-50 border-indigo-200': group.accountKey !== 'general' && !group.accountKey.startsWith('@') && group.platform !== 'instagram' && group.platform !== 'youtube'
+                             }">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <!-- Platform / Account Icon -->
+                                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs"
+                                     :class="{
+                                        'bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-600 text-white': group.platform === 'instagram' || group.accountKey.startsWith('@'),
+                                        'bg-red-600 text-white': group.platform === 'youtube' || group.accountKey.toLowerCase().includes('youtube'),
+                                        'bg-slate-200 text-slate-600': group.accountKey === 'general',
+                                        'bg-indigo-600 text-white': group.accountKey !== 'general' && !group.accountKey.startsWith('@') && group.platform !== 'youtube'
+                                     }">
+                                    <template x-if="group.platform === 'instagram' || group.accountKey.startsWith('@')">
+                                        <i data-lucide="instagram" class="w-5 h-5"></i>
+                                    </template>
+                                    <template x-if="group.platform === 'youtube' || group.accountKey.toLowerCase().includes('youtube')">
+                                        <i data-lucide="youtube" class="w-5 h-5"></i>
+                                    </template>
+                                    <template x-if="group.accountKey === 'general'">
+                                        <i data-lucide="folder-open" class="w-5 h-5"></i>
+                                    </template>
+                                    <template x-if="group.accountKey !== 'general' && !group.accountKey.startsWith('@') && group.platform !== 'instagram' && group.platform !== 'youtube'">
+                                        <i data-lucide="clapperboard" class="w-5 h-5"></i>
+                                    </template>
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="text-sm font-black text-slate-900 truncate" x-text="group.accountTitle"></h4>
+                                        <!-- Platform Pill -->
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0"
+                                              :class="{
+                                                'bg-pink-100 text-pink-700': group.platform === 'instagram' || group.accountKey.startsWith('@'),
+                                                'bg-red-100 text-red-700': group.platform === 'youtube' || group.accountKey.toLowerCase().includes('youtube'),
+                                                'bg-slate-200 text-slate-700': group.accountKey === 'general',
+                                                'bg-indigo-100 text-indigo-700': group.accountKey !== 'general' && !group.accountKey.startsWith('@')
+                                              }"
+                                              x-text="group.platform === 'instagram' || group.accountKey.startsWith('@') ? 'Instagram' : (group.platform === 'youtube' || group.accountKey.toLowerCase().includes('youtube') ? 'YouTube' : (group.accountKey === 'general' ? 'General' : 'Media ID'))"
+                                        ></span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-bold text-slate-700" x-text="group.totalFiles + ' item' + (group.totalFiles > 1 ? 's' : '')"></span>
+                                        <template x-if="group.shootTitle">
+                                            <span class="text-indigo-600 font-bold">&bull; Shoot: <span x-text="group.shootTitle"></span></span>
+                                        </template>
+                                    </p>
+                                </div>
                             </div>
-                            <div class="min-w-0 flex-1">
-                                <h4 class="text-sm font-black text-slate-900 truncate" 
-                                    x-text="group.taskId ? ('Task #' + group.taskId + ': ' + group.taskTitle) : 'General Uploads'"></h4>
-                                <p class="text-[11px] text-slate-500 mt-0.5">
-                                    <span x-text="group.totalFiles + ' file' + (group.totalFiles > 1 ? 's' : '')"></span>
-                                    <span x-show="group.taskId" class="text-indigo-500 font-bold ml-1">— Task Deliverable</span>
-                                    <span x-show="!group.taskId" class="text-slate-400 ml-1">— Manually uploaded</span>
-                                </p>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0"
-                                  :class="group.taskId ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'"
-                                  x-text="group.taskId ? 'Task Ref' : 'No Ref'"></span>
+
+                            <button 
+                                type="button" 
+                                @click="selectedAccountHandle = (group.accountKey !== 'general' ? group.accountKey : ''); selectedShootId = (group.contentShootId || ''); selectedPlatform = group.platform; $refs.fileInput.click()"
+                                class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                                title="Upload more videos or images for this ID"
+                            >
+                                <i data-lucide="plus" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                <span>Upload to this ID</span>
+                            </button>
                         </div>
 
                         <!-- LEVEL 2: Date Sub-groups inside this task group -->
@@ -448,6 +606,10 @@
                                                                         <a :href="file.drive_url" target="_blank" class="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                                                                             <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i><span>Open in Drive</span>
                                                                         </a>
+                                                                        <button type="button" @click="openAssignAccountModal(file); cardMenuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 cursor-pointer font-bold">
+                                                                            <i data-lucide="tag" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                                                            <span>Assign Social ID</span>
+                                                                        </button>
                                                                         <button type="button" @click="openMoveModal(file.id, file.original_name); cardMenuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
                                                                             <i data-lucide="folder-input" class="w-3.5 h-3.5 text-slate-400"></i><span>Move to Folder</span>
                                                                         </button>
@@ -532,6 +694,7 @@
                                                                     <td class="py-2.5 px-3 text-right">
                                                                         <div class="flex items-center justify-end gap-1">
                                                                             <button type="button" @click="openPreview(file)" class="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer" title="Preview"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>
+                                                                            <button type="button" @click="openAssignAccountModal(file)" class="p-1 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition cursor-pointer" title="Assign Instagram/YouTube ID"><i data-lucide="tag" class="w-3.5 h-3.5"></i></button>
                                                                             <a :href="file.download_url" class="p-1 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Download"><i data-lucide="download" class="w-3.5 h-3.5"></i></a>
                                                                             <button type="button" @click="openMoveModal(file.id, file.original_name)" class="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer" title="Move"><i data-lucide="folder-input" class="w-3.5 h-3.5"></i></button>
                                                                             <button type="button" @click="openRenameModal('file', file.id, file.original_name)" class="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer" title="Rename"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
@@ -907,6 +1070,90 @@
         </div>
     </div>
 
+    <!-- 6. Assign Social ID / Account Modal -->
+    <div x-show="showAssignAccountModal" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4">
+        <div @click.outside="showAssignAccountModal = false" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-md">
+                    <i data-lucide="tag" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 class="text-sm font-black text-slate-900">Assign Instagram / YouTube ID</h3>
+                    <p class="text-[11px] text-slate-400 truncate max-w-[260px]" x-text="'File: ' + assigningFileName"></p>
+                </div>
+            </div>
+
+            <form @submit.prevent="submitAssignAccount" class="space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Enter Instagram Handle or YouTube Channel:</label>
+                    <input 
+                        type="text" 
+                        x-model="assignTargetHandle"
+                        placeholder="e.g. @ecofone_official or EcoFone India" 
+                        class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                </div>
+
+                <!-- Or pick from known handles -->
+                <template x-if="availableHandles && availableHandles.length > 0">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Quick Select Known Handle:</label>
+                        <div class="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                            <template x-for="h in availableHandles" :key="h">
+                                <button 
+                                    type="button" 
+                                    @click="assignTargetHandle = h; if(h.startsWith('@')) assignTargetPlatform = 'instagram';"
+                                    class="px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer"
+                                    :class="assignTargetHandle === h ? 'bg-pink-100 text-pink-700 border-pink-300' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'"
+                                    x-text="h"
+                                ></button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Or link to a Content Shoot -->
+                <template x-if="recentShoots && recentShoots.length > 0">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Or Link to Content Shoot:</label>
+                        <select 
+                            x-model="assignTargetShootId" 
+                            @change="
+                                const found = recentShoots.find(s => s.id == assignTargetShootId);
+                                if(found) {
+                                    assignTargetHandle = found.instagram_handle || found.youtube_channel || ('Reel #' + found.id);
+                                    assignTargetPlatform = found.platform || '';
+                                }
+                            "
+                            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">-- No Specific Shoot --</option>
+                            <template x-for="s in recentShoots" :key="s.id">
+                                <option :value="s.id" x-text="'Reel #' + s.id + ': ' + s.title + ' (' + (s.instagram_handle || s.youtube_channel || s.platform) + ')'"></option>
+                            </template>
+                        </select>
+                    </div>
+                </template>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button 
+                        type="button" 
+                        @click="showAssignAccountModal = false" 
+                        class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="px-4 py-2 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                    >
+                        Save Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 5. Professional Cinema-Grade Preview Lightbox Modal -->
     <div 
         x-show="previewModalOpen" 
@@ -1107,6 +1354,22 @@ function driveApp() {
         // Data arrays
         folders: {!! json_encode($folders) !!},
         files: {!! json_encode($formattedFiles) !!},
+        recentShoots: {!! json_encode($recentShoots ?? []) !!},
+        availableHandles: {!! json_encode($availableHandles ?? []) !!},
+
+        // Target Social Account / ID for uploads
+        selectedAccountHandle: '{{ request('account', '') }}',
+        selectedShootId: '{{ request('shoot_id', '') }}',
+        selectedPlatform: '{{ request('platform', '') }}',
+        customHandleInput: '',
+
+        // Assign Social ID modal state
+        showAssignAccountModal: false,
+        assigningFileId: null,
+        assigningFileName: '',
+        assignTargetHandle: '',
+        assignTargetShootId: '',
+        assignTargetPlatform: '',
 
         // Dynamic upload progress drawer
         uploads: [],
@@ -1255,58 +1518,68 @@ function driveApp() {
             return list;
         },
 
-        // groupedFiles: Task → Upload Date → Uploader
+        // groupedFiles: Instagram / YouTube ID → Upload Date → Uploader
         get groupedFiles() {
             const list = this.filteredFiles;
-            const taskMap = {};
+            const accountMap = {};
 
             list.forEach(file => {
-                // Level 1: Task key
-                const taskKey = file.task_id ? `task_${file.task_id}` : 'general';
-                if (!taskMap[taskKey]) {
-                    taskMap[taskKey] = {
-                        taskKey,
-                        taskId: file.task_id || null,
-                        taskTitle: file.task_title || 'General Uploads',
+                // Level 1: Instagram or YouTube Account ID
+                let rawAccount = file.account_handle || (file.target_account && file.target_account !== 'General / No Account' ? file.target_account : null);
+                let accountKey = rawAccount ? rawAccount.trim().toLowerCase() : 'general';
+                let accountTitle = rawAccount ? rawAccount.trim() : 'General Uploads (No Account)';
+                let platform = file.platform || 'other';
+                if (accountTitle.startsWith('@')) {
+                    platform = 'instagram';
+                } else if (accountTitle.toLowerCase().includes('youtube') || accountTitle.toLowerCase().includes('yt')) {
+                    platform = 'youtube';
+                }
+
+                if (!accountMap[accountKey]) {
+                    accountMap[accountKey] = {
+                        accountKey,
+                        accountTitle,
+                        platform,
+                        contentShootId: file.content_shoot_id || null,
+                        shootTitle: file.shoot_title || null,
                         dateMap: {},
                         totalFiles: 0,
                     };
                 }
-                taskMap[taskKey].totalFiles++;
+                accountMap[accountKey].totalFiles++;
 
-                // Level 2: Date key
+                // Level 2: Upload Date
                 const date = file.upload_date || 'Unknown Date';
-                if (!taskMap[taskKey].dateMap[date]) {
-                    taskMap[taskKey].dateMap[date] = {
+                if (!accountMap[accountKey].dateMap[date]) {
+                    accountMap[accountKey].dateMap[date] = {
                         date,
                         uploaderMap: {},
                         files: [],
                     };
                 }
-                taskMap[taskKey].dateMap[date].files.push(file);
+                accountMap[accountKey].dateMap[date].files.push(file);
 
-                // Level 3: Uploader key
+                // Level 3: Uploader Name
                 const uploader = file.uploader_name || 'Member';
-                if (!taskMap[taskKey].dateMap[date].uploaderMap[uploader]) {
-                    taskMap[taskKey].dateMap[date].uploaderMap[uploader] = {
+                if (!accountMap[accountKey].dateMap[date].uploaderMap[uploader]) {
+                    accountMap[accountKey].dateMap[date].uploaderMap[uploader] = {
                         uploaderName: uploader,
                         files: [],
                     };
                 }
-                taskMap[taskKey].dateMap[date].uploaderMap[uploader].files.push(file);
+                accountMap[accountKey].dateMap[date].uploaderMap[uploader].files.push(file);
             });
 
-            // Convert maps to sorted arrays
-            // Task groups: task uploads first, then general
-            return Object.values(taskMap)
+            // Convert to sorted arrays: Accounts alphabetically, General at the end
+            return Object.values(accountMap)
                 .sort((a, b) => {
-                    if (a.taskId && !b.taskId) return -1;
-                    if (!a.taskId && b.taskId) return 1;
-                    return (a.taskId || 0) - (b.taskId || 0);
+                    if (a.accountKey !== 'general' && b.accountKey === 'general') return -1;
+                    if (a.accountKey === 'general' && b.accountKey !== 'general') return 1;
+                    return a.accountTitle.localeCompare(b.accountTitle);
                 })
-                .map(tg => ({
-                    ...tg,
-                    dateGroups: Object.values(tg.dateMap)
+                .map(ag => ({
+                    ...ag,
+                    dateGroups: Object.values(ag.dateMap)
                         .sort((a, b) => b.date.localeCompare(a.date)) // newest date first
                         .map(dg => ({
                             ...dg,
@@ -1399,6 +1672,15 @@ function driveApp() {
             formData.append('_token', '{{ csrf_token() }}');
             if (this.currentFolderId) {
                 formData.append('folder_id', this.currentFolderId);
+            }
+            if (this.selectedAccountHandle) {
+                formData.append('account_handle', this.selectedAccountHandle);
+            }
+            if (this.selectedShootId) {
+                formData.append('content_shoot_id', this.selectedShootId);
+            }
+            if (this.selectedPlatform) {
+                formData.append('platform', this.selectedPlatform);
             }
 
             const xhr = new XMLHttpRequest();
@@ -1690,6 +1972,54 @@ function driveApp() {
             this.previewModalOpen = false;
             this.previewItem = null;
             this.previewMediaError = false;
+        },
+
+        openAssignAccountModal(file) {
+            this.assigningFileId = file.id;
+            this.assigningFileName = file.original_name;
+            this.assignTargetHandle = file.account_handle || (file.target_account && file.target_account !== 'General / No Account' ? file.target_account : '');
+            this.assignTargetShootId = file.content_shoot_id || '';
+            this.assignTargetPlatform = file.platform || '';
+            this.showAssignAccountModal = true;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        submitAssignAccount() {
+            if (!this.assigningFileId) return;
+            fetch(`{{ url('/drive/files') }}/${this.assigningFileId}/social-account`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    account_handle: this.assignTargetHandle,
+                    content_shoot_id: this.assignTargetShootId || null,
+                    platform: this.assignTargetPlatform || (this.assignTargetHandle.startsWith('@') ? 'instagram' : null),
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    this.showToast(data.message || 'File assigned successfully!');
+                    const f = this.files.find(item => item.id === this.assigningFileId);
+                    if (f) {
+                        f.account_handle = data.account_handle;
+                        f.content_shoot_id = data.content_shoot_id;
+                        f.platform = data.platform;
+                        f.target_account = data.target_account;
+                        f.shoot_title = data.shoot_title;
+                    }
+                    this.showAssignAccountModal = false;
+                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+                } else {
+                    this.showToast(data.error || 'Failed to update account assignment');
+                }
+            })
+            .catch(() => {
+                this.showToast('Failed to update account assignment');
+            });
         },
 
         formatBytes(bytes) {

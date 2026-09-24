@@ -195,6 +195,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/drive/create-file', [UploadController::class, 'createFile'])->name('drive.files.create');
     Route::put('/drive/files/{file}/rename', [UploadController::class, 'rename'])->name('drive.files.rename');
     Route::put('/drive/files/{file}/move', [UploadController::class, 'moveFile'])->name('drive.files.move');
+    Route::put('/drive/files/{file}/social-account', [UploadController::class, 'updateSocialAccount'])->name('drive.files.social_account');
     Route::get('/drive/download/{file}', [UploadController::class, 'download'])->name('drive.download');
     Route::get('/drive/stream/{file}', [UploadController::class, 'stream'])->name('drive.stream');
     Route::delete('/drive/files/{file}', [UploadController::class, 'destroy'])->name('drive.destroy');

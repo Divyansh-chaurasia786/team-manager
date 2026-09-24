@@ -11,6 +11,9 @@ class DriveFile extends Model
         'uploaded_by',
         'folder_id',
         'task_id',
+        'content_shoot_id',
+        'account_handle',
+        'platform',
         'original_name',
         'drive_file_id',
         'drive_url',
@@ -28,6 +31,7 @@ class DriveFile extends Model
         'preview_embed_url',
         'thumbnail_url',
         'stream_url',
+        'target_account',
     ];
 
     public function uploader(): BelongsTo
@@ -43,6 +47,23 @@ class DriveFile extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class, 'task_id');
+    }
+
+    public function contentShoot(): BelongsTo
+    {
+        return $this->belongsTo(ContentShoot::class, 'content_shoot_id');
+    }
+
+    public function getTargetAccountAttribute(): string
+    {
+        if (!empty($this->account_handle)) {
+            return $this->account_handle;
+        }
+        if ($this->contentShoot) {
+            return $this->contentShoot->instagram_handle 
+                ?: ($this->contentShoot->youtube_channel ?: ('Reel #' . $this->contentShoot->id));
+        }
+        return 'General / No Account';
     }
 
     public function getFormattedSizeAttribute(): string
