@@ -70,6 +70,23 @@ class UploadController extends Controller
         $folders = $foldersQuery->orderBy('name')->get();
         $recentFiles = $filesQuery->latest()->get();
 
+        $formattedFiles = $recentFiles->map(function ($f) {
+            return [
+                'id'             => $f->id,
+                'original_name'  => $f->original_name,
+                'file_type'      => $f->file_type,
+                'file_size'      => $f->file_size,
+                'formatted_size' => $f->formatted_size,
+                'drive_url'      => $f->drive_url,
+                'download_url'   => route('drive.download', $f),
+                'upload_date'    => $f->upload_date,
+                'uploader_name'  => $f->uploader?->name ?? 'Member',
+                'folder_id'      => $f->folder_id,
+                'is_image'       => $f->is_image,
+                'is_video'       => $f->is_video,
+            ];
+        })->values()->all();
+
         // All folders for Move modal
         $allFolders = DriveFolder::orderBy('name')->get();
 
@@ -78,11 +95,11 @@ class UploadController extends Controller
                 'currentFolder' => $currentFolder,
                 'breadcrumbs'   => $breadcrumbs,
                 'folders'       => $folders,
-                'files'         => $recentFiles,
+                'files'         => $formattedFiles,
             ]);
         }
 
-        return view('shared.upload', compact('recentFiles', 'folders', 'currentFolder', 'breadcrumbs', 'allFolders'));
+        return view('shared.upload', compact('recentFiles', 'folders', 'currentFolder', 'breadcrumbs', 'allFolders', 'formattedFiles'));
     }
 
     public function store(Request $request)

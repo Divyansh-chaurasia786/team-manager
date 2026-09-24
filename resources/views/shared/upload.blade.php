@@ -996,8 +996,8 @@
 <script>
 function driveApp() {
     return {
-        currentFolderId: @json($currentFolder?->id),
-        currentFolderName: @json($currentFolder?->name ?? 'My Drive'),
+        currentFolderId: {!! json_encode($currentFolder?->id) !!},
+        currentFolderName: {!! json_encode($currentFolder?->name ?? 'My Drive') !!},
         viewMode: localStorage.getItem('drive_view_mode') || 'grid',
         activeFilter: '{{ request('type', 'all') }}',
         searchQuery: '{{ request('search', '') }}',
@@ -1022,21 +1022,8 @@ function driveApp() {
         showDriveSetupHelp: false,
 
         // Data arrays
-        folders: @json($folders),
-        files: @json($recentFiles->map(fn($f) => [
-            'id'             => $f->id,
-            'original_name'  => $f->original_name,
-            'file_type'      => $f->file_type,
-            'file_size'      => $f->file_size,
-            'formatted_size' => $f->formatted_size,
-            'drive_url'      => $f->drive_url,
-            'download_url'   => route('drive.download', $f),
-            'upload_date'    => $f->upload_date,
-            'uploader_name'  => $f->uploader?->name ?? 'Member',
-            'folder_id'      => $f->folder_id,
-            'is_image'       => $f->is_image,
-            'is_video'       => $f->is_video,
-        ])),
+        folders: {!! json_encode($folders) !!},
+        files: {!! json_encode($formattedFiles) !!},
 
         // Dynamic upload progress drawer
         uploads: [],
