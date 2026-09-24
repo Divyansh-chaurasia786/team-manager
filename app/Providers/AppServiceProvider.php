@@ -21,7 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($this->app->environment('production') || request()->header('X-Forwarded-Proto') === 'https') {
+        if (
+            $this->app->environment('production') 
+            || request()->header('X-Forwarded-Proto') === 'https'
+            || str_contains(request()->getHost(), 'onrender.com')
+            || env('FORCE_HTTPS', false)
+        ) {
             URL::forceScheme('https');
         }
     }

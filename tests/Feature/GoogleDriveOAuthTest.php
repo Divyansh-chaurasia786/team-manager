@@ -32,8 +32,10 @@ class GoogleDriveOAuthTest extends TestCase
         $this->assertStringContainsString('drive', $redirectUrl);
     }
 
-    public function test_upload_page_displays_connect_google_drive_button_when_not_connected(): void
+    public function test_google_drive_is_hardcoded_connected(): void
     {
+        $this->assertTrue(GoogleAuthController::isConnected());
+
         $tl = User::create([
             'name'     => 'Team Lead',
             'username' => 'tl.test2',
@@ -44,7 +46,6 @@ class GoogleDriveOAuthTest extends TestCase
 
         $response = $this->actingAs($tl)->get(route('upload.index'));
         $response->assertStatus(200);
-        $response->assertSee('Connect Your Google Drive');
-        $response->assertSee(route('google.connect'));
+        $response->assertDontSee('Connect Your Google Drive');
     }
 }

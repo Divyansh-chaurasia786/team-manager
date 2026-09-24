@@ -192,6 +192,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/drive/files/{file}/rename', [UploadController::class, 'rename'])->name('drive.files.rename');
     Route::put('/drive/files/{file}/move', [UploadController::class, 'moveFile'])->name('drive.files.move');
     Route::get('/drive/download/{file}', [UploadController::class, 'download'])->name('drive.download');
+    Route::get('/drive/stream/{file}', [UploadController::class, 'stream'])->name('drive.stream');
     Route::delete('/drive/files/{file}', [UploadController::class, 'destroy'])->name('drive.destroy');
 
     // Google Drive 1-Click OAuth Integration

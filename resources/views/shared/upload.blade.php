@@ -44,61 +44,7 @@
             </h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Dynamic real-time uploads, folder organization, file creation, instant previews & audit tracking</p>
         </div>
-
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="https://drive.google.com/drive/folders/{{ config('services.google.drive_folder_id', '14ctR4tZhSEKk_yPf-quSwPmcJBTo6Gt1') }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition">
-                <i data-lucide="external-link" class="w-4 h-4 text-slate-500"></i>
-                <span>Open in Drive</span>
-            </a>
-            <a href="{{ route('history.index') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition">
-                <i data-lucide="history" class="w-4 h-4"></i>
-                <span>Audit & History</span>
-            </a>
-            <span class="px-3 py-1.5 rounded-xl {{ $isGoogleConnected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }} text-xs font-bold flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full {{ $isGoogleConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500' }}"></span>
-                <span>{{ $isGoogleConnected ? 'Drive Connected' : 'Drive Ready to Connect' }}</span>
-            </span>
-        </div>
     </div>
-
-    @if(!$isGoogleConnected)
-        <!-- Connect Google Drive Banner -->
-        <div class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-2xs">
-                    <svg class="w-6 h-6" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-sm sm:text-base font-black text-slate-900">Connect Your Google Drive (1-Click)</h3>
-                        <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-extrabold uppercase">Fast Cloud Sync</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-1 max-w-2xl">
-                        Authorize with your Google account to automatically store company photos, shoot reels, and documents directly in your Google Drive with full 15GB+ quota and zero storage errors.
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 shrink-0">
-                <button type="button" @click="showDriveSetupHelp = true" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="help-circle" class="w-4 h-4 text-slate-500"></i>
-                    <span>Setup Help</span>
-                </button>
-                <a href="{{ route('google.connect') }}" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer group">
-                    <svg class="w-4 h-4 text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
-                    </svg>
-                    <span>Connect Google Drive</span>
-                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"></i>
-                </a>
-            </div>
-        </div>
-    @endif
 
     <!-- Top Drive Action Toolbar & Google Drive "+ New" Dropdown -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -927,8 +873,9 @@
                         <span class="hidden sm:inline">Download</span>
                     </a>
 
-                    <!-- Open in Drive -->
+                    <!-- Open in Drive (if on Google Drive) -->
                     <a 
+                        x-show="previewItem?.is_google_drive"
                         :href="previewItem?.drive_url" 
                         target="_blank" 
                         class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition border border-slate-700 cursor-pointer"
@@ -965,17 +912,33 @@
                     </div>
                 </template>
 
-                <!-- 2. Local Storage Pipeline Fallback -->
+                <!-- 2. Local Storage Media Pipeline (Byte-Range Streaming) -->
                 <template x-if="!previewItem?.is_google_drive">
-                    <div class="w-full h-full flex items-center justify-center">
+                    <div class="w-full h-full flex items-center justify-center p-2">
                         <!-- Local Image -->
                         <template x-if="previewItem?.is_image">
-                            <img :src="previewItem.drive_url" class="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl mx-auto" alt="Preview">
+                            <img 
+                                :src="previewItem?.stream_url || previewItem?.drive_url" 
+                                class="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl mx-auto" 
+                                alt="Preview"
+                                @error="previewMediaError = true"
+                            >
                         </template>
 
                         <!-- Local Video -->
                         <template x-if="previewItem?.is_video">
-                            <video :src="previewItem.drive_url" controls autoplay class="max-h-[76vh] w-full max-w-4xl rounded-2xl shadow-2xl bg-black mx-auto"></video>
+                            <div class="w-full max-w-4xl flex flex-col items-center justify-center">
+                                <video 
+                                    x-ref="previewVideo"
+                                    :src="previewItem?.stream_url || previewItem?.drive_url" 
+                                    controls 
+                                    autoplay 
+                                    playsinline 
+                                    preload="auto" 
+                                    class="max-h-[76vh] w-full max-w-4xl rounded-2xl shadow-2xl bg-black mx-auto"
+                                    @error="previewMediaError = true"
+                                ></video>
+                            </div>
                         </template>
 
                         <!-- Local Document / Text Note -->
@@ -985,16 +948,34 @@
                                     <i data-lucide="file-text" class="w-8 h-8"></i>
                                 </div>
                                 <h4 class="text-base font-bold text-white mb-2" x-text="previewItem?.original_name"></h4>
-                                <p class="text-xs text-slate-400 leading-relaxed">Document is stored in your local pipeline. You can download or view it directly.</p>
+                                <p class="text-xs text-slate-400 leading-relaxed">Document is stored in your cloud storage. You can download or view it directly.</p>
                                 <div class="mt-5 flex items-center justify-center gap-3">
-                                    <a :href="previewItem?.download_url" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md transition">
-                                        Download Document
+                                    <a :href="previewItem?.download_url" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                        <span>Download Document</span>
                                     </a>
                                 </div>
                             </div>
                         </template>
                     </div>
                 </template>
+
+                <!-- Media Error Fallback Overlay -->
+                <div x-show="previewMediaError" x-cloak class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center z-20">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mb-4 border border-rose-500/30">
+                        <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-white mb-1.5">Direct Inline Playback Unavailable</h3>
+                    <p class="text-xs text-slate-400 max-w-md mb-5 leading-relaxed">
+                        This file format cannot be decoded inline by your browser, or was uploaded in an earlier session. You can download the full original file to view it on your device.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <a :href="previewItem?.download_url" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Download Original</span>
+                        </a>
+                    </div>
+                </div>
 
             </div>
 
@@ -1007,54 +988,6 @@
                 <span class="text-slate-500">Press <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px]">ESC</kbd> to exit preview</span>
             </div>
 
-        </div>
-    </div>
-
-    <!-- Credentials & Setup Modal -->
-    <div x-show="showDriveSetupHelp" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4">
-        <div @click.outside="showDriveSetupHelp = false" class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <i data-lucide="key-round" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-black text-slate-900">Google Drive Integration Guide</h3>
-                        <p class="text-[11px] text-slate-400">Quick 1-Click Connect & Render environment</p>
-                    </div>
-                </div>
-                <button type="button" @click="showDriveSetupHelp = false" class="text-slate-400 hover:text-slate-600 p-1">✕</button>
-            </div>
-
-            <div class="py-4 space-y-3.5 text-xs text-slate-600">
-                <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100">
-                    <span class="font-bold text-indigo-900 block mb-1">Option 1: Recommended 1-Click OAuth (Full 15GB+ Free)</span>
-                    <p class="text-[11px] text-indigo-800 leading-relaxed">
-                        Simply click <strong>Connect Google Drive</strong> and log in with your Google account (<code class="bg-white px-1 rounded font-mono">divyanshecofone@gmail.com</code>). All uploads are saved straight into your Google Drive under <code class="bg-white px-1 rounded font-mono">EcoFone Operations Drive</code>.
-                    </p>
-                </div>
-
-                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                    <span class="font-bold text-slate-800 block mb-1">Option 2: Render Environment Variables</span>
-                    <p class="text-[11px] text-slate-500 leading-relaxed mb-2">
-                        For permanent setup on Render across deploys, add these variables in Render Dashboard &rarr; Environment:
-                    </p>
-                    <div class="space-y-1 font-mono text-[10px] text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200 select-all overflow-x-auto">
-                        <div>GOOGLE_CLIENT_ID={{ config('services.google.client_id') }}</div>
-                        <div>GOOGLE_DRIVE_FOLDER_ID={{ config('services.google.drive_folder_id') }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button type="button" @click="showDriveSetupHelp = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
-                    Close
-                </button>
-                <a href="{{ route('google.connect') }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
-                    <span>Connect Google Drive</span>
-                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
         </div>
     </div>
 
@@ -1089,7 +1022,7 @@ function driveApp() {
         moveTargetFolderId: '',
         previewModalOpen: false,
         previewItem: null,
-        showDriveSetupHelp: false,
+        previewMediaError: false,
 
         // Data arrays
         folders: {!! json_encode($folders) !!},
@@ -1439,13 +1372,28 @@ function driveApp() {
 
         openPreview(file) {
             this.previewItem = file;
+            this.previewMediaError = false;
             this.previewModalOpen = true;
-            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            this.$nextTick(() => { 
+                if (window.lucide) lucide.createIcons(); 
+                if (this.$refs.previewVideo) {
+                    try {
+                        this.$refs.previewVideo.load();
+                        this.$refs.previewVideo.play().catch(() => {});
+                    } catch (e) {}
+                }
+            });
         },
 
         closePreview() {
+            if (this.$refs.previewVideo) {
+                try {
+                    this.$refs.previewVideo.pause();
+                } catch (e) {}
+            }
             this.previewModalOpen = false;
             this.previewItem = null;
+            this.previewMediaError = false;
         },
 
         formatBytes(bytes) {

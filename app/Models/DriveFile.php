@@ -26,6 +26,7 @@ class DriveFile extends Model
         'is_google_drive',
         'preview_embed_url',
         'thumbnail_url',
+        'stream_url',
     ];
 
     public function uploader(): BelongsTo
@@ -73,12 +74,17 @@ class DriveFile extends Model
         return !empty($this->drive_file_id) && !str_starts_with($this->drive_file_id, 'local_');
     }
 
+    public function getStreamUrlAttribute(): string
+    {
+        return route('drive.stream', $this);
+    }
+
     public function getPreviewEmbedUrlAttribute(): string
     {
         if ($this->is_google_drive) {
             return "https://drive.google.com/file/d/{$this->drive_file_id}/preview";
         }
-        return $this->drive_url;
+        return route('drive.stream', $this);
     }
 
     public function getThumbnailUrlAttribute(): string
@@ -86,6 +92,9 @@ class DriveFile extends Model
         if ($this->is_google_drive) {
             return "https://drive.google.com/thumbnail?id={$this->drive_file_id}&sz=w500";
         }
-        return $this->drive_url;
+        if ($this->is_image) {
+            return route('drive.stream', $this);
+        }
+        return '';
     }
 }

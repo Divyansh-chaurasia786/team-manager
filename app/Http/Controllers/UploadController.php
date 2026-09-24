@@ -81,6 +81,7 @@ class UploadController extends Controller
                 'drive_url'         => $f->drive_url,
                 'thumbnail_url'     => $f->thumbnail_url,
                 'preview_embed_url' => $f->preview_embed_url,
+                'stream_url'        => $f->stream_url,
                 'is_google_drive'   => $f->is_google_drive,
                 'download_url'      => route('drive.download', $f),
                 'upload_date'       => $f->upload_date,
@@ -266,6 +267,7 @@ class UploadController extends Controller
                     'drive_url'         => $f->drive_url,
                     'thumbnail_url'     => $f->thumbnail_url,
                     'preview_embed_url' => $f->preview_embed_url,
+                    'stream_url'        => $f->stream_url,
                     'is_google_drive'   => $f->is_google_drive,
                     'download_url'      => route('drive.download', $f),
                     'upload_date'       => $f->upload_date,
@@ -451,6 +453,7 @@ class UploadController extends Controller
                     'drive_url'         => $driveFile->drive_url,
                     'thumbnail_url'     => $driveFile->thumbnail_url,
                     'preview_embed_url' => $driveFile->preview_embed_url,
+                    'stream_url'        => $driveFile->stream_url,
                     'is_google_drive'   => $driveFile->is_google_drive,
                     'download_url'      => route('drive.download', $driveFile),
                     'upload_date'       => $driveFile->upload_date,
@@ -711,6 +714,48 @@ class UploadController extends Controller
 
         // Direct Google Drive download link
         return redirect()->away("https://drive.google.com/uc?export=download&id={$file->drive_file_id}");
+    }
+
+    /**
+     * Stream a file (video, image, document) with full HTTP 206 Byte-Range support
+     */
+    public function stream(DriveFile $file)
+    {
+        // 1. If stored locally
+        if (str_starts_with($file->drive_file_id, 'local_') || str_contains($file->drive_url, '/uploads/drive/')) {
+            $parsedPath = parse_url($file->drive_url, PHP_URL_PATH);
+            $relPath = ltrim($parsedPath, '/');
+            $localPath = public_path($relPath);
+
+            // Resilient lookup: check if path exists directly or inside public/uploads/drive
+            if (!file_exists($localPath)) {
+                $base = basename($relPath);
+                $matches = glob(public_path('uploads/drive/*/' . $base));
+                if (!empty($matches)) {
+                    $localPath = $matches[0];
+                }
+            }
+
+            if (file_exists($localPath)) {
+                $mime = $file->mime_type ?: mime_content_type($localPath) ?: 'application/octet-stream';
+
+                // BinaryFileResponse handles HTTP 206 Range requests automatically
+                $response = new \Symfony\Component\HttpFoundation\BinaryFileResponse($localPath);
+                $response->setAutoEtag();
+                $response->headers->set('Content-Type', $mime);
+                $response->headers->set('Accept-Ranges', 'bytes');
+                $response->headers->set('Cache-Control', 'public, max-age=86400');
+                \Symfony\Component\HttpFoundation\BinaryFileResponse::trustXSendfileTypeHeader();
+                return $response;
+            }
+        }
+
+        // 2. If stored in Google Drive
+        if (!empty($file->drive_file_id) && !str_starts_with($file->drive_file_id, 'local_')) {
+            return redirect()->away("https://drive.google.com/uc?export=download&id={$file->drive_file_id}");
+        }
+
+        abort(404, 'File content not found.');
     }
 
     public function destroy(DriveFile $file)

@@ -36,10 +36,10 @@ return [
     ],
 
     'google' => [
-        'client_id'       => env('GOOGLE_CLIENT_ID', ''),
+        'client_id'       => env('GOOGLE_CLIENT_ID', '889086733617-qgjkcasatnh0k1obs15im8m299j71ltp.apps.googleusercontent.com'),
         'client_secret'   => env('GOOGLE_CLIENT_SECRET', ''),
         'redirect_uri'    => env('GOOGLE_REDIRECT_URI', null),
-        'drive_folder_id' => env('GOOGLE_DRIVE_FOLDER_ID', ''),
+        'drive_folder_id' => env('GOOGLE_DRIVE_FOLDER_ID', '14ctR4tZhSEKk_yPf-quSwPmcJBTo6Gt1'),
     ],
 
     'brevo' => [
