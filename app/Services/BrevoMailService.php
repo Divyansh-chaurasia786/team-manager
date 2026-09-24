@@ -369,6 +369,9 @@ class BrevoMailService
         $senderEmail = config('services.brevo.sender_email', env('MAIL_FROM_ADDRESS', 'divyanshecofone@gmail.com'));
         $senderName = config('services.brevo.sender_name', env('MAIL_FROM_NAME', 'EcoFone Operations'));
 
+        $toEmail = strtolower(trim($toEmail));
+        $toName = trim($toName) ?: 'Team Member';
+
         $payload = [
             'sender' => [
                 'name'  => $senderName,
@@ -398,7 +401,16 @@ class BrevoMailService
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
         curl_close($ch);
+
+        if ($response === false || !empty($curlErr)) {
+            Log::warning('Brevo API transport error: ' . $curlErr);
+            return [
+                'success' => false,
+                'error'   => $curlErr ?: 'cURL execution failed',
+            ];
+        }
 
         $json = json_decode($response, true);
         if ($httpCode >= 200 && $httpCode < 300 && isset($json['messageId'])) {

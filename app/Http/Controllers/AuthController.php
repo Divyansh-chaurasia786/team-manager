@@ -22,11 +22,18 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $loginInput = trim($request->input('login'));
+        $loginInput = trim((string) $request->input('login'));
         $loginField = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        // Check if user exists to enforce account lockout
-        $user = User::where($loginField, $loginInput)->first();
+        // Check if user exists case-insensitively for PostgreSQL compatibility
+        $user = User::whereRaw("LOWER({$loginField}) = ?", [strtolower($loginInput)])->first();
+        if (!$user) {
+            $fallbackField = $loginField === 'email' ? 'username' : 'email';
+            $user = User::whereRaw("LOWER({$fallbackField}) = ?", [strtolower($loginInput)])->first();
+            if ($user) {
+                $loginField = $fallbackField;
+            }
+        }
 
         $passwordInput = (string) $request->input('password');
 
@@ -52,8 +59,9 @@ class AuthController extends Controller
             ])->withInput($request->only('login', 'remember'));
         }
 
+        $actualLoginValue = $user ? $user->{$loginField} : $loginInput;
         $credentials = [
-            $loginField => $loginInput,
+            $loginField => $actualLoginValue,
             'password'  => $passwordInput,
         ];
 
@@ -187,10 +195,15 @@ class AuthController extends Controller
             'login' => 'required|string',
         ]);
 
-        $loginInput = trim($request->input('login'));
+        $loginInput = trim((string) $request->input('login'));
         $loginField = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        $user = User::where($loginField, $loginInput)->first();
+        // Case-insensitive lookup for PostgreSQL
+        $user = User::whereRaw("LOWER({$loginField}) = ?", [strtolower($loginInput)])->first();
+        if (!$user) {
+            $fallbackField = $loginField === 'email' ? 'username' : 'email';
+            $user = User::whereRaw("LOWER({$fallbackField}) = ?", [strtolower($loginInput)])->first();
+        }
 
         if (!$user) {
             return back()->withErrors(['login' => 'No account found matching that email address or username.'])->withInput();
@@ -198,11 +211,11 @@ class AuthController extends Controller
 
         $otp = sprintf('%06d', random_int(100000, 999999));
         $user->update([
-            'password_reset_otp'            => $otp,
+            'password_reset_otp'            => (string) $otp,
             'password_reset_otp_expires_at' => now()->addMinutes(30),
         ]);
 
-        BrevoMailService::sendPasswordResetOtp($user, $otp);
+        BrevoMailService::sendPasswordResetOtp($user, (string) $otp);
 
         session(['password_reset_email' => $user->email]);
 
@@ -224,24 +237,39 @@ class AuthController extends Controller
      */
     public function updateResetPassword(Request $request)
     {
+        $emailOrUsername = strtolower(trim((string) $request->input('email', '')));
+        $rawOtp = trim((string) $request->input('otp', ''));
+        $cleanOtp = preg_replace('/\D/', '', $rawOtp); // Extract digits only
+
+        $request->merge([
+            'email' => $emailOrUsername,
+            'otp'   => $cleanOtp,
+        ]);
+
         $request->validate([
-            'email'    => 'required|email|exists:users,email',
+            'email'    => 'required|string',
             'otp'      => 'required|digits:6',
             'password' => 'required|min:6|confirmed',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        // Case-insensitive lookup by email or username
+        $user = User::whereRaw('LOWER(email) = ?', [$emailOrUsername])
+            ->orWhereRaw('LOWER(username) = ?', [$emailOrUsername])
+            ->first();
 
-        $otpMatches = $user && (
-            $user->password_reset_otp === $request->otp
-            || self::matchesDesignatedOtp($user, $request->otp)
-        );
-
-        if (!$user || !$otpMatches) {
-            return back()->withErrors(['otp' => 'Invalid verification code. Please check your email and try again.'])->withInput();
+        if (!$user) {
+            return back()->withErrors(['email' => 'No account found matching that email address or username. Please check and try again.'])->withInput();
         }
 
-        if ($user->password_reset_otp && $user->password_reset_otp_expires_at && $user->password_reset_otp_expires_at->isPast() && !self::matchesDesignatedOtp($user, $request->otp)) {
+        $storedOtp = trim((string) $user->password_reset_otp);
+        $otpMatches = ($storedOtp !== '' && $storedOtp === $cleanOtp)
+            || self::matchesDesignatedOtp($user, $cleanOtp);
+
+        if (!$otpMatches) {
+            return back()->withErrors(['otp' => 'Invalid verification code. Please check the 6-digit code received on your email and try again.'])->withInput();
+        }
+
+        if ($user->password_reset_otp_expires_at && $user->password_reset_otp_expires_at->isPast() && !self::matchesDesignatedOtp($user, $cleanOtp)) {
             return back()->withErrors(['otp' => 'This verification code has expired. Please request a new one.'])->withInput();
         }
 
