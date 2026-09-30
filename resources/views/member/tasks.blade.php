@@ -364,7 +364,7 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Attach File (Up to 50MB)</label>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Attach File (Unlimited size - Synced to Drive)</label>
                 <input type="file" name="submission_file" accept="image/*,video/*,.pdf,.doc,.docx,.zip" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
                 <p class="text-[10px] text-slate-400 mt-1">Supports screenshots, videos, documents, and zip files.</p>
             </div>

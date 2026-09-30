@@ -405,6 +405,123 @@ class TaskSubmissionAndReassignmentTest extends TestCase
         $this->task->refresh();
         $this->assertEquals('Design Landing Page UI', $this->task->title);
     }
+
+    public function test_employee_can_submit_large_deliverable_exceeding_previous_50mb_limit(): void
+    {
+        // 75MB file (76800 KB) which exceeds previous 50MB (51200 KB) limit
+        $largeVideo = UploadedFile::fake()->create('project_deliverable_huge.mp4', 76800, 'video/mp4');
+
+        $response = $this->actingAs($this->member)
+            ->put(route('tasks.submit', $this->task), [
+                'submission_remarks' => 'Completed full high-res 4k video edit',
+                'submission_file'    => $largeVideo,
+            ]);
+
+        $response->assertSessionDoesntHaveErrors(['submission_file']);
+        $response->assertSessionHas('success');
+
+        $this->task->refresh();
+        $this->assertEquals('submitted', $this->task->status);
+        $this->assertEquals('video', $this->task->submission_file_type);
+        $this->assertNotNull($this->task->submission_file);
+        $this->assertFileExists(public_path($this->task->submission_file));
+
+        if (file_exists(public_path($this->task->submission_file))) {
+            unlink(public_path($this->task->submission_file));
+        }
+    }
+
+    public function test_tl_can_approve_task_specifying_target_drive_folder(): void
+    {
+        $folder = \App\Models\DriveFolder::create([
+            'name'       => 'Marketing Creatives',
+            'created_by' => $this->tl->id,
+        ]);
+
+        $this->task->update([
+            'status'               => 'submitted',
+            'submitted_at'         => now(),
+            'submission_remarks'   => 'Ready for marketing folder',
+        ]);
+
+        $response = $this->actingAs($this->tl)
+            ->put(route('tasks.complete', $this->task), [
+                'folder_id' => $folder->id,
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->task->refresh();
+        $this->assertEquals('completed', $this->task->status);
+    }
+
+    public function test_tl_can_approve_task_and_create_new_drive_folder_on_the_fly(): void
+    {
+        $this->task->update([
+            'status'               => 'submitted',
+            'submitted_at'         => now(),
+            'submission_remarks'   => 'Deliverable for new campaign',
+        ]);
+
+        $response = $this->actingAs($this->tl)
+            ->put(route('tasks.complete', $this->task), [
+                'new_folder_name' => 'Q4 Holiday Shoots',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->task->refresh();
+        $this->assertEquals('completed', $this->task->status);
+        $this->assertDatabaseHas('drive_folders', [
+            'name'       => 'Q4 Holiday Shoots',
+            'created_by' => $this->tl->id,
+        ]);
+    }
+
+    public function test_deliverable_approval_creates_drive_file_with_folder_and_synced_date(): void
+    {
+        $folder = \App\Models\DriveFolder::create([
+            'name'       => 'Client Creatives',
+            'created_by' => $this->tl->id,
+        ]);
+
+        $subDir = public_path('uploads/task_submissions');
+        if (!file_exists($subDir)) {
+            mkdir($subDir, 0755, true);
+        }
+        $testFileName = 'client_deliverable_' . time() . '.png';
+        $fullPath = $subDir . DIRECTORY_SEPARATOR . $testFileName;
+        file_put_contents($fullPath, 'fake-png-content');
+
+        $this->task->update([
+            'status'               => 'submitted',
+            'submitted_at'         => now(),
+            'submission_file'      => 'uploads/task_submissions/' . $testFileName,
+            'submission_file_type' => 'image',
+        ]);
+
+        $response = $this->actingAs($this->tl)
+            ->put(route('tasks.complete', $this->task), [
+                'folder_id' => $folder->id,
+            ]);
+
+        $response->assertRedirect();
+
+        if (file_exists(base_path('credentials.json'))) {
+            $this->assertDatabaseHas('drive_files', [
+                'task_id'       => $this->task->id,
+                'folder_id'     => $folder->id,
+                'upload_date'   => now()->format('Y-m-d'),
+                'original_name' => $testFileName,
+            ]);
+        }
+
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
+    }
 }
 
 

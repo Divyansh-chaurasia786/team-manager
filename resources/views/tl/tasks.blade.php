@@ -520,13 +520,10 @@
                                                     </button>
 
                                                     @if($task->status === 'submitted')
-                                                        <form method="POST" action="{{ route('tasks.complete', $task) }}" class="m-0" onsubmit="approveTaskAjax(event, {{ $task->id }})">
-                                                            @csrf @method('PUT')
-                                                            <button type="submit" id="approve-btn-{{ $task->id }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
-                                                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                                                <span>Approve</span>
-                                                            </button>
-                                                        </form>
+                                                        <button type="button" id="approve-btn-{{ $task->id }}" onclick="handleApproveClick({{ $task->id }})" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
+                                                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                                            <span>Approve</span>
+                                                        </button>
                                                     @endif
 
                                                     @if(auth()->user()->isCEO())
@@ -1069,6 +1066,93 @@
     </div>
 </div>
 
+<!-- Drive Folder Selection & Approval Modal -->
+<div id="approveDriveModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="px-6 py-5 bg-gradient-to-r from-emerald-50 via-teal-50/40 to-slate-50 border-b border-slate-100 flex items-start justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
+                    <i data-lucide="cloud-upload" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-slate-900 leading-tight">Approve & Sync to Google Drive</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Choose or create the Drive folder for this deliverable</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeApproveDriveModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="approveDriveModalForm" onsubmit="submitApproveModalForm(event)">
+            @csrf
+            @method('PUT')
+            <div class="p-6 space-y-4">
+                <!-- Task & Deliverable Info Card -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Task Deliverable</span>
+                            <h4 id="approveModalTaskTitle" class="text-xs font-bold text-slate-900 mt-0.5 line-clamp-1"></h4>
+                            <p id="approveModalMemberName" class="text-[11px] text-slate-500 font-medium"></p>
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
+                            📅 Synced: <span class="font-mono">{{ now()->format('Y-m-d') }}</span>
+                        </span>
+                    </div>
+
+                    <!-- Deliverable Preview Container -->
+                    <div id="approveModalDeliverablePreview" class="pt-2 border-t border-slate-200/60"></div>
+                </div>
+
+                <!-- Folder Selection -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        📁 Destination Drive Folder
+                    </label>
+                    <select id="approveFolderSelect" name="folder_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="">📁 Google Drive Root (Default)</option>
+                        @if(isset($driveFolders))
+                            @foreach($driveFolders as $df)
+                                <option value="{{ $df->id }}">📁 {{ $df->name }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- Create New Folder Section -->
+                <div class="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="folder-plus" class="w-4 h-4 text-indigo-600"></i>
+                            <span>Create New Drive Folder</span>
+                        </span>
+                        <button type="button" onclick="toggleNewFolderInput()" id="toggleNewFolderBtn" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer">
+                            + New Folder
+                        </button>
+                    </div>
+                    <div id="newFolderInputContainer" class="hidden mt-2.5 space-y-1.5">
+                        <input type="text" id="approveNewFolderName" name="new_folder_name" placeholder="Enter folder name (e.g. Website Mockups 2026)..." class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <p class="text-[10px] text-slate-400">If entered, this folder will be automatically created in Google Drive and this deliverable placed inside it.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeApproveDriveModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit" id="approveModalSubmitBtn" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                    <span>Confirm & Sync to Drive</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- View Task All Details Modal (Executive Modern Redesign) -->
 <div id="taskDetailsModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
     <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
@@ -1508,14 +1592,10 @@ function openDetailsModal(taskId) {
     // 3. Approve & Sync to Drive option
     if (task.status === 'submitted') {
         buttonsHtml += `
-            <form method="POST" action="/tasks/${task.id}/complete" class="m-0">
-                <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="_method" value="PUT">
-                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer">
-                    <i data-lucide="check" class="w-4 h-4"></i>
-                    <span>Approve & Sync to Drive</span>
-                </button>
-            </form>
+            <button type="button" onclick="handleApproveClick(${task.id})" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Approve & Sync to Drive</span>
+            </button>
         `;
     }
 
@@ -1711,19 +1791,172 @@ function showInstantToast(message, type = 'success') {
     setTimeout(() => { toast.classList.add('hidden'); }, 4500);
 }
 
-// ⚡ Instant AJAX Task Approval (Zero Page Reload)
-async function approveTaskAjax(event, taskId) {
+// ⚡ Instant Task Approval & Drive Folder Routing Flow
+function handleApproveClick(taskId) {
+    const task = allTasksData.find(t => t.id === taskId);
+    if (!task) return;
+
+    // If task deliverable has a file, ask for Drive folder selection
+    if (task.submission_file) {
+        openApproveDriveModal(task);
+    } else {
+        submitApproveDirect(taskId);
+    }
+}
+
+function openApproveDriveModal(task) {
+    const modal = document.getElementById('approveDriveModal');
+    if (!modal) return;
+
+    const form = document.getElementById('approveDriveModalForm');
+    form.setAttribute('data-task-id', task.id);
+
+    document.getElementById('approveModalTaskTitle').innerText = task.title || 'Task Deliverable';
+    const memberName = task.assigned_to_user ? task.assigned_to_user.name : (task.assigned_to ? (task.assigned_to.name || 'Team Member') : 'Team Member');
+    document.getElementById('approveModalMemberName').innerText = `Submitted by: ${memberName}`;
+
+    // Deliverable preview
+    const previewEl = document.getElementById('approveModalDeliverablePreview');
+    const filePath = task.submission_file || '';
+    const fileType = task.submission_file_type || '';
+    const isImage = fileType === 'image' || (/\.(jpeg|jpg|png|webp|gif)$/i.test(filePath));
+    const isVideo = fileType === 'video' || (/\.(mp4|mov|avi|mkv)$/i.test(filePath));
+
+    if (isImage) {
+        previewEl.innerHTML = `
+            <div class="flex items-center gap-3">
+                <img src="/${filePath}" alt="Deliverable" class="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0 bg-white shadow-2xs">
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-slate-800 truncate">${filePath.split('/').pop()}</div>
+                    <span class="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold mt-1 border border-emerald-200">
+                        🖼️ Photo / Image
+                    </span>
+                </div>
+            </div>
+        `;
+    } else if (isVideo) {
+        previewEl.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-16 h-16 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center shrink-0">
+                    <i data-lucide="video" class="w-8 h-8 text-purple-600"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-slate-800 truncate">${filePath.split('/').pop()}</div>
+                    <span class="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md font-bold mt-1 border border-purple-200">
+                        🎥 Video File
+                    </span>
+                </div>
+            </div>
+        `;
+    } else {
+        previewEl.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-16 h-16 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+                    <i data-lucide="file-text" class="w-8 h-8 text-indigo-600"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-slate-800 truncate">${filePath.split('/').pop()}</div>
+                    <span class="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-bold mt-1 border border-indigo-200">
+                        📄 Deliverable File
+                    </span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Reset inputs
+    document.getElementById('approveFolderSelect').value = '';
+    document.getElementById('approveNewFolderName').value = '';
+    document.getElementById('newFolderInputContainer').classList.add('hidden');
+    document.getElementById('toggleNewFolderBtn').innerText = '+ New Folder';
+
+    const submitBtn = document.getElementById('approveModalSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="cloud-upload" class="w-4 h-4"></i> <span>Confirm & Sync to Drive</span>';
+    }
+
+    modal.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeApproveDriveModal() {
+    const modal = document.getElementById('approveDriveModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function toggleNewFolderInput() {
+    const container = document.getElementById('newFolderInputContainer');
+    const btn = document.getElementById('toggleNewFolderBtn');
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        btn.innerText = 'Hide';
+        document.getElementById('approveNewFolderName').focus();
+    } else {
+        container.classList.add('hidden');
+        btn.innerText = '+ New Folder';
+        document.getElementById('approveNewFolderName').value = '';
+    }
+}
+
+async function submitApproveModalForm(event) {
     event.preventDefault();
     const form = event.target;
-    const btn = form.querySelector('button[type="submit"]');
+    const taskId = parseInt(form.getAttribute('data-task-id'));
+    const submitBtn = document.getElementById('approveModalSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Syncing & Approving...';
+    }
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(`/tasks/${taskId}/complete`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            closeApproveDriveModal();
+            showInstantToast(data.message || 'Task approved and synced to Drive!');
+            handleApprovalSuccess(taskId, data);
+        } else {
+            showInstantToast(data.message || 'Failed to approve task.', 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="cloud-upload" class="w-4 h-4"></i> <span>Confirm & Sync to Drive</span>';
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showInstantToast('An error occurred while approving task: ' + err.message, 'error');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="cloud-upload" class="w-4 h-4"></i> <span>Confirm & Sync to Drive</span>';
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
+
+async function submitApproveDirect(taskId) {
+    const btn = document.getElementById(`approve-btn-${taskId}`);
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Approving...';
     }
 
+    const formData = new FormData();
+    formData.append('_token', '{{ csrf_token() }}');
+    formData.append('_method', 'PUT');
+
     try {
-        const formData = new FormData(form);
-        const response = await fetch(form.action, {
+        const response = await fetch(`/tasks/${taskId}/complete`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -1735,77 +1968,92 @@ async function approveTaskAjax(event, taskId) {
 
         if (response.ok && data.success) {
             showInstantToast(data.message || 'Task approved and marked as completed!');
-
-            // 1. Update task row status badge
-            const statusBadgeContainer = document.querySelector(`.task-status-container-${taskId}`);
-            if (statusBadgeContainer) {
-                statusBadgeContainer.innerHTML = `
-                    <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">${data.task_title || document.querySelector(`.task-status-container-${taskId} h3`)?.innerText || 'Task'}</h3>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        ✓ Completed
-                    </span>
-                `;
-            }
-
-            // 1b. Stop review timer and display Reviewed by TL timestamp
-            const reviewTimerEl = document.querySelector(`.task-tl-review-timer-${taskId}`);
-            const reviewedFormatted = data.reviewed_at || new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-            if (reviewTimerEl) {
-                reviewTimerEl.outerHTML = `
-                    <div class="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 task-tl-reviewed-badge-${taskId}">
-                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
-                        <span>Reviewed by TL: <strong class="font-mono text-emerald-950">${reviewedFormatted}</strong></span>
-                        ${data.review_duration ? `<span class="text-[10px] text-emerald-600 font-semibold">(${data.review_duration})</span>` : ''}
-                    </div>
-                `;
-            }
-
-            // 2. Update action button in row and remove edit button
-            const editBtn = document.querySelector('.task-edit-btn-' + taskId);
-            if (editBtn) editBtn.remove();
-            form.outerHTML = '<span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">✓ Completed & Approved</span>';
-
-            // 3. Update task in allTasksData
-            const t = allTasksData.find(x => x.id === taskId);
-            if (t) {
-                t.status = 'completed';
-                t.reviewed_at = data.reviewed_at_iso || new Date().toISOString();
-                t.review_duration = data.review_duration;
-            }
-
-            // 4. Update modal if open
-            const modalBadge = document.getElementById('detailStatusBadge');
-            if (modalBadge) {
-                modalBadge.innerHTML = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">✓ Completed</span>';
-            }
-            const modalReviewTs = document.getElementById('detailReviewTimestamp');
-            if (modalReviewTs) {
-                modalReviewTs.innerText = reviewedFormatted;
-            }
-            const modalReviewDur = document.getElementById('detailReviewDuration');
-            if (modalReviewDur) {
-                modalReviewDur.innerText = data.review_duration ? '✓ Review Turnaround: ' + data.review_duration : '✓ Approved';
-            }
-            const modalActionSlot = document.getElementById('detailActionSlot');
-            if (modalActionSlot) {
-                modalActionSlot.innerHTML = '';
-            }
-
-            if (window.lucide) lucide.createIcons();
+            handleApprovalSuccess(taskId, data);
         } else {
             showInstantToast(data.message || 'Failed to approve task.', 'error');
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Approve</span>';
+                if (window.lucide) lucide.createIcons();
             }
         }
     } catch (err) {
-        showInstantToast('Error: ' + err.message, 'error');
+        console.error(err);
+        showInstantToast('An error occurred while approving task: ' + err.message, 'error');
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Approve</span>';
+            if (window.lucide) lucide.createIcons();
         }
     }
+}
+
+function handleApprovalSuccess(taskId, data) {
+    // 1. Update task row status badge
+    const statusBadgeContainer = document.querySelector(`.task-status-container-${taskId}`);
+    if (statusBadgeContainer) {
+        statusBadgeContainer.innerHTML = `
+            <h3 class="font-bold text-slate-900 text-sm hover:text-indigo-600 transition">${data.task_title || document.querySelector(`.task-status-container-${taskId} h3`)?.innerText || 'Task'}</h3>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                ✓ Completed
+            </span>
+        `;
+    }
+
+    // 1b. Stop review timer and display Reviewed by TL timestamp
+    const reviewTimerEl = document.querySelector(`.task-tl-review-timer-${taskId}`);
+    const reviewedFormatted = data.reviewed_at || new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    if (reviewTimerEl) {
+        reviewTimerEl.outerHTML = `
+            <div class="flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 task-tl-reviewed-badge-${taskId}">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>Reviewed by TL: <strong class="font-mono text-emerald-950">${reviewedFormatted}</strong></span>
+                ${data.review_duration ? `<span class="text-[10px] text-emerald-600 font-semibold">(${data.review_duration})</span>` : ''}
+            </div>
+        `;
+    }
+
+    // 2. Update action button in row and remove edit button
+    const editBtn = document.querySelector('.task-edit-btn-' + taskId);
+    if (editBtn) editBtn.remove();
+    const approveBtn = document.getElementById('approve-btn-' + taskId);
+    if (approveBtn) {
+        approveBtn.outerHTML = '<span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">✓ Completed & Approved</span>';
+    }
+
+    // 3. Update task in allTasksData
+    const t = allTasksData.find(x => x.id === taskId);
+    if (t) {
+        t.status = 'completed';
+        t.reviewed_at = data.reviewed_at_iso || new Date().toISOString();
+        t.review_duration = data.review_duration;
+    }
+
+    // 4. Update modal if open
+    const modalBadge = document.getElementById('detailStatusBadge');
+    if (modalBadge) {
+        modalBadge.innerHTML = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">✓ Completed</span>';
+    }
+    const modalReviewTs = document.getElementById('detailReviewTimestamp');
+    if (modalReviewTs) {
+        modalReviewTs.innerText = reviewedFormatted;
+    }
+    const modalReviewDur = document.getElementById('detailReviewDuration');
+    if (modalReviewDur) {
+        modalReviewDur.innerText = data.review_duration ? '✓ Review Turnaround: ' + data.review_duration : '✓ Approved';
+    }
+    const modalActionSlot = document.getElementById('detailActionSlot');
+    if (modalActionSlot) {
+        modalActionSlot.innerHTML = '';
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// Retain approveTaskAjax for backwards compatibility
+async function approveTaskAjax(event, taskId) {
+    if (event) event.preventDefault();
+    handleApproveClick(taskId);
 }
 
 // 🔔 Instant Overdue Email Alert Dispatch (Zero Page Reload)
@@ -2269,20 +2517,17 @@ async function liveSyncTLTasks() {
                     // Update actions container to include approve button if missing
                     const actionsRow = row.querySelector(`.task-actions-row-${t.id}`);
                     if (actionsRow && !actionsRow.querySelector(`#approve-btn-${t.id}`)) {
-                        const approveForm = document.createElement('form');
-                        approveForm.method = 'POST';
-                        approveForm.action = `/tasks/${t.id}/complete`;
-                        approveForm.className = 'm-0';
-                        approveForm.onsubmit = function(ev) { approveTaskAjax(ev, t.id); };
-                        approveForm.innerHTML = `
-                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="_method" value="PUT">
-                            <button type="submit" id="approve-btn-${t.id}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer" title="Approve Task & Sync Deliverable to Drive">
-                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                <span>Approve</span>
-                            </button>
+                        const approveBtn = document.createElement('button');
+                        approveBtn.type = 'button';
+                        approveBtn.id = `approve-btn-${t.id}`;
+                        approveBtn.className = 'px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-1 cursor-pointer';
+                        approveBtn.title = 'Approve Task & Sync Deliverable to Drive';
+                        approveBtn.onclick = function() { handleApproveClick(t.id); };
+                        approveBtn.innerHTML = `
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Approve</span>
                         `;
-                        actionsRow.appendChild(approveForm);
+                        actionsRow.appendChild(approveBtn);
                     }
 
                     // Update status badge
