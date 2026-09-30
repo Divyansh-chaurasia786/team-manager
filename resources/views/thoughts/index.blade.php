@@ -355,9 +355,10 @@
                                         </div>
                                     @else
                                         <div class="relative group/bubble w-fit rounded-xl rounded-tr-none px-3 py-1.5 bg-[#d9fdd3] text-[#111b21] shadow-2xs border border-[#c1f3b8]">
-                                            @if($thought->media_path || $thought->drive_url)
+                                            @if($thought->media_path || $thought->drive_url || $thought->drive_file_id)
                                                 @php 
-                                                    $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; 
+                                                    $mediaSrc = $thought->media_stream_url; 
+                                                    $downloadSrc = $thought->download_url;
                                                     $fileName = $thought->original_name ?? basename($thought->media_path ?? 'file');
                                                     $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION) ?: 'FILE');
                                                 @endphp
@@ -393,7 +394,7 @@
                                                                     @endif
                                                                 </div>
                                                             </div>
-                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-black/10 text-[#008069] transition shrink-0" title="Download">
+                                                            <a href="{{ $downloadSrc ?? $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-black/10 text-[#008069] transition shrink-0" title="Download">
                                                                 <i data-lucide="download" class="w-4 h-4"></i>
                                                             </a>
                                                         </div>
@@ -489,9 +490,10 @@
                                                 @endif
                                             </div>
 
-                                            @if($thought->media_path || $thought->drive_url)
+                                            @if($thought->media_path || $thought->drive_url || $thought->drive_file_id)
                                                 @php 
-                                                    $mediaSrc = $thought->media_path ? asset($thought->media_path) : $thought->drive_url; 
+                                                    $mediaSrc = $thought->media_stream_url; 
+                                                    $downloadSrc = $thought->download_url;
                                                     $fileName = $thought->original_name ?? basename($thought->media_path ?? 'file');
                                                     $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION) ?: 'FILE');
                                                 @endphp
@@ -527,7 +529,7 @@
                                                                     @endif
                                                                 </div>
                                                             </div>
-                                                            <a href="{{ $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-slate-200 text-[#008069] transition shrink-0" title="Download">
+                                                            <a href="{{ $downloadSrc ?? $mediaSrc }}" download="{{ $fileName }}" class="p-1.5 rounded-lg hover:bg-slate-200 text-[#008069] transition shrink-0" title="Download">
                                                                 <i data-lucide="download" class="w-4 h-4"></i>
                                                             </a>
                                                         </div>
@@ -1786,7 +1788,7 @@ function renderMessageBubble(msg) {
                             ${size ? `<span class="text-[10px] text-[#667781]">${size}</span>` : ''}
                         </div>
                     </div>
-                    <a href="${msg.media_url}" download="${fileName}" class="p-1.5 rounded-lg hover:bg-black/10 text-[#008069] transition shrink-0" title="Download">
+                    <a href="${msg.download_url || msg.media_url}" download="${fileName}" class="p-1.5 rounded-lg hover:bg-black/10 text-[#008069] transition shrink-0" title="Download">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </a>
                 </div>`;

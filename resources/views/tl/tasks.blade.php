@@ -1825,40 +1825,57 @@ function openApproveDriveModal(task) {
     if (isImage) {
         previewEl.innerHTML = `
             <div class="flex items-center gap-3">
-                <img src="/${filePath}" alt="Deliverable" class="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0 bg-white shadow-2xs">
+                <a href="/${filePath}" target="_blank" class="shrink-0 group/img" title="Click to view full image">
+                    <img src="/${filePath}" alt="Deliverable" class="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0 bg-white shadow-2xs group-hover/img:scale-105 transition">
+                </a>
                 <div class="min-w-0">
                     <div class="text-xs font-bold text-slate-800 truncate">${filePath.split('/').pop()}</div>
-                    <span class="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold mt-1 border border-emerald-200">
-                        🖼️ Photo / Image
-                    </span>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
+                            🖼️ Photo / Image
+                        </span>
+                        <a href="/${filePath}" target="_blank" class="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline">
+                            View Full Size ↗
+                        </a>
+                    </div>
                 </div>
             </div>
         `;
     } else if (isVideo) {
         previewEl.innerHTML = `
             <div class="flex items-center gap-3">
-                <div class="w-16 h-16 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center shrink-0">
+                <a href="/${filePath}" target="_blank" class="w-16 h-16 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center shrink-0 hover:bg-purple-100 transition" title="Click to play video">
                     <i data-lucide="video" class="w-8 h-8 text-purple-600"></i>
-                </div>
+                </a>
                 <div class="min-w-0">
                     <div class="text-xs font-bold text-slate-800 truncate">${filePath.split('/').pop()}</div>
-                    <span class="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md font-bold mt-1 border border-purple-200">
-                        🎥 Video File
-                    </span>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md font-bold border border-purple-200">
+                            🎥 Video File
+                        </span>
+                        <a href="/${filePath}" target="_blank" class="text-[10px] text-purple-700 hover:text-purple-900 font-bold hover:underline">
+                            Play / Watch Video ↗
+                        </a>
+                    </div>
                 </div>
             </div>
         `;
     } else {
         previewEl.innerHTML = `
             <div class="flex items-center gap-3">
-                <div class="w-16 h-16 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+                <a href="/${filePath}" target="_blank" class="w-16 h-16 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition" title="Click to open deliverable">
                     <i data-lucide="file-text" class="w-8 h-8 text-indigo-600"></i>
-                </div>
+                </a>
                 <div class="min-w-0">
                     <div class="text-xs font-bold text-slate-800 truncate">${filePath.split('/').pop()}</div>
-                    <span class="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-bold mt-1 border border-indigo-200">
-                        📄 Deliverable File
-                    </span>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-bold border border-indigo-200">
+                            📄 Deliverable File
+                        </span>
+                        <a href="/${filePath}" target="_blank" class="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline">
+                            Open File ↗
+                        </a>
+                    </div>
                 </div>
             </div>
         `;

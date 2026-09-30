@@ -41,6 +41,8 @@ class Task extends Model
     public function assignedTo() { return $this->belongsTo(User::class, 'assigned_to'); }
     public function assignedBy() { return $this->belongsTo(User::class, 'assigned_by'); }
     public function updates() { return $this->hasMany(TaskUpdate::class); }
+    public function driveFiles() { return $this->hasMany(DriveFile::class, 'task_id'); }
+    public function driveFile() { return $this->hasOne(DriveFile::class, 'task_id')->latestOfMany(); }
 
     public function isReassigned(): bool {
         return $this->previous_deadline !== null && $this->reassignment_count > 0;

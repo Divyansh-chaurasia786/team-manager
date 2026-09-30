@@ -79,6 +79,33 @@ class TeamThought extends Model
         return $this->belongsTo(User::class, 'uploaded_to_drive_by');
     }
 
+    public function driveFile(): BelongsTo
+    {
+        return $this->belongsTo(DriveFile::class, 'drive_file_id', 'drive_file_id');
+    }
+
+    public function getMediaStreamUrlAttribute(): ?string
+    {
+        if ($this->media_path) {
+            return asset($this->media_path);
+        }
+        if ($this->drive_file_id && $this->driveFile) {
+            return route('drive.stream', $this->driveFile);
+        }
+        return $this->drive_url;
+    }
+
+    public function getDownloadUrlAttribute(): ?string
+    {
+        if ($this->media_path) {
+            return asset($this->media_path);
+        }
+        if ($this->drive_file_id && $this->driveFile) {
+            return route('drive.download', $this->driveFile);
+        }
+        return $this->drive_url;
+    }
+
     public function isUnsendableBy(User $user): bool
     {
         if ($this->is_deleted) {

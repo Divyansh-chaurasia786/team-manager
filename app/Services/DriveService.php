@@ -310,15 +310,23 @@ class DriveService
 
     public function getDirectDownloadUrl(string $fileId): string
     {
-        return "https://drive.google.com/uc?export=download&id={$fileId}";
+        return "https://drive.google.com/file/d/{$fileId}/view";
+    }
+
+    /**
+     * Get a PSR-7 stream response from Google Drive for streaming or downloading.
+     */
+    public function getFileStream(string $fileId)
+    {
+        return $this->drive->files->get($fileId, [
+            'alt'               => 'media',
+            'supportsAllDrives' => true,
+        ]);
     }
 
     public function downloadContent(string $fileId)
     {
-        $response = $this->drive->files->get($fileId, [
-            'alt'               => 'media',
-            'supportsAllDrives' => true,
-        ]);
+        $response = $this->getFileStream($fileId);
         return $response->getBody()->getContents();
     }
 

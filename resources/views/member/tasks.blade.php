@@ -250,6 +250,22 @@
                                         <i data-lucide="download" class="w-3 h-3 text-emerald-600"></i>
                                         <span>Deliverable File ({{ strtoupper($task->submission_file_type ?? 'File') }})</span>
                                     </a>
+                                @elseif($task->driveFile)
+                                    <a href="{{ route('drive.download', $task->driveFile) }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition" title="Download synced file">
+                                        <i data-lucide="download" class="w-3 h-3 text-emerald-600"></i>
+                                        <span>Download ({{ strtoupper($task->driveFile->file_type ?? 'File') }})</span>
+                                    </a>
+                                    @if($task->drive_url)
+                                        <a href="{{ $task->drive_url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition">
+                                            <i data-lucide="cloud" class="w-3 h-3 text-indigo-600"></i>
+                                            <span>Open in Drive</span>
+                                        </a>
+                                    @endif
+                                @elseif($task->drive_url)
+                                    <a href="{{ $task->drive_url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition">
+                                        <i data-lucide="cloud" class="w-3 h-3 text-indigo-600"></i>
+                                        <span>Drive Deliverable</span>
+                                    </a>
                                 @endif
                             </div>
                         </div>

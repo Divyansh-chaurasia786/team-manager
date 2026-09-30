@@ -31,6 +31,7 @@ class DriveFile extends Model
         'preview_embed_url',
         'thumbnail_url',
         'stream_url',
+        'download_url',
         'target_account',
     ];
 
@@ -114,13 +115,18 @@ class DriveFile extends Model
         return route('drive.stream', $this);
     }
 
+    public function getDownloadUrlAttribute(): string
+    {
+        return route('drive.download', $this);
+    }
+
     public function getThumbnailUrlAttribute(): string
     {
-        if ($this->is_google_drive) {
-            return "https://drive.google.com/thumbnail?id={$this->drive_file_id}&sz=w500";
-        }
         if ($this->is_image) {
             return route('drive.stream', $this);
+        }
+        if ($this->is_google_drive && $this->is_video) {
+            return "https://drive.google.com/thumbnail?id={$this->drive_file_id}&sz=w500";
         }
         return '';
     }

@@ -695,6 +695,7 @@ class TeamThoughtController extends Controller
     protected function formatThought(TeamThought $t, User $user): array
     {
         $mediaUrl = null;
+        $downloadUrl = null;
         if (!$t->is_deleted) {
             if ($t->media_path) {
                 $mediaUrl = Cache::remember("thought_media_url_{$t->id}", now()->addDays(30), function () use ($t) {
@@ -704,8 +705,19 @@ class TeamThoughtController extends Controller
                     }
                     return null;
                 });
+                $downloadUrl = asset($t->media_path);
+            } elseif ($t->drive_file_id) {
+                $driveFile = $t->driveFile ?? \App\Models\DriveFile::where('drive_file_id', $t->drive_file_id)->first();
+                if ($driveFile) {
+                    $mediaUrl = route('drive.stream', $driveFile);
+                    $downloadUrl = route('drive.download', $driveFile);
+                } else {
+                    $mediaUrl = $t->drive_url;
+                    $downloadUrl = $t->drive_url;
+                }
             } elseif ($t->drive_url) {
                 $mediaUrl = $t->drive_url;
+                $downloadUrl = $t->drive_url;
             }
         }
 
@@ -725,6 +737,7 @@ class TeamThoughtController extends Controller
             'content'             => $t->is_deleted ? null : $t->content,
             'link_url'            => $t->is_deleted ? null : $t->link_url,
             'media_url'           => $mediaUrl,
+            'download_url'        => $downloadUrl,
             'media_type'          => $t->is_deleted ? 'none' : $t->media_type,
             'media_original_name' => $t->is_deleted ? null : $t->media_original_name,
             'original_name'       => $t->is_deleted ? null : $t->media_original_name,

@@ -667,7 +667,7 @@
                                                                 class="w-full h-24 rounded-lg bg-slate-900 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer mb-2 relative group/thumb"
                                                             >
                                                                 <template x-if="file.is_image">
-                                                                    <img :src="file.thumbnail_url || file.drive_url" class="w-full h-full object-cover group-hover/thumb:scale-105 transition duration-200" alt="thumbnail" loading="lazy">
+                                                                    <img :src="file.thumbnail_url || file.stream_url" class="w-full h-full object-cover group-hover/thumb:scale-105 transition duration-200" alt="thumbnail" loading="lazy" x-on:error="$el.style.opacity = '0.3'">
                                                                 </template>
                                                                 <template x-if="file.is_video">
                                                                     <div class="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
@@ -1296,6 +1296,22 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
+                    <!-- Video Player Switcher (Direct Player vs Drive Player) -->
+                    <div x-show="previewItem?.is_video && previewItem?.is_google_drive" class="hidden sm:flex items-center bg-slate-800/80 p-0.5 rounded-xl border border-slate-700 text-xs">
+                        <button 
+                            type="button" 
+                            @click="previewPlayerMode = 'native'" 
+                            class="px-2.5 py-1 rounded-lg font-bold transition cursor-pointer" 
+                            :class="previewPlayerMode === 'native' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'"
+                        >Direct Player</button>
+                        <button 
+                            type="button" 
+                            @click="previewPlayerMode = 'drive'" 
+                            class="px-2.5 py-1 rounded-lg font-bold transition cursor-pointer" 
+                            :class="previewPlayerMode === 'drive' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'"
+                        >Drive Player</button>
+                    </div>
+
                     <!-- Direct Download -->
                     <a 
                         :href="previewItem?.download_url" 
@@ -1333,55 +1349,70 @@
             <!-- Modal Stage: Displays Video / Image / Document with 100% Reliability -->
             <div class="flex-1 w-full h-full bg-black flex items-center justify-center overflow-hidden p-1 sm:p-3 relative">
                 
-                <!-- 1. Google Drive Cloud Media (Videos, Photos, PDFs, Docs) via Native Drive Player -->
-                <template x-if="previewItem?.is_google_drive">
-                    <div class="w-full h-full rounded-2xl overflow-hidden relative bg-black flex items-center justify-center">
-                        <iframe 
-                            :src="previewItem.preview_embed_url" 
-                            class="w-full h-full rounded-2xl border-0 shadow-2xl bg-black" 
-                            allow="autoplay; fullscreen; encrypted-media" 
-                            allowfullscreen
-                        ></iframe>
+                <!-- 1. Photos & Images (Always Native High-Performance Image Viewer) -->
+                <template x-if="previewItem?.is_image">
+                    <div class="w-full h-full flex items-center justify-center p-2">
+                        <img 
+                            :src="previewItem?.stream_url || previewItem?.thumbnail_url || previewItem?.drive_url" 
+                            class="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl mx-auto select-none" 
+                            alt="Preview Image"
+                            x-on:error="previewMediaError = true"
+                        >
                     </div>
                 </template>
 
-                <!-- 2. Local Storage Media Pipeline (Byte-Range Streaming) -->
-                <template x-if="!previewItem?.is_google_drive">
+                <!-- 2. Videos (Direct HTML5 Video Player with optional Google Drive Player toggle) -->
+                <template x-if="previewItem?.is_video">
                     <div class="w-full h-full flex items-center justify-center p-2">
-                        <!-- Local Image -->
-                        <template x-if="previewItem?.is_image">
-                            <img 
-                                :src="previewItem?.stream_url || previewItem?.drive_url" 
-                                class="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl mx-auto" 
-                                alt="Preview"
-                                x-on:error="previewMediaError = true"
-                            >
-                        </template>
+                        <!-- Direct HTML5 Player (Default) -->
+                        <div x-show="previewPlayerMode === 'native'" class="w-full max-w-4xl flex flex-col items-center justify-center">
+                            <video 
+                                x-ref="previewVideo"
+                                :src="previewItem?.stream_url" 
+                                controls 
+                                autoplay 
+                                playsinline 
+                                preload="auto" 
+                                class="max-h-[76vh] w-full max-w-4xl rounded-2xl shadow-2xl bg-black mx-auto"
+                                x-on:error="if (previewItem?.is_google_drive && previewPlayerMode === 'native') { previewPlayerMode = 'drive'; } else { previewMediaError = true; }"
+                            ></video>
+                        </div>
 
-                        <!-- Local Video -->
-                        <template x-if="previewItem?.is_video">
-                            <div class="w-full max-w-4xl flex flex-col items-center justify-center">
-                                <video 
-                                    x-ref="previewVideo"
-                                    :src="previewItem?.stream_url || previewItem?.drive_url" 
-                                    controls 
-                                    autoplay 
-                                    playsinline 
-                                    preload="auto" 
-                                    class="max-h-[76vh] w-full max-w-4xl rounded-2xl shadow-2xl bg-black mx-auto"
-                                    x-on:error="previewMediaError = true"
-                                ></video>
+                        <!-- Google Drive Embed Player (Fallback or Toggle) -->
+                        <template x-if="previewPlayerMode === 'drive' && previewItem?.is_google_drive">
+                            <div class="w-full h-full rounded-2xl overflow-hidden relative bg-black flex items-center justify-center">
+                                <iframe 
+                                    :src="previewItem.preview_embed_url" 
+                                    class="w-full h-full rounded-2xl border-0 shadow-2xl bg-black" 
+                                    allow="autoplay; fullscreen; encrypted-media" 
+                                    allowfullscreen
+                                ></iframe>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- 3. Documents & Other Files (PDFs, Docs, Sheets) -->
+                <template x-if="!previewItem?.is_image && !previewItem?.is_video">
+                    <div class="w-full h-full flex items-center justify-center p-2">
+                        <template x-if="previewItem?.is_google_drive">
+                            <div class="w-full h-full rounded-2xl overflow-hidden relative bg-black flex items-center justify-center">
+                                <iframe 
+                                    :src="previewItem.preview_embed_url" 
+                                    class="w-full h-full rounded-2xl border-0 shadow-2xl bg-black" 
+                                    allow="autoplay; fullscreen; encrypted-media" 
+                                    allowfullscreen
+                                ></iframe>
                             </div>
                         </template>
 
-                        <!-- Local Document / Text Note -->
-                        <template x-if="!previewItem?.is_image && !previewItem?.is_video">
+                        <template x-if="!previewItem?.is_google_drive">
                             <div class="text-center p-8 max-w-md mx-auto">
                                 <div class="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-3 border border-amber-500/30">
                                     <i data-lucide="file-text" class="w-8 h-8"></i>
                                 </div>
                                 <h4 class="text-base font-bold text-white mb-2" x-text="previewItem?.original_name"></h4>
-                                <p class="text-xs text-slate-400 leading-relaxed">Document is stored in your cloud storage. You can download or view it directly.</p>
+                                <p class="text-xs text-slate-400 leading-relaxed">Document is stored in your storage. You can download or view it directly.</p>
                                 <div class="mt-5 flex items-center justify-center gap-3">
                                     <a :href="previewItem?.download_url" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2">
                                         <i data-lucide="download" class="w-4 h-4"></i>
@@ -1400,13 +1431,19 @@
                     </div>
                     <h3 class="text-base font-bold text-white mb-1.5">Direct Inline Playback Unavailable</h3>
                     <p class="text-xs text-slate-400 max-w-md mb-5 leading-relaxed">
-                        This file format cannot be decoded inline by your browser, or was uploaded in an earlier session. You can download the full original file to view it on your device.
+                        This media could not be decoded directly in your browser. You can download the full original file or open it directly in Google Drive to view.
                     </p>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-wrap justify-center">
                         <a :href="previewItem?.download_url" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span>Download Original</span>
                         </a>
+                        <template x-if="previewItem?.is_google_drive">
+                            <a :href="previewItem?.drive_url" target="_blank" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                                <span>Open in Google Drive</span>
+                            </a>
+                        </template>
                     </div>
                 </div>
 
@@ -1415,8 +1452,8 @@
             <!-- Modal Footer Status Bar -->
             <div class="px-5 py-2 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
                 <span class="flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full" :class="previewItem?.is_google_drive ? 'bg-emerald-400' : 'bg-amber-400'"></span>
-                    <span x-text="previewItem?.is_google_drive ? 'Google Drive High-Definition Player' : 'Local Storage Player'"></span>
+                    <span class="w-2 h-2 rounded-full" :class="previewItem?.is_google_drive ? 'bg-emerald-400' : 'bg-indigo-400'"></span>
+                    <span x-text="previewItem?.is_image ? 'Image Viewer' : (previewItem?.is_video ? (previewPlayerMode === 'drive' ? 'Google Drive Player' : 'High-Definition Video Player') : 'Document Viewer')"></span>
                 </span>
                 <span class="text-slate-500">Press <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px]">ESC</kbd> to exit preview</span>
             </div>
@@ -1457,6 +1494,7 @@ function driveApp() {
         previewModalOpen: false,
         previewItem: null,
         previewMediaError: false,
+        previewPlayerMode: 'native',
 
         // Data arrays
         folders: {!! json_encode($folders) !!},
@@ -2156,6 +2194,7 @@ function driveApp() {
         openPreview(file) {
             this.previewItem = file;
             this.previewMediaError = false;
+            this.previewPlayerMode = (!file.is_image && !file.is_video && file.is_google_drive) ? 'drive' : 'native';
             this.previewModalOpen = true;
             this.$nextTick(() => { 
                 if (window.lucide) lucide.createIcons(); 

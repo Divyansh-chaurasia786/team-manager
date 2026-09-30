@@ -823,6 +823,56 @@ class UploadController extends Controller
         return redirect($redirect)->with('success', "Folder '{$folderName}' deleted successfully.");
     }
 
+    /**
+     * Resolves the local filesystem path for a DriveFile if it exists on disk.
+     */
+    protected function resolveLocalFilePath(DriveFile $file): ?string
+    {
+        // 1. Direct path from drive_url if relative or local URL
+        if (!empty($file->drive_url)) {
+            $parsedPath = parse_url($file->drive_url, PHP_URL_PATH);
+            if ($parsedPath) {
+                $relPath = ltrim($parsedPath, '/');
+                $candidates = [
+                    public_path($relPath),
+                    storage_path('app/public/' . $relPath),
+                    base_path($relPath),
+                ];
+                foreach ($candidates as $cand) {
+                    if (file_exists($cand) && is_file($cand)) {
+                        return $cand;
+                    }
+                }
+            }
+        }
+
+        // 2. Search in public/uploads/drive/{upload_date}/ or public/uploads/drive/*
+        $cleanBase = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->original_name);
+        $searchPatterns = [];
+        if (!empty($file->upload_date)) {
+            $searchPatterns[] = public_path("uploads/drive/{$file->upload_date}/*" . $cleanBase);
+            $searchPatterns[] = public_path("uploads/drive/{$file->upload_date}/" . $file->original_name);
+            $searchPatterns[] = storage_path("app/public/uploads/drive/{$file->upload_date}/*" . $cleanBase);
+        }
+        $searchPatterns[] = public_path("uploads/drive/*/*" . $cleanBase);
+        $searchPatterns[] = storage_path("app/public/uploads/drive/*/*" . $cleanBase);
+        $searchPatterns[] = public_path("uploads/task_submissions/*" . $cleanBase);
+        $searchPatterns[] = public_path("uploads/chat_media/*" . $cleanBase);
+
+        foreach ($searchPatterns as $pattern) {
+            $matches = glob($pattern);
+            if (!empty($matches)) {
+                foreach ($matches as $match) {
+                    if (file_exists($match) && is_file($match)) {
+                        return $match;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function download(DriveFile $file)
     {
         $user = Auth::user();
@@ -831,7 +881,7 @@ class UploadController extends Controller
         ActivityLog::log(
             action: 'file_downloaded',
             description: sprintf('%s downloaded "%s" (%s) from folder %s',
-                $user->name,
+                $user ? $user->name : 'User',
                 $file->original_name,
                 ucfirst($file->file_type),
                 $file->upload_date
@@ -840,27 +890,49 @@ class UploadController extends Controller
             entityId: $file->id
         );
 
-        // Check if file is stored locally
-        if (str_starts_with($file->drive_file_id, 'local_') || str_contains($file->drive_url, '/uploads/drive/')) {
-            $parsedPath = parse_url($file->drive_url, PHP_URL_PATH);
-            $localPath = public_path(ltrim($parsedPath, '/'));
-            if (file_exists($localPath)) {
-                return response()->download($localPath, $file->original_name);
-            }
+        // 1. If file exists on local filesystem
+        $localPath = $this->resolveLocalFilePath($file);
+        if ($localPath) {
+            return response()->download($localPath, $file->original_name);
         }
 
-        if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
+        // 2. If stored in Google Drive, proxy direct download from Google Drive API
+        if ($file->is_google_drive && \App\Http\Controllers\GoogleAuthController::isConnected()) {
             try {
                 $driveService = new DriveService();
-                $downloadUrl = $driveService->getDirectDownloadUrl($file->drive_file_id);
-                return redirect()->away($downloadUrl);
-            } catch (\Exception $e) {
-                Log::warning('Drive download fallback: ' . $e->getMessage());
+                $driveResponse = $driveService->getFileStream($file->drive_file_id);
+                $body = $driveResponse->getBody();
+                $mime = $file->mime_type ?: ($driveResponse->getHeaderLine('Content-Type') ?: 'application/octet-stream');
+                $size = $file->file_size ?: ($driveResponse->getHeaderLine('Content-Length') ?: null);
+
+                $headers = [
+                    'Content-Type'        => $mime,
+                    'Content-Disposition' => 'attachment; filename="' . addslashes($file->original_name) . '"',
+                ];
+                if ($size) {
+                    $headers['Content-Length'] = $size;
+                }
+
+                return response()->streamDownload(function () use ($body) {
+                    while (!$body->eof()) {
+                        echo $body->read(1024 * 64);
+                        flush();
+                    }
+                }, $file->original_name, $headers);
+            } catch (\Throwable $e) {
+                Log::warning('Drive API direct stream download failed: ' . $e->getMessage());
             }
         }
 
-        // Direct Google Drive download link
-        return redirect()->away("https://drive.google.com/uc?export=download&id={$file->drive_file_id}");
+        // 3. Fallback: Open file in Google Drive
+        if (!empty($file->drive_url)) {
+            return redirect()->away($file->drive_url);
+        }
+        if (!empty($file->drive_file_id)) {
+            return redirect()->away("https://drive.google.com/file/d/{$file->drive_file_id}/view");
+        }
+
+        abort(404, 'File not found for download.');
     }
 
     /**
@@ -869,37 +941,55 @@ class UploadController extends Controller
     public function stream(DriveFile $file)
     {
         // 1. If stored locally
-        if (str_starts_with($file->drive_file_id, 'local_') || str_contains($file->drive_url, '/uploads/drive/')) {
-            $parsedPath = parse_url($file->drive_url, PHP_URL_PATH);
-            $relPath = ltrim($parsedPath, '/');
-            $localPath = public_path($relPath);
+        $localPath = $this->resolveLocalFilePath($file);
+        if ($localPath) {
+            $mime = $file->mime_type ?: mime_content_type($localPath) ?: 'application/octet-stream';
 
-            // Resilient lookup: check if path exists directly or inside public/uploads/drive
-            if (!file_exists($localPath)) {
-                $base = basename($relPath);
-                $matches = glob(public_path('uploads/drive/*/' . $base));
-                if (!empty($matches)) {
-                    $localPath = $matches[0];
+            // BinaryFileResponse handles HTTP 206 Range requests automatically
+            $response = new \Symfony\Component\HttpFoundation\BinaryFileResponse($localPath);
+            $response->setAutoEtag();
+            $response->headers->set('Content-Type', $mime);
+            $response->headers->set('Accept-Ranges', 'bytes');
+            $response->headers->set('Cache-Control', 'public, max-age=86400');
+            \Symfony\Component\HttpFoundation\BinaryFileResponse::trustXSendfileTypeHeader();
+            return $response;
+        }
+
+        // 2. If stored in Google Drive, proxy stream from Google Drive API
+        if ($file->is_google_drive && \App\Http\Controllers\GoogleAuthController::isConnected()) {
+            try {
+                $driveService = new DriveService();
+                $driveResponse = $driveService->getFileStream($file->drive_file_id);
+                $body = $driveResponse->getBody();
+                $mime = $file->mime_type ?: ($driveResponse->getHeaderLine('Content-Type') ?: 'application/octet-stream');
+                $size = $file->file_size ?: ($driveResponse->getHeaderLine('Content-Length') ?: null);
+
+                $headers = [
+                    'Content-Type'  => $mime,
+                    'Accept-Ranges' => 'bytes',
+                    'Cache-Control' => 'public, max-age=86400',
+                ];
+                if ($size) {
+                    $headers['Content-Length'] = $size;
                 }
-            }
 
-            if (file_exists($localPath)) {
-                $mime = $file->mime_type ?: mime_content_type($localPath) ?: 'application/octet-stream';
-
-                // BinaryFileResponse handles HTTP 206 Range requests automatically
-                $response = new \Symfony\Component\HttpFoundation\BinaryFileResponse($localPath);
-                $response->setAutoEtag();
-                $response->headers->set('Content-Type', $mime);
-                $response->headers->set('Accept-Ranges', 'bytes');
-                $response->headers->set('Cache-Control', 'public, max-age=86400');
-                \Symfony\Component\HttpFoundation\BinaryFileResponse::trustXSendfileTypeHeader();
-                return $response;
+                return response()->stream(function () use ($body) {
+                    while (!$body->eof()) {
+                        echo $body->read(1024 * 64);
+                        flush();
+                    }
+                }, 200, $headers);
+            } catch (\Throwable $e) {
+                Log::warning('Drive stream proxy failed: ' . $e->getMessage());
             }
         }
 
-        // 2. If stored in Google Drive
-        if (!empty($file->drive_file_id) && !str_starts_with($file->drive_file_id, 'local_')) {
-            return redirect()->away("https://drive.google.com/uc?export=download&id={$file->drive_file_id}");
+        // 3. Fallback: If image, redirect to thumbnail; if video or doc, redirect to Google Drive viewer
+        if (!empty($file->drive_file_id)) {
+            if ($file->is_image) {
+                return redirect()->away("https://drive.google.com/thumbnail?id={$file->drive_file_id}&sz=w1000");
+            }
+            return redirect()->away("https://drive.google.com/file/d/{$file->drive_file_id}/view");
         }
 
         abort(404, 'File content not found.');
