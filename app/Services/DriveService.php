@@ -20,7 +20,9 @@ class DriveService
         $client = new Client();
         $caPath = base_path('cacert.pem');
         $guzzle = new \GuzzleHttp\Client([
-            'verify' => file_exists($caPath) ? $caPath : true,
+            'verify'          => file_exists($caPath) ? $caPath : true,
+            'timeout'         => 30,
+            'connect_timeout' => 10,
         ]);
         $client->setHttpClient($guzzle);
         $client->addScope(Drive::DRIVE);
@@ -146,43 +148,7 @@ class DriveService
      */
     public function uploadFile(UploadedFile $file, int $userId, ?string $targetDriveFolderId = null): array
     {
-        $today = now()->format('Y-m-d');
-        $fileType = $this->detectFileType($file);
-        $fileSize = $file->getSize() ?: 0;
-        $mimeType = $file->getMimeType() ?: 'application/octet-stream';
-
-        if (!empty($targetDriveFolderId)) {
-            $destinationFolderId = $targetDriveFolderId;
-        } else {
-            // Create single date folder (no nested subfolders)
-            $destinationFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
-        }
-
-        $fileMetadata = new GoogleDriveFile([
-            'name'    => $file->getClientOriginalName(),
-            'parents' => !empty($destinationFolderId) ? [$destinationFolderId] : [],
-        ]);
-
-        $result = $this->executeUpload($fileMetadata, $file->getRealPath(), $mimeType);
-
-        try {
-            $permission = new \Google\Service\Drive\Permission([
-                'type' => 'anyone',
-                'role' => 'reader',
-            ]);
-            $this->drive->permissions->create($result->getId(), $permission);
-        } catch (\Exception $e) {
-            Log::info('Drive file share permission notice: ' . $e->getMessage());
-        }
-
-        return [
-            'drive_file_id' => $result->getId(),
-            'drive_url'     => $result->getWebViewLink() ?? "https://drive.google.com/file/d/{$result->getId()}/view",
-            'file_type'     => $fileType,
-            'file_size'     => $fileSize,
-            'mime_type'     => $mimeType,
-            'upload_date'   => $today,
-        ];
+        return $this->uploadFromPath($file->getRealPath(), $file->getClientOriginalName(), $userId, $targetDriveFolderId);
     }
 
     /**
@@ -290,10 +256,10 @@ class DriveService
     {
         $fileSize = file_exists($filePath) ? (int) filesize($filePath) : 0;
 
-        // If file is large (> 5MB), upload in resumable 16MB chunks (multiple of 256KB)
+        // If file is large (> 5MB), upload in resumable chunks (multiple of 256KB)
         if ($fileSize > 5 * 1024 * 1024 && isset($this->client)) {
             try {
-                $chunkSizeBytes = 16 * 1024 * 1024; // 16MB per chunk for high network throughput
+                $chunkSizeBytes = 4 * 1024 * 1024; // 4MB per chunk
                 $this->client->setDefer(true);
                 $request = $this->drive->files->create($fileMetadata, [
                     'fields'            => 'id, webViewLink, webContentLink',
@@ -321,15 +287,18 @@ class DriveService
                 if ($status && is_object($status) && method_exists($status, 'getId')) {
                     return $status;
                 }
+
+                throw new \RuntimeException('Resumable upload did not return a valid Google Drive file object');
             } catch (\Throwable $e) {
                 if (isset($this->client)) {
                     $this->client->setDefer(false);
                 }
-                Log::warning('Resumable chunked upload failed, falling back to standard upload: ' . $e->getMessage());
+                Log::warning('Resumable chunked upload failed: ' . $e->getMessage());
+                throw $e;
             }
         }
 
-        // Standard multipart upload
+        // Standard multipart upload for files <= 5MB
         return $this->drive->files->create($fileMetadata, [
             'data'              => file_get_contents($filePath),
             'mimeType'          => $mimeType,

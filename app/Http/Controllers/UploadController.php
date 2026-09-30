@@ -245,91 +245,68 @@ class UploadController extends Controller
                 $ext = strtolower($uploadedFile->getClientOriginalExtension());
                 $fileType = 'document';
                 if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'])) $fileType = 'photo';
-                if (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm', 'flv'])) $fileType = 'video';
+                if (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'wmv'])) $fileType = 'video';
             }
 
-            $driveFile = null;
+            // 1. ALWAYS persist to local storage pipeline immediately so no upload is ever lost or timed out
+            $destination = public_path('uploads/drive/' . $today);
+            if (!file_exists($destination)) {
+                mkdir($destination, 0755, true);
+            }
+            $safeFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+            $localFullPath = $destination . '/' . $safeFileName;
+            $uploadedFile->move($destination, $safeFileName);
+            $localRelativePath = 'uploads/drive/' . $today . '/' . $safeFileName;
 
-            // 1. Google Drive Cloud Upload
+            $driveFileId = 'local_' . uniqid();
+            $driveUrl = url($localRelativePath);
+            $isCloudSynced = false;
+
+            // 2. Google Drive Cloud Sync
             if (\App\Http\Controllers\GoogleAuthController::isConnected()) {
                 try {
                     if (!$driveService) {
                         $driveService = new DriveService();
                     }
-                    $result = $driveService->uploadFile($uploadedFile, Auth::id(), $targetDriveFolderId);
-
-                    $driveFile = DriveFile::create([
-                        'uploaded_by'      => Auth::id(),
-                        'folder_id'        => $folderId,
-                        'task_id'          => $taskId,
-                        'content_shoot_id' => $contentShootId,
-                        'account_handle'   => $accountHandle,
-                        'platform'         => $platform,
-                        'original_name'    => $originalName,
-                        'drive_file_id'    => $result['drive_file_id'],
-                        'drive_url'        => $result['drive_url'],
-                        'file_type'        => $result['file_type'],
-                        'file_size'        => $fileSize,
-                        'mime_type'        => $mimeType,
-                        'upload_date'      => $result['upload_date'],
-                    ]);
-
-                    ActivityLog::log(
-                        action: 'file_uploaded',
-                        description: sprintf('%s uploaded "%s" (%s) to Google Drive%s%s',
-                            Auth::user()->name,
-                            $driveFile->original_name,
-                            ucfirst($driveFile->file_type),
-                            $accountHandle ? " for {$accountHandle}" : '',
-                            $folderId ? ' in folder' : ' in cloud'
-                        ),
-                        entityType: 'DriveFile',
-                        entityId: $driveFile->id
-                    );
-                } catch (\Exception $e) {
-                    Log::error('Drive upload failed, falling back to local storage pipeline: ' . $e->getMessage());
+                    $result = $driveService->uploadFromPath($localFullPath, $originalName, Auth::id(), $targetDriveFolderId);
+                    if (!empty($result['drive_file_id'])) {
+                        $driveFileId = $result['drive_file_id'];
+                        $driveUrl = $result['drive_url'];
+                        $isCloudSynced = true;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Google Drive sync notice (file safely preserved in local storage): ' . $e->getMessage());
                 }
             }
 
-            // 2. Reliable Local Storage Pipeline fallback
-            if (!$driveFile) {
-                $destination = public_path('uploads/drive/' . $today);
-                if (!file_exists($destination)) {
-                    mkdir($destination, 0755, true);
-                }
+            $driveFile = DriveFile::create([
+                'uploaded_by'      => Auth::id(),
+                'folder_id'        => $folderId,
+                'task_id'          => $taskId,
+                'content_shoot_id' => $contentShootId,
+                'account_handle'   => $accountHandle,
+                'platform'         => $platform,
+                'original_name'    => $originalName,
+                'drive_file_id'    => $driveFileId,
+                'drive_url'        => $driveUrl,
+                'file_type'        => $fileType,
+                'file_size'        => $fileSize,
+                'mime_type'        => $mimeType,
+                'upload_date'      => $today,
+            ]);
 
-                $safeFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
-                $uploadedFile->move($destination, $safeFileName);
-                $localRelativePath = 'uploads/drive/' . $today . '/' . $safeFileName;
-
-                $driveFile = DriveFile::create([
-                    'uploaded_by'      => Auth::id(),
-                    'folder_id'        => $folderId,
-                    'task_id'          => $taskId,
-                    'content_shoot_id' => $contentShootId,
-                    'account_handle'   => $accountHandle,
-                    'platform'         => $platform,
-                    'original_name'    => $originalName,
-                    'drive_file_id'    => 'local_' . uniqid(),
-                    'drive_url'        => url($localRelativePath),
-                    'file_type'        => $fileType,
-                    'file_size'        => $fileSize,
-                    'mime_type'        => $mimeType,
-                    'upload_date'      => $today,
-                ]);
-
-                ActivityLog::log(
-                    action: 'file_uploaded',
-                    description: sprintf('%s uploaded "%s" (%s) to local storage pipeline%s',
-                        Auth::user()->name,
-                        $driveFile->original_name,
-                        ucfirst($driveFile->file_type),
-                        $accountHandle ? " for {$accountHandle}" : ''
-                    ),
-                    entityType: 'DriveFile',
-                    entityId: $driveFile->id
-                );
-            }
+            ActivityLog::log(
+                action: 'file_uploaded',
+                description: sprintf('%s uploaded "%s" (%s) to %s%s',
+                    Auth::user()->name,
+                    $driveFile->original_name,
+                    ucfirst($driveFile->file_type),
+                    $isCloudSynced ? 'Google Drive' : 'storage pipeline',
+                    $accountHandle ? " for {$accountHandle}" : ''
+                ),
+                entityType: 'DriveFile',
+                entityId: $driveFile->id
+            );
 
             $uploadedRecords[] = $driveFile;
         }

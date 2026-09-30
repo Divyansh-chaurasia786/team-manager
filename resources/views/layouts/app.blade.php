@@ -15,6 +15,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+    <!-- Suppress Tailwind CDN production warning in console -->
+    <script>
+        (function() {
+            var _w = console.warn;
+            console.warn = function() {
+                if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].indexOf('cdn.tailwindcss.com should not be used in production') !== -1) return;
+                _w.apply(console, arguments);
+            };
+        })();
+    </script>
     <!-- Tailwind CSS CDN (Same as HRMS Portal) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
