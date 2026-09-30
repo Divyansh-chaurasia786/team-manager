@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class TLDashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $tl = Auth::user();
 
@@ -103,11 +103,75 @@ class TLDashboardController extends Controller
             ->whereIn('user_id', $memberIds)
             ->latest()->take(6)->get();
 
+        // Day Tasks & History Date Selection
+        $selectedDate = $request->query('date', now()->format('Y-m-d'));
+        if (!\Carbon\Carbon::hasFormat($selectedDate, 'Y-m-d')) {
+            $selectedDate = now()->format('Y-m-d');
+        }
+
+        // Filter tasks for the selected date (tasks assigned on that date)
+        $dayTasks = $tasks->filter(function ($t) use ($selectedDate) {
+            return $t->created_at && $t->created_at->format('Y-m-d') === $selectedDate;
+        })->values();
+
+        $dayStats = [
+            'total'       => $dayTasks->count(),
+            'completed'   => $dayTasks->where('status', 'completed')->count(),
+            'submitted'   => $dayTasks->where('status', 'submitted')->count(),
+            'in-progress' => $dayTasks->where('status', 'in-progress')->count(),
+            'pending'     => $dayTasks->where('status', 'pending')->count(),
+            'overdue'     => $dayTasks->filter(fn($t) => $t->isOverdue())->count(),
+        ];
+
+        // Past active dates where tasks exist
+        $availableDates = $tasks->map(fn($t) => $t->created_at ? $t->created_at->format('Y-m-d') : null)
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        if (!$availableDates->contains(now()->format('Y-m-d'))) {
+            $availableDates->prepend(now()->format('Y-m-d'));
+        }
+
+        // Return JSON if AJAX requested date update
+        if (($request->ajax() || $request->wantsJson()) && $request->filled('date')) {
+            return response()->json([
+                'success'       => true,
+                'selectedDate'  => $selectedDate,
+                'formattedDate' => \Carbon\Carbon::parse($selectedDate)->format('d M Y'),
+                'fullDate'      => \Carbon\Carbon::parse($selectedDate)->format('l, d F Y'),
+                'isToday'       => $selectedDate === now()->format('Y-m-d'),
+                'dayStats'      => $dayStats,
+                'tasks'         => $dayTasks->map(function ($task) {
+                    return [
+                        'id'                 => $task->id,
+                        'title'              => $task->title,
+                        'description'        => $task->description,
+                        'status'             => $task->status,
+                        'status_badge'       => $task->status_badge,
+                        'is_overdue'         => $task->isOverdue(),
+                        'assigned_to'        => $task->assignedTo?->name ?? 'Unassigned',
+                        'assignee_avatar'    => strtoupper(substr($task->assignedTo?->name ?? 'U', 0, 1)),
+                        'deadline'           => $task->deadline ? $task->deadline->format('d M, h:i A') : 'None',
+                        'submitted_at'       => $task->submitted_at ? $task->submitted_at->format('d M, h:i A') : null,
+                        'has_file'           => !empty($task->submission_file),
+                        'submission_file'    => $task->submission_file,
+                        'submission_link'    => $task->submission_link,
+                        'submission_remarks' => $task->submission_remarks,
+                        'updates_count'      => $task->updates->count(),
+                        'latest_update'      => $task->updates->last()?->message,
+                    ];
+                }),
+            ]);
+        }
+
         return view('tl.dashboard', compact(
             'members', 'tasks', 'statusCounts', 'taskPerMember',
             'completionTrend', 'driveStats', 'driveFiles', 'recentActivities',
             'upcomingTaskReminders', 'upcomingShootReminders',
-            'overdueTasks', 'overdueCount'
+            'overdueTasks', 'overdueCount',
+            'selectedDate', 'dayTasks', 'dayStats', 'availableDates'
         ));
     }
 }

@@ -603,28 +603,85 @@
 
     <!-- 👥 TEAM LIVE ROSTER & RECENT ACTIVITIES -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left 2 Cols: Live Tasks Table -->
+        <!-- Left 2 Cols: Day-wise Tasks Details & Past Days Navigator -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <!-- Header with Title, Date Controls & Manage Link -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <i data-lucide="activity" class="w-4 h-4"></i>
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-900 text-sm">Recent Task Stream</h3>
-                        <p class="text-[11px] text-slate-400">Current work in progress and submissions</p>
+                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-1.5 flex-wrap">
+                            <span>Tasks for</span>
+                            <span id="currentDateDisplay" class="text-indigo-600 font-extrabold">
+                                {{ $selectedDate === now()->format('Y-m-d') ? 'Today (' . now()->format('d M') . ')' : \Carbon\Carbon::parse($selectedDate)->format('d M Y') }}
+                            </span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">
+                            <span id="taskCountBadge" class="font-bold text-slate-700">{{ $dayTasks->count() }} task{{ $dayTasks->count() === 1 ? '' : 's' }}</span>
+                            assigned on <span id="currentFullDateDisplay">{{ \Carbon\Carbon::parse($selectedDate)->format('l, d F Y') }}</span>
+                        </p>
                     </div>
                 </div>
-                <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                    View All Tasks <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </a>
+
+                <!-- Date Navigation Controls -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" onclick="navigatePrevDay()" class="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer" title="Previous Day">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+
+                    <input type="date" id="tlTaskDatePicker" value="{{ $selectedDate }}" max="{{ now()->format('Y-m-d') }}" onchange="navigateTlDashboardDate(this.value)" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 font-bold text-slate-700 hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer" title="Choose specific day">
+
+                    <button type="button" onclick="navigateNextDay()" class="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer" title="Next Day">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+
+                    <a href="{{ route('tasks.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 ml-1 flex items-center gap-1">
+                        All <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Day Switcher Pills (Past Days & Today) -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <span class="text-[10px] uppercase font-bold text-slate-400 shrink-0">Switch Day:</span>
+                @foreach($availableDates->take(8) as $d)
+                    @php
+                        $isCurrent = $d === $selectedDate;
+                        $dCarbon = \Carbon\Carbon::parse($d);
+                        $label = $d === now()->format('Y-m-d') ? 'Today' : ($d === now()->subDay()->format('Y-m-d') ? 'Yesterday' : $dCarbon->format('d M'));
+                    @endphp
+                    <button type="button" data-date="{{ $d }}" onclick="navigateTlDashboardDate('{{ $d }}')" class="day-nav-pill px-2.5 py-1 rounded-lg text-[11px] font-bold transition shrink-0 cursor-pointer {{ $isCurrent ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-600' }}">
+                        {{ $label }}
+                    </button>
+                @endforeach
+            </div>
+
+            <!-- Day Metric Strip -->
+            <div class="flex items-center gap-2 flex-wrap text-xs pt-1">
+                <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-[11px]" id="statTotalBadge">
+                    Day Total: <strong id="statTotalVal">{{ $dayStats['total'] }}</strong>
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]" id="statCompletedBadge">
+                    ✓ Done: <strong id="statCompletedVal">{{ $dayStats['completed'] }}</strong>
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-bold text-[11px]" id="statActiveBadge">
+                    ⏱️ Active: <strong id="statActiveVal">{{ $dayStats['in-progress'] }}</strong>
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 font-bold text-[11px]" id="statSubmittedBadge">
+                    📥 Review: <strong id="statSubmittedVal">{{ $dayStats['submitted'] }}</strong>
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 font-bold text-[11px]" id="statPendingBadge">
+                    ⏳ Pending: <strong id="statPendingVal">{{ $dayStats['pending'] }}</strong>
+                </span>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead>
                         <tr class="text-slate-400 uppercase font-extrabold tracking-wider border-b border-slate-100 pb-2">
-                            <th class="py-2.5">Task Name</th>
+                            <th class="py-2.5">Task Name & Details</th>
                             <th class="py-2.5">Assignee</th>
                             <th class="py-2.5">Deadline</th>
                             <th class="py-2.5">Status</th>
@@ -632,21 +689,45 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100" id="tlRecentTasksTbody">
-                        @forelse($tasks->take(6) as $task)
+                        @forelse($dayTasks as $task)
                             <tr class="hover:bg-slate-50/80 transition" id="tl-task-row-{{ $task->id }}">
                                 <td class="py-3">
                                     <div class="font-bold text-slate-900">{{ $task->title }}</div>
-                                    <div class="text-[11px] text-slate-400 truncate max-w-xs">{{ $task->description }}</div>
+                                    <div class="text-[11px] text-slate-400 truncate max-w-xs">{{ $task->description ?: 'No description provided' }}</div>
+                                    @if(!empty($task->submission_file) || !empty($task->submission_link) || $task->updates->count() > 0)
+                                        <div class="mt-1 flex items-center gap-1 flex-wrap">
+                                            @if(!empty($task->submission_file))
+                                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                    📎 Deliverable Attached
+                                                </span>
+                                            @endif
+                                            @if(!empty($task->submission_link))
+                                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                                                    🔗 Link
+                                                </span>
+                                            @endif
+                                            @if($task->updates->count() > 0)
+                                                <span class="text-[10px] text-slate-500 italic truncate max-w-[140px]">
+                                                    "{{ $task->updates->last()->message }}"
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="py-3">
-                                    <span class="font-semibold text-slate-700">{{ $task->assignedTo?->name ?? 'Unassigned' }}</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
+                                            {{ strtoupper(substr($task->assignedTo?->name ?? 'U', 0, 1)) }}
+                                        </div>
+                                        <span class="font-semibold text-slate-700">{{ $task->assignedTo?->name ?? 'Unassigned' }}</span>
+                                    </div>
                                 </td>
                                 <td class="py-3 font-medium {{ $task->isOverdue() ? 'text-rose-600 font-bold' : 'text-slate-500' }}">
                                     <div class="flex items-center gap-1">
                                         @if($task->isOverdue())
                                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
                                         @endif
-                                        <span>{{ $task->deadline->format('d M, h:i A') }}</span>
+                                        <span>{{ $task->deadline ? $task->deadline->format('d M, h:i A') : 'None' }}</span>
                                     </div>
                                 </td>
                                 <td class="py-3">
@@ -678,14 +759,20 @@
                                     @endif
                                 </td>
                                 <td class="py-3 text-right">
-                                    <a href="{{ route('tasks.index') }}" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg inline-block transition">
+                                    <a href="{{ route('tasks.index') }}" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg inline-block transition" title="View details in tasks page">
                                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-6 text-center text-slate-400">No tasks created yet.</td>
+                                <td colspan="5" class="py-10 text-center text-slate-400">
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                                        <i data-lucide="calendar-x" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="font-bold text-slate-700 text-xs">No tasks assigned on {{ \Carbon\Carbon::parse($selectedDate)->format('d M Y') }}</div>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Use the date switcher above to view other days or assign new tasks.</p>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -808,6 +895,206 @@
 
 @push('scripts')
 <script>
+// 📅 Date Navigation Functions for TL Dashboard
+window.navigateTlDashboardDate = async function(dateStr) {
+    if (!dateStr) return;
+    const picker = document.getElementById('tlTaskDatePicker');
+    const tbody = document.getElementById('tlRecentTasksTbody');
+    if (picker) picker.value = dateStr;
+
+    if (tbody) {
+        tbody.style.opacity = '0.5';
+    }
+
+    try {
+        const response = await fetch(`/tl/dashboard?date=${encodeURIComponent(dateStr)}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            window.location.href = `/tl/dashboard?date=${encodeURIComponent(dateStr)}`;
+            return;
+        }
+
+        const data = await response.json();
+        if (!data.success) return;
+
+        // 1. Update Date Header & Badges
+        const curDateDisplay = document.getElementById('currentDateDisplay');
+        if (curDateDisplay) {
+            curDateDisplay.textContent = data.isToday ? `Today (${data.formattedDate.substring(0, 6)})` : data.formattedDate;
+        }
+
+        const curFullDateDisplay = document.getElementById('currentFullDateDisplay');
+        if (curFullDateDisplay) {
+            curFullDateDisplay.textContent = data.fullDate;
+        }
+
+        const taskCountBadge = document.getElementById('taskCountBadge');
+        if (taskCountBadge) {
+            taskCountBadge.textContent = `${data.dayStats.total} task${data.dayStats.total === 1 ? '' : 's'}`;
+        }
+
+        // 2. Update Metric Badges
+        const statTotalVal = document.getElementById('statTotalVal');
+        if (statTotalVal) statTotalVal.textContent = data.dayStats.total;
+
+        const statCompletedVal = document.getElementById('statCompletedVal');
+        if (statCompletedVal) statCompletedVal.textContent = data.dayStats.completed;
+
+        const statActiveVal = document.getElementById('statActiveVal');
+        if (statActiveVal) statActiveVal.textContent = data.dayStats['in-progress'];
+
+        const statSubmittedVal = document.getElementById('statSubmittedVal');
+        if (statSubmittedVal) statSubmittedVal.textContent = data.dayStats.submitted;
+
+        const statPendingVal = document.getElementById('statPendingVal');
+        if (statPendingVal) statPendingVal.textContent = data.dayStats.pending;
+
+        // 3. Update Quick Pill Buttons Active State
+        document.querySelectorAll('.day-nav-pill').forEach(btn => {
+            const pillDate = btn.getAttribute('data-date');
+            if (pillDate === data.selectedDate) {
+                btn.className = 'day-nav-pill px-2.5 py-1 rounded-lg text-[11px] font-bold transition shrink-0 cursor-pointer bg-indigo-600 text-white shadow-2xs';
+            } else {
+                btn.className = 'day-nav-pill px-2.5 py-1 rounded-lg text-[11px] font-bold transition shrink-0 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-600';
+            }
+        });
+
+        // 4. Render Tasks in Table
+        if (tbody) {
+            if (!data.tasks || data.tasks.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-10 text-center text-slate-400">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="calendar-x" class="w-6 h-6"></i>
+                            </div>
+                            <div class="font-bold text-slate-700 text-xs">No tasks assigned on ${data.formattedDate}</div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Use the date switcher above to view other days or assign new tasks.</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = data.tasks.map(task => {
+                    let deliverableHtml = '';
+                    if (task.has_file || task.submission_link || task.updates_count > 0) {
+                        deliverableHtml = `
+                            <div class="mt-1 flex items-center gap-1 flex-wrap">
+                                ${task.has_file ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">📎 Deliverable Attached</span>` : ''}
+                                ${task.submission_link ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">🔗 Link</span>` : ''}
+                                ${task.latest_update ? `<span class="text-[10px] text-slate-500 italic truncate max-w-[140px]">"${task.latest_update.replace(/"/g, '&quot;')}"</span>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    let statusBadgeHtml = '';
+                    if (task.is_overdue) {
+                        statusBadgeHtml = `
+                            <div class="flex flex-col items-start gap-1">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1 animate-pulse">
+                                    <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-600"></i> Overdue
+                                </span>
+                            </div>
+                        `;
+                    } else if (task.status === 'completed') {
+                        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Done</span>`;
+                    } else if (task.status === 'submitted') {
+                        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">Review</span>`;
+                    } else if (task.status === 'in-progress') {
+                        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">Active</span>`;
+                    } else {
+                        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600">Pending</span>`;
+                    }
+
+                    const overdueClass = task.is_overdue ? 'text-rose-600 font-bold' : 'text-slate-500';
+
+                    return `
+                        <tr class="hover:bg-slate-50/80 transition" id="tl-task-row-${task.id}">
+                            <td class="py-3">
+                                <div class="font-bold text-slate-900">${task.title}</div>
+                                <div class="text-[11px] text-slate-400 truncate max-w-xs">${task.description || 'No description provided'}</div>
+                                ${deliverableHtml}
+                            </td>
+                            <td class="py-3">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
+                                        ${task.assignee_avatar}
+                                    </div>
+                                    <span class="font-semibold text-slate-700">${task.assigned_to}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 font-medium ${overdueClass}">
+                                <div class="flex items-center gap-1">
+                                    ${task.is_overdue ? `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>` : ''}
+                                    <span>${task.deadline}</span>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                ${statusBadgeHtml}
+                            </td>
+                            <td class="py-3 text-right">
+                                <a href="/tasks" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg inline-block transition" title="View details in tasks page">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        // Update URL state without page reload
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('date', data.selectedDate);
+        window.history.pushState({ date: data.selectedDate }, '', newUrl.toString());
+
+    } catch (err) {
+        console.error('Error switching date:', err);
+    } finally {
+        if (tbody) tbody.style.opacity = '1';
+    }
+};
+
+window.navigatePrevDay = function() {
+    const picker = document.getElementById('tlTaskDatePicker');
+    const curVal = (picker && picker.value) ? picker.value : new Date().toISOString().split('T')[0];
+    const parts = curVal.split('-');
+    const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    dt.setDate(dt.getDate() - 1);
+    const yr = dt.getFullYear();
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const dy = String(dt.getDate()).padStart(2, '0');
+    window.navigateTlDashboardDate(`${yr}-${mo}-${dy}`);
+};
+
+window.navigateNextDay = function() {
+    const picker = document.getElementById('tlTaskDatePicker');
+    const curVal = (picker && picker.value) ? picker.value : new Date().toISOString().split('T')[0];
+    const parts = curVal.split('-');
+    const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    dt.setDate(dt.getDate() + 1);
+    const yr = dt.getFullYear();
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const dy = String(dt.getDate()).padStart(2, '0');
+    window.navigateTlDashboardDate(`${yr}-${mo}-${dy}`);
+};
+
+window.addEventListener('popstate', function() {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    if (dateParam) {
+        window.navigateTlDashboardDate(dateParam);
+    }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     // 1. 7-Day Completion Velocity Spline Chart
     const velocityEl = document.getElementById('tlVelocityChart');
