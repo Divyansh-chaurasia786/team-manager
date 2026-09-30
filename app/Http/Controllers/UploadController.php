@@ -452,6 +452,31 @@ class UploadController extends Controller
 
         $name = trim($request->name);
         $parentId = $request->filled('parent_id') ? (int) $request->parent_id : null;
+
+        // Prevent duplicate folder creation if request is submitted multiple times
+        $existingFolder = DriveFolder::where('name', $name)
+            ->where(function ($q) use ($parentId) {
+                if ($parentId) {
+                    $q->where('parent_id', $parentId);
+                } else {
+                    $q->whereNull('parent_id');
+                }
+            })
+            ->where('created_by', Auth::id())
+            ->where('created_at', '>=', now()->subSeconds(15))
+            ->first();
+
+        if ($existingFolder) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Folder '{$name}' created successfully!",
+                    'folder'  => $existingFolder->loadCount('files'),
+                ]);
+            }
+            return back()->with('success', "Folder '{$name}' created successfully!");
+        }
+
         $driveFolderId = null;
 
         if (\App\Http\Controllers\GoogleAuthController::isConnected()) {

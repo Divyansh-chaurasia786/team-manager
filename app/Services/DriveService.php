@@ -6,6 +6,7 @@ use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile as GoogleDriveFile;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class DriveService
@@ -129,37 +130,14 @@ class DriveService
     }
 
     /**
-     * Create a folder in Google Drive.
+     * Create a folder in Google Drive. Ensures only one folder with this name exists in the parent.
      */
     public function createDriveFolder(string $name, ?string $parentDriveId = null): string
     {
         $targetParent = !empty($parentDriveId) ? $parentDriveId : $this->rootFolderId;
 
-        $folderMetadata = new GoogleDriveFile([
-            'name'     => $name,
-            'mimeType' => 'application/vnd.google-apps.folder',
-            'parents'  => !empty($targetParent) ? [$targetParent] : [],
-        ]);
-
-        $folder = $this->drive->files->create($folderMetadata, [
-            'fields'            => 'id',
-            'supportsAllDrives' => true,
-        ]);
-        $folderId = $folder->getId();
-
-        try {
-            $permission = new \Google\Service\Drive\Permission([
-                'type' => 'anyone',
-                'role' => 'reader',
-            ]);
-            $this->drive->permissions->create($folderId, $permission, [
-                'supportsAllDrives' => true,
-            ]);
-        } catch (\Exception $e) {
-            Log::info('Drive folder share permission notice: ' . $e->getMessage());
-        }
-
-        return $folderId;
+        // Use getOrCreateFolder with caching to prevent duplicate folder creation
+        return $this->getOrCreateFolder($name, $targetParent);
     }
 
     /**
@@ -176,9 +154,8 @@ class DriveService
         if (!empty($targetDriveFolderId)) {
             $destinationFolderId = $targetDriveFolderId;
         } else {
-            $typeFolderName = ucfirst($fileType) . 's'; // Photos, Videos, Documents
-            $dateFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
-            $destinationFolderId = $this->getOrCreateFolder($typeFolderName, $dateFolderId);
+            // Create single date folder (no nested subfolders)
+            $destinationFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
         }
 
         $fileMetadata = new GoogleDriveFile([
@@ -221,9 +198,8 @@ class DriveService
         if (!empty($targetDriveFolderId)) {
             $destinationFolderId = $targetDriveFolderId;
         } else {
-            $typeFolderName = ucfirst($fileType) . 's';
-            $dateFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
-            $destinationFolderId = $this->getOrCreateFolder($typeFolderName, $dateFolderId);
+            // Create single date folder (no nested subfolders)
+            $destinationFolderId = $this->getOrCreateFolder($today, $this->rootFolderId);
         }
 
         $fileMetadata = new GoogleDriveFile([
@@ -392,34 +368,53 @@ class DriveService
 
     public function getOrCreateFolder(string $name, string $parentId): string
     {
-        $query = sprintf(
-            "name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false",
-            addslashes($name),
-            $parentId
-        );
+        $cacheKey = 'gdrive_folder_' . md5($parentId . '_' . $name);
 
-        $results = $this->drive->files->listFiles([
-            'q'                         => $query,
-            'fields'                    => 'files(id, name)',
-            'supportsAllDrives'         => true,
-            'includeItemsFromAllDrives' => true,
-        ]);
+        return Cache::remember($cacheKey, 86400, function () use ($name, $parentId) {
+            $query = sprintf(
+                "name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false",
+                addslashes($name),
+                $parentId
+            );
 
-        if (count($results->getFiles()) > 0) {
-            return $results->getFiles()[0]->getId();
-        }
+            $results = $this->drive->files->listFiles([
+                'q'                         => $query,
+                'fields'                    => 'files(id, name)',
+                'supportsAllDrives'         => true,
+                'includeItemsFromAllDrives' => true,
+            ]);
 
-        $folderMetadata = new GoogleDriveFile([
-            'name'     => $name,
-            'mimeType' => 'application/vnd.google-apps.folder',
-            'parents'  => [$parentId],
-        ]);
+            if (count($results->getFiles()) > 0) {
+                return $results->getFiles()[0]->getId();
+            }
 
-        $folder = $this->drive->files->create($folderMetadata, [
-            'fields'            => 'id',
-            'supportsAllDrives' => true,
-        ]);
-        return $folder->getId();
+            $folderMetadata = new GoogleDriveFile([
+                'name'     => $name,
+                'mimeType' => 'application/vnd.google-apps.folder',
+                'parents'  => [$parentId],
+            ]);
+
+            $folder = $this->drive->files->create($folderMetadata, [
+                'fields'            => 'id',
+                'supportsAllDrives' => true,
+            ]);
+
+            $folderId = $folder->getId();
+
+            try {
+                $permission = new \Google\Service\Drive\Permission([
+                    'type' => 'anyone',
+                    'role' => 'reader',
+                ]);
+                $this->drive->permissions->create($folderId, $permission, [
+                    'supportsAllDrives' => true,
+                ]);
+            } catch (\Exception $e) {
+                Log::info('Drive folder share permission notice: ' . $e->getMessage());
+            }
+
+            return $folderId;
+        });
     }
 
     public function detectTypeFromName(string $filename, ?string $path = null): string

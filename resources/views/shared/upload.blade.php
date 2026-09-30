@@ -1027,9 +1027,17 @@
                     </button>
                     <button 
                         type="submit" 
-                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                        :disabled="isCreatingFolder"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
                     >
-                        Create Folder
+                        <span x-show="!isCreatingFolder">Create Folder</span>
+                        <span x-show="isCreatingFolder" class="flex items-center gap-1.5" x-cloak>
+                            <svg class="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Creating...</span>
+                        </span>
                     </button>
                 </div>
             </form>
@@ -1432,6 +1440,7 @@ function driveApp() {
         isDraggingOver: false,
         showNewMenu: false,
         showNewFolderModal: false,
+        isCreatingFolder: false,
         newFolderName: '',
         showNewDocModal: false,
         newDocName: '',
@@ -1966,7 +1975,8 @@ function driveApp() {
         },
 
         submitNewFolder() {
-            if (!this.newFolderName.trim()) return;
+            if (!this.newFolderName.trim() || this.isCreatingFolder) return;
+            this.isCreatingFolder = true;
 
             fetch('{{ route('drive.folders.store') }}', {
                 method: 'POST',
@@ -1983,7 +1993,10 @@ function driveApp() {
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.folder) {
-                    this.folders.push(data.folder);
+                    const exists = this.folders.some(f => f.id === data.folder.id);
+                    if (!exists) {
+                        this.folders.push(data.folder);
+                    }
                     this.showToast(data.message || 'Folder created successfully!');
                     this.showNewFolderModal = false;
                     this.newFolderName = '';
@@ -1991,7 +2004,10 @@ function driveApp() {
                     alert(data.message || 'Could not create folder');
                 }
             })
-            .catch(() => alert('Network error creating folder'));
+            .catch(() => alert('Network error creating folder'))
+            .finally(() => {
+                this.isCreatingFolder = false;
+            });
         },
 
         submitNewDoc() {

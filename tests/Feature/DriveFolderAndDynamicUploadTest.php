@@ -47,6 +47,25 @@ class DriveFolderAndDynamicUploadTest extends TestCase
         ]);
     }
 
+    public function test_creating_folder_twice_does_not_create_duplicate_folders(): void
+    {
+        $response1 = $this->actingAs($this->tl)->postJson(route('drive.folders.store'), [
+            'name' => 'Design Assets',
+        ]);
+        $response1->assertStatus(200);
+        $response1->assertJson(['success' => true]);
+
+        // Second duplicate submission
+        $response2 = $this->actingAs($this->tl)->postJson(route('drive.folders.store'), [
+            'name' => 'Design Assets',
+        ]);
+        $response2->assertStatus(200);
+        $response2->assertJson(['success' => true]);
+
+        // Exactly ONE folder should exist
+        $this->assertEquals(1, DriveFolder::where('name', 'Design Assets')->where('created_by', $this->tl->id)->count());
+    }
+
     public function test_can_create_document_file_directly(): void
     {
         $folder = DriveFolder::create([
@@ -73,7 +92,7 @@ class DriveFolderAndDynamicUploadTest extends TestCase
 
     public function test_ajax_file_upload_returns_json(): void
     {
-        $file = UploadedFile::fake()->image('test_preview.jpg');
+        $file = UploadedFile::fake()->create('test_preview.jpg', 100, 'image/jpeg');
 
         $response = $this->actingAs($this->tl)->post(route('upload.store'), [
             'file' => $file,

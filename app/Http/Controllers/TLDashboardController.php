@@ -30,6 +30,7 @@ class TLDashboardController extends Controller
                 $q->where('assigned_by', $tl->id)
                   ->orWhereIn('assigned_to', $memberIds);
             })
+            ->whereNotNull('assigned_to')
             ->latest()
             ->get();
 
