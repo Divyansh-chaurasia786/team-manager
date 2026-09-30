@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\ContentShoot;
 use App\Models\ActivityLog;
+use App\Models\DriveFolder;
+use App\Models\DriveFile;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -453,6 +456,160 @@ class ContentShootTest extends TestCase
         $response2 = $this->actingAs($this->cameraPerson)->get(route('member.dashboard'));
         $response2->assertOk();
         $response2->assertSee('Move to Editing');
+    }
+
+    public function test_publish_stage_requires_either_url_or_video_file(): void
+    {
+        $shoot = ContentShoot::create([
+            'created_by'         => $this->tl->id,
+            'managing_member_id' => $this->cameraPerson->id,
+            'title'              => 'Stage 7 Requirement Check',
+            'platform'           => 'instagram',
+            'instagram_handle'   => '@ecofone_test',
+            'status'             => 'review',
+        ]);
+
+        // Attempting to complete stage 7 (published) without url or video fails
+        $response = $this->actingAs($this->tl)->patch(route('shoots.status.update', $shoot), [
+            'status' => 'published',
+        ]);
+
+        $response->assertSessionHasErrors('published_url');
+        $shoot->refresh();
+        $this->assertEquals('review', $shoot->status);
+
+        // Attempting via JSON request returns 422 with clear error
+        $jsonResponse = $this->actingAs($this->tl)->json('PATCH', route('shoots.status.update', $shoot), [
+            'status' => 'published',
+        ]);
+        $jsonResponse->assertStatus(422);
+        $jsonResponse->assertJsonValidationErrors('published_url');
+    }
+
+    public function test_publish_stage_succeeds_with_video_url(): void
+    {
+        $shoot = ContentShoot::create([
+            'created_by'         => $this->tl->id,
+            'managing_member_id' => $this->cameraPerson->id,
+            'title'              => 'Stage 7 With Live URL',
+            'platform'           => 'instagram',
+            'instagram_handle'   => '@ecofone_test',
+            'status'             => 'review',
+        ]);
+
+        $response = $this->actingAs($this->tl)->patch(route('shoots.status.update', $shoot), [
+            'status'        => 'published',
+            'published_url' => 'https://www.instagram.com/reel/C_test123/',
+        ]);
+
+        $response->assertSessionHas('success');
+        $shoot->refresh();
+        $this->assertEquals('published', $shoot->status);
+        $this->assertEquals('https://www.instagram.com/reel/C_test123/', $shoot->published_url);
+    }
+
+    public function test_publish_stage_succeeds_with_uploaded_video_and_syncs_to_drive(): void
+    {
+        $shoot = ContentShoot::create([
+            'created_by'         => $this->tl->id,
+            'managing_member_id' => $this->cameraPerson->id,
+            'title'              => 'Stage 7 With Video Upload',
+            'platform'           => 'instagram',
+            'instagram_handle'   => '@ecofone_test',
+            'status'             => 'review',
+        ]);
+
+        $videoFile = UploadedFile::fake()->create('reel_final_cut.mp4', 10240, 'video/mp4');
+
+        $response = $this->actingAs($this->tl)->patch(route('shoots.status.update', $shoot), [
+            'status' => 'published',
+            'video'  => $videoFile,
+        ]);
+
+        $response->assertSessionHas('success');
+        $shoot->refresh();
+
+        $this->assertEquals('published', $shoot->status);
+        $this->assertNotNull($shoot->drive_file_id);
+        $this->assertNotNull($shoot->drive_url);
+        $this->assertEquals($shoot->drive_url, $shoot->published_url);
+
+        // Verify DriveFile entry was created for this content shoot
+        $driveFile = DriveFile::where('content_shoot_id', $shoot->id)->first();
+        $this->assertNotNull($driveFile);
+        $this->assertEquals('reel_final_cut.mp4', $driveFile->original_name);
+        $this->assertEquals('video', $driveFile->file_type);
+        $this->assertEquals(now()->format('Y-m-d'), $driveFile->upload_date);
+    }
+
+    public function test_publish_stage_with_video_routes_to_selected_existing_drive_folder(): void
+    {
+        $folder = DriveFolder::create([
+            'name'            => 'Reel Masters',
+            'drive_folder_id' => 'mock_folder_123',
+            'created_by'      => $this->tl->id,
+        ]);
+
+        $shoot = ContentShoot::create([
+            'created_by'         => $this->tl->id,
+            'managing_member_id' => $this->cameraPerson->id,
+            'title'              => 'Stage 7 Folder Routing',
+            'platform'           => 'youtube',
+            'youtube_channel'    => '@ecofone_channel',
+            'status'             => 'review',
+        ]);
+
+        $videoFile = UploadedFile::fake()->create('youtube_short.mp4', 5000, 'video/mp4');
+
+        $response = $this->actingAs($this->tl)->patch(route('shoots.status.update', $shoot), [
+            'status'    => 'published',
+            'video'     => $videoFile,
+            'folder_id' => $folder->id,
+        ]);
+
+        $response->assertSessionHas('success');
+        $shoot->refresh();
+
+        $this->assertEquals('published', $shoot->status);
+        $this->assertEquals($folder->id, $shoot->published_folder_id);
+
+        $driveFile = DriveFile::where('content_shoot_id', $shoot->id)->first();
+        $this->assertNotNull($driveFile);
+        $this->assertEquals($folder->id, $driveFile->folder_id);
+    }
+
+    public function test_publish_stage_with_video_creates_new_drive_folder_on_the_fly(): void
+    {
+        $shoot = ContentShoot::create([
+            'created_by'         => $this->tl->id,
+            'managing_member_id' => $this->cameraPerson->id,
+            'title'              => 'Stage 7 Create Folder On The Fly',
+            'platform'           => 'both',
+            'instagram_handle'   => '@ecofone_both',
+            'status'             => 'review',
+        ]);
+
+        $videoFile = UploadedFile::fake()->create('client_promo.mp4', 8000, 'video/mp4');
+
+        $response = $this->actingAs($this->tl)->patch(route('shoots.status.update', $shoot), [
+            'status'          => 'published',
+            'video'           => $videoFile,
+            'new_folder_name' => 'Brand Campaign 2026',
+        ]);
+
+        $response->assertSessionHas('success');
+        $shoot->refresh();
+
+        $this->assertEquals('published', $shoot->status);
+
+        // Verify folder was created
+        $createdFolder = DriveFolder::where('name', 'Brand Campaign 2026')->first();
+        $this->assertNotNull($createdFolder);
+        $this->assertEquals($createdFolder->id, $shoot->published_folder_id);
+
+        $driveFile = DriveFile::where('content_shoot_id', $shoot->id)->first();
+        $this->assertNotNull($driveFile);
+        $this->assertEquals($createdFolder->id, $driveFile->folder_id);
     }
 }
 

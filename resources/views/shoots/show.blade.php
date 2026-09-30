@@ -6,6 +6,9 @@
 <div class="max-w-7xl mx-auto space-y-6 pb-28 lg:pb-16" x-data="{ 
     showPhaseEditModal: false, 
     showCrewAssignModal: false,
+    showPublishModal: false,
+    showNewFolderInput: false,
+    publishHasVideo: false,
     activePhaseTab: '{{ $shoot->status }}',
     teleprompterLarge: false,
     copyAlert: false,
@@ -352,10 +355,9 @@
                         @endphp
 
                         @if($shoot->canUpdateStatus(auth()->user()))
-                            <form method="POST" action="{{ route('shoots.status.update', $shoot) }}" class="m-0">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="{{ $key }}">
-                                <button type="submit" 
+                            @if($key === 'published')
+                                <button type="button" 
+                                        @click="showPublishModal = true"
                                         class="w-full text-left p-2.5 rounded-2xl transition flex items-center gap-3 cursor-pointer group {{ $isCurrent ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-600/20' : ($isPassed ? 'bg-indigo-50/60 text-indigo-950 hover:bg-indigo-50' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700') }}">
                                     
                                     <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs {{ $isCurrent ? 'bg-white/20 text-white' : ($isPassed ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200') }}">
@@ -378,7 +380,35 @@
                                         </div>
                                     </div>
                                 </button>
-                            </form>
+                            @else
+                                <form method="POST" action="{{ route('shoots.status.update', $shoot) }}" class="m-0">
+                                    @csrf @method('PATCH')
+                                    <input type="hidden" name="status" value="{{ $key }}">
+                                    <button type="submit" 
+                                            class="w-full text-left p-2.5 rounded-2xl transition flex items-center gap-3 cursor-pointer group {{ $isCurrent ? 'bg-indigo-600 text-white shadow-xs font-bold ring-2 ring-indigo-600/20' : ($isPassed ? 'bg-indigo-50/60 text-indigo-950 hover:bg-indigo-50' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700') }}">
+                                        
+                                        <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs {{ $isCurrent ? 'bg-white/20 text-white' : ($isPassed ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200') }}">
+                                            @if($isPassed)
+                                                <i data-lucide="check" class="w-4 h-4"></i>
+                                            @else
+                                                <i data-lucide="{{ $stage['icon'] }}" class="w-4 h-4"></i>
+                                            @endif
+                                        </div>
+
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-xs leading-tight flex items-center justify-between">
+                                                <span class="font-black">{{ $loop->iteration }}. {{ $stage['label'] }}</span>
+                                                @if($isCurrent)
+                                                    <span class="text-[9px] uppercase tracking-wider font-black bg-white/25 px-1.5 py-0.5 rounded text-white">Active</span>
+                                                @endif
+                                            </div>
+                                            <div class="text-[10px] mt-0.5 truncate font-medium {{ $isCurrent ? 'text-indigo-100' : 'text-slate-400' }}">
+                                                {{ $stage['capability'] }}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </form>
+                            @endif
                         @else
                             <div class="w-full text-left p-2.5 rounded-2xl flex items-center gap-3 opacity-90 {{ $isCurrent ? 'bg-indigo-600 text-white shadow-xs font-bold' : ($isPassed ? 'bg-indigo-50/60 text-indigo-950' : 'text-slate-400') }}">
                                 <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs {{ $isCurrent ? 'bg-white/20 text-white' : ($isPassed ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400') }}">
@@ -460,25 +490,35 @@
                         </span>
                     @elseif($shoot->status === 'review')
                         @if($shoot->canUpdateStatus(auth()->user()))
-                            <form method="POST" action="{{ route('shoots.status.update', $shoot) }}" class="m-0">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="status" value="published">
-                                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs">
-                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                                    <span>Approve &amp; Publish</span>
-                                </button>
-                            </form>
+                            <button type="button" @click="showPublishModal = true" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                                <span>Approve &amp; Publish</span>
+                            </button>
                         @else
                             <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-amber-500/20 text-amber-300 px-3.5 py-2 rounded-xl border border-amber-500/30">
                                 <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                                 <span>Awaiting Manager Sign-Off</span>
                             </span>
                         @endif
-                    @elseif($shoot->status === 'published' && $shoot->published_url)
-                        <a href="{{ $shoot->published_url }}" target="_blank" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
-                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            <span>Open Live Post</span>
-                        </a>
+                    @elseif($shoot->status === 'published')
+                        @if($shoot->published_url)
+                            <a href="{{ $shoot->published_url }}" target="_blank" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                <span>Open Live Post</span>
+                            </a>
+                        @endif
+                        @if($shoot->drive_url && $shoot->drive_url !== $shoot->published_url)
+                            <a href="{{ $shoot->drive_url }}" target="_blank" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+                                <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
+                                <span>Drive Video</span>
+                            </a>
+                        @endif
+                        @if($shoot->canUpdateStatus(auth()->user()))
+                            <button type="button" @click="showPublishModal = true" class="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer" title="Update published URL or video">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                                <span>Update Release</span>
+                            </button>
+                        @endif
                     @endif
 
                     <!-- Phase Edit Quick Trigger -->
@@ -585,18 +625,43 @@
                     </div>
                 @endif
 
-                <!-- Live Publishing URL Banner (if Published) -->
+                <!-- Live Publishing URL & Google Drive Video Banner (if Published) -->
                 @if($shoot->status === 'published')
-                    <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-xs">
-                        <div class="flex items-center gap-2 text-emerald-800 font-bold">
-                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
-                            <span>This reel is live on social media!</span>
+                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3 text-xs">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-2 text-emerald-800 font-bold">
+                                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                                <span class="text-sm">This reel is published and live!</span>
+                            </div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                @if($shoot->published_url)
+                                    <a href="{{ $shoot->published_url }}" target="_blank" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-2xs">
+                                        <span>Open Live Post</span>
+                                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                    </a>
+                                @endif
+                                @if($shoot->drive_url && $shoot->drive_url !== $shoot->published_url)
+                                    <a href="{{ $shoot->drive_url }}" target="_blank" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-2xs">
+                                        <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+                                        <span>View Drive Master</span>
+                                    </a>
+                                @endif
+                            </div>
                         </div>
-                        @if($shoot->published_url)
-                            <a href="{{ $shoot->published_url }}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-2xs">
-                                <span>Open Live Post</span>
-                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            </a>
+
+                        @if($shoot->publishedFolder || $shoot->drive_url)
+                            <div class="pt-2 border-t border-emerald-200/60 flex items-center gap-3 text-[11px] text-emerald-900 flex-wrap">
+                                @if($shoot->publishedFolder)
+                                    <span class="inline-flex items-center gap-1 font-semibold bg-white px-2.5 py-1 rounded-lg border border-emerald-300">
+                                        📁 Google Drive Folder: <strong>{{ $shoot->publishedFolder->name }}</strong>
+                                    </span>
+                                @endif
+                                @if($shoot->publishedDriveFile)
+                                    <span class="text-emerald-700">
+                                        Synced: {{ $shoot->publishedDriveFile->upload_date }} &bull; {{ $shoot->publishedDriveFile->original_name }}
+                                    </span>
+                                @endif
+                            </div>
                         @endif
                     </div>
                 @endif
@@ -673,7 +738,7 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('shoots.update', $shoot) }}" class="space-y-4">
+            <form method="POST" action="{{ route('shoots.update', $shoot) }}" enctype="multipart/form-data" class="space-y-4">
                 @csrf @method('PUT')
 
                 <!-- Title & Platform -->
@@ -748,6 +813,36 @@
                     </div>
                 </div>
 
+                <!-- Stage 7 Master Video Upload & Drive Folder (Optional on edit, mandatory if publishing without URL) -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
+                            <i data-lucide="video" class="w-3.5 h-3.5 text-rose-500"></i>
+                            <span>Master Video Upload (Google Drive)</span>
+                        </label>
+                        <input type="file" name="video" accept="video/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Google Drive Folder</label>
+                            <select name="folder_id" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs bg-white">
+                                <option value="">📁 Root / Auto-Date Folder</option>
+                                @if(isset($driveFolders))
+                                    @foreach($driveFolders as $df)
+                                        <option value="{{ $df->id }}" {{ $shoot->published_folder_id == $df->id ? 'selected' : '' }}>
+                                            📁 {{ $df->name }}
+                                        </option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Or Create New Folder</label>
+                            <input type="text" name="new_folder_name" placeholder="New folder name..." class="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs bg-white">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Preserve Platform Values -->
                 <input type="hidden" name="platform" value="{{ $shoot->platform }}">
 
@@ -764,6 +859,142 @@
 
         </div>
     </div>
+
+    <!-- =================================================================== -->
+    <!-- MODAL: COMPLETE STAGE 7 - PUBLISH & VIDEO RELEASE                   -->
+    <!-- =================================================================== -->
+    @if($shoot->canUpdateStatus(auth()->user()))
+    <div x-show="showPublishModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-3 sm:p-4">
+        <div @click.outside="showPublishModal = false" class="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-5">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-slate-900">Complete Stage 7: Publish &amp; Release</h3>
+                        <p class="text-xs text-slate-500">Publish release for "{{ $shoot->title }}"</p>
+                    </div>
+                </div>
+                <button @click="showPublishModal = false" type="button" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Mandatory Requirement Callout -->
+            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-900">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                <div>
+                    <strong class="font-bold">Mandatory Stage 7 Requirement:</strong>
+                    <span>You must provide either the <strong>Live Video URL</strong>, upload the <strong>Video File to Google Drive</strong>, or both.</span>
+                </div>
+            </div>
+
+            <form action="{{ route('shoots.status.update', $shoot) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="status" value="published">
+
+                <!-- 1. Live Video URL Input -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-800 uppercase flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="link" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            <span>1. Live Video URL (Instagram / YouTube / Other)</span>
+                        </span>
+                        <span class="text-[10px] font-semibold text-slate-400 lowercase">e.g. reel link</span>
+                    </label>
+                    <input type="url" 
+                           name="published_url" 
+                           id="publishModalUrlInput"
+                           value="{{ old('published_url', $shoot->published_url) }}" 
+                           placeholder="https://www.instagram.com/reel/... or https://youtu.be/..." 
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <p class="text-[11px] text-slate-400">Direct link to view this reel or video live on the platform.</p>
+                </div>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-3 text-[10px] font-black uppercase text-slate-400 bg-white px-2 tracking-widest">AND / OR</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <!-- 2. Master Video File Upload -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5">
+                        <i data-lucide="video" class="w-3.5 h-3.5 text-rose-600"></i>
+                        <span>2. Upload Master Video File (Auto-syncs to Google Drive)</span>
+                    </label>
+                    
+                    <div class="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-4 text-center transition bg-slate-50/50">
+                        <input type="file" 
+                               name="video" 
+                               id="publishVideoInput" 
+                               accept="video/*,.mp4,.mov,.mkv,.avi,.webm"
+                               @change="publishHasVideo = $event.target.files.length > 0"
+                               class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer">
+                        <p class="text-[10px] text-slate-400 mt-2">Supports MP4, MOV, MKV, WebM &bull; Unlimited file size &bull; Direct Google Drive upload</p>
+                    </div>
+                </div>
+
+                <!-- 3. Google Drive Folder Selection & Creation -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5">
+                            <i data-lucide="folder" class="w-4 h-4 text-amber-500"></i>
+                            <span>Google Drive Target Folder</span>
+                        </label>
+                        <button type="button" 
+                                @click="showNewFolderInput = !showNewFolderInput" 
+                                class="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                            <span x-text="showNewFolderInput ? 'Select Existing Folder' : '+ Create New Folder'">+ Create New Folder</span>
+                        </button>
+                    </div>
+
+                    <!-- Existing Folder Dropdown -->
+                    <div x-show="!showNewFolderInput" class="space-y-1">
+                        <select name="folder_id" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">📁 Drive Root (or automated date folder)</option>
+                            @if(isset($driveFolders))
+                                @foreach($driveFolders as $df)
+                                    <option value="{{ $df->id }}" {{ $shoot->published_folder_id == $df->id ? 'selected' : '' }}>
+                                        📁 {{ $df->name }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <p class="text-[10px] text-slate-400">Choose which folder in Google Drive this video should be stored inside.</p>
+                    </div>
+
+                    <!-- New Folder Input -->
+                    <div x-show="showNewFolderInput" x-cloak class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <input type="text" 
+                                   name="new_folder_name" 
+                                   placeholder="Enter new folder name (e.g., Client Reels, YouTube Masters)..." 
+                                   class="w-full px-3.5 py-2 rounded-xl border border-emerald-300 text-xs bg-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <p class="text-[10px] text-emerald-700 font-semibold">✨ This folder will be created on Google Drive automatically and the video will be uploaded inside it.</p>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showPublishModal = false" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                        <span>Confirm &amp; Complete Publish Stage</span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+    @endif
 
     <!-- =================================================================== -->
     <!-- MODAL: TL ASSIGN CREW                                               -->

@@ -34,6 +34,9 @@ class ContentShoot extends Model
         'status',
         'target_publish_date',
         'published_url',
+        'drive_file_id',
+        'drive_url',
+        'published_folder_id',
     ];
 
     protected $casts = [
@@ -44,6 +47,21 @@ class ContentShoot extends Model
     /**
      * Relationships
      */
+    public function publishedFolder()
+    {
+        return $this->belongsTo(DriveFolder::class, 'published_folder_id');
+    }
+
+    public function driveFiles()
+    {
+        return $this->hasMany(DriveFile::class, 'content_shoot_id');
+    }
+
+    public function publishedDriveFile()
+    {
+        return $this->hasOne(DriveFile::class, 'content_shoot_id')->latestOfMany();
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
